@@ -26,6 +26,7 @@ The Abstract Engine provides core functionality for any simulation without conta
 
 ## Project Structure
 
+```
 OOP_projectLibGDX-parent/
 ├── assets/                      # Game resources (images, sounds, fonts)
 ├── gradle/                      # Build automation files
@@ -47,6 +48,7 @@ OOP_projectLibGDX-parent/
 │       │       └── AbstractEngine.java
 │       └── logic/               # Logic Engine (Week 8-12)
 └── OOP_projectLibGDX-lwjgl3/    # Desktop launcher
+```
 
 ## Technologies Used
 
