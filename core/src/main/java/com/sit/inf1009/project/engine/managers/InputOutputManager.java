@@ -1,11 +1,18 @@
 package com.sit.inf1009.project.engine.managers;
 
+//LibGDX core utilities
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputProcessor;
+
+//LibGDX graphics and rendering
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+
+//LibGDX math utilities
 import com.badlogic.gdx.math.Vector2;
+
+//Java standard collections for data storage
 import java.util.HashMap;
 import java.util.Map;
 
