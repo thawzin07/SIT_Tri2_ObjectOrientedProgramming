@@ -1,23 +1,28 @@
 package com.sit.inf1009.project.engine.managers;
 
-//LibGDX core utilities
+// LibGDX core class - provides access to application resources and environment
 import com.badlogic.gdx.Gdx;
+
+// LibGDX input constants - defines keyboard and mouse button codes
 import com.badlogic.gdx.Input;
+
+// LibGDX input interface - allows handling of keyboard and mouse events
 import com.badlogic.gdx.InputProcessor;
 
-//LibGDX graphics and rendering
+// LibGDX graphics class - renders text on screen
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+
+// LibGDX graphics class - handles batch rendering of 2D graphics
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 
-//LibGDX math utilities
+// LibGDX math class - represents 2D vectors for position and direction
 import com.badlogic.gdx.math.Vector2;
 
-//Java standard collections for data storage
+// Java utility class - provides key-value pair storage with hash-based lookup
 import java.util.HashMap;
-import java.util.Map;
 
-//Declaration : Not yet implemented any method logic her 
-//Just put there what i can think of for now as a skeleton
+// Java utility interface - defines contract for key-value collections
+import java.util.Map;
 
 /**
  * InputOutputManager Class
@@ -29,24 +34,30 @@ import java.util.Map;
  * Uses Singleton pattern to ensure only one instance exists throughout the application.
  * Implements InputProcessor to handle libGDX input events.
  * 
- *@author INF1009 ThawZin Htun
-
+ * @author INF1009 Team Project
+ * @version 1.0
  */
 public class InputOutputManager implements InputProcessor {
     
     // Singleton pattern - only one InputOutputManager should exist
     private static InputOutputManager instance;
     
-    // Input tracking
+    // Input tracking - stores which keys are currently pressed
     private Map<Integer, Boolean> keysPressed;
+    
+    // Input tracking - stores which keys were just pressed this frame
     private Map<Integer, Boolean> keysJustPressed;
+    
+    // Current mouse position on screen
     private Vector2 mousePosition;
+    
+    // Mouse button states
     private boolean mouseLeftPressed;
     private boolean mouseRightPressed;
     private boolean mouseLeftJustPressed;
     private boolean mouseRightJustPressed;
     
-    // Output rendering
+    // Output rendering components
     private SpriteBatch batch;
     private BitmapFont font;
     
@@ -281,7 +292,8 @@ public class InputOutputManager implements InputProcessor {
      */
     @Override
     public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-        mousePosition.set(screenX, screenY);
+        // Update mouse position (convert Y coordinate as libGDX Y is from top)
+        mousePosition.set((float)screenX, (float)(Gdx.graphics.getHeight() - screenY));
         
         if (button == Input.Buttons.LEFT) {
             mouseLeftPressed = true;
@@ -328,7 +340,8 @@ public class InputOutputManager implements InputProcessor {
      */
     @Override
     public boolean touchDragged(int screenX, int screenY, int pointer) {
-        mousePosition.set((float)screenX, (float)screenY);
+        // Update mouse position (convert Y coordinate as libGDX Y is from top)
+        mousePosition.set((float)screenX, (float)(Gdx.graphics.getHeight() - screenY));
         return true;
     }
     
@@ -344,7 +357,8 @@ public class InputOutputManager implements InputProcessor {
      */
     @Override
     public boolean mouseMoved(int screenX, int screenY) {
-        mousePosition.set((float)screenX, (float)screenY);
+        // Update mouse position (convert Y coordinate as libGDX Y is from top)
+        mousePosition.set((float)screenX, (float)(Gdx.graphics.getHeight() - screenY));
         return true;
     }
     
