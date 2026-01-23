@@ -2,7 +2,7 @@
 
 Developed by 
 Thaw Zin Htun
-Team member 2 (please put your names) 
+Ee Chew Fong, Olivia
 Team member 3
 Team member 4 
 Team member 5 
