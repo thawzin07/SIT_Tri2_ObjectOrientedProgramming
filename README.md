@@ -3,7 +3,7 @@
 Developed by 
 Thaw Zin Htun
 Ee Chew Fong, Olivia
-Team member 3
+Gan Wei Yang
 Team member 4 
 Team member 5 
 Team member 6 
