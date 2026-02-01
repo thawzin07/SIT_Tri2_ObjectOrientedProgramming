@@ -81,8 +81,9 @@ OOP_projectLibGDX-parent/
    - File → Import → Git → Projects from Git → Clone URI
    - Enter repository URL: `https://github.com/thawzin07/SIT_Tri2_ObjectOrientedProgramming.git`
    - Enter your GitHub credentials
-   - Select the `main` branch
-   - Choose import as "Existing Gradle Project"
+   - Select the `main` branch, Select "When fetching a commit, also fetch its tags
+   - Create an Empty folder to import the Project files to, and select it within directory, click next
+   - Choose "Import as general project" and click finish
 
 2. Build the project:
    - Right-click on project → Gradle → Refresh Gradle Project
