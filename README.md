@@ -4,9 +4,9 @@ Developed by
 Thaw Zin Htun
 Ee Chew Fong, Olivia
 Gan Wei Yang
-Team member 4 
-Team member 5 
-Team member 6 
+Sreekantom Sai Saketh
+Mohamad Danish Bin Mohammad
+Gerome Wong Jun Hong
 
 ## Project Overview
 This project develops a simulation environment using object-oriented programming principles in Java with libGDX framework. The project is divided into two main components:
