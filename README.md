@@ -80,10 +80,14 @@ OOP_projectLibGDX-parent/
 1. Clone the repository in Eclipse:
    - File → Import → Git → Projects from Git → Clone URI
    - Enter repository URL: `https://github.com/thawzin07/SIT_Tri2_ObjectOrientedProgramming.git`
-   - Enter your GitHub credentials
+   - Enter your GitHub credentials (Use your Personal Access Token as the password if you have one)
    - Select the `main` branch, Select "When fetching a commit, also fetch its tags
    - Create an Empty folder to import the Project files to, and select it within directory, click next
    - Choose "Import as general project" and click finish
+   - When you run the project it should say "This selection cannot be launched, there are no recent launches."
+   - Go to path "/OOP_projectLibGDX-lwjgl3/src/main/java/com/sit/inf1009/project/lwjgl3/Lwjgl3Launcher.java"
+   - Right click on Lwjgl3Launcher.java and select run as Java Application
+   - If you see a libGDX Default screen open up this means you have setup the project successfully
 
 2. Build the project:
    - Right-click on project → Gradle → Refresh Gradle Project
@@ -113,7 +117,7 @@ To push/pull code, you need a GitHub personal access token:
 2. Create your personal branch:
    - Right-click on project → **Team** → **Switch To** → **New Branch**
    - Name it: `yourname-dev` (e.g., `john-dev`, `mary-dev`)
-   - Check **"Checkout new branch"**
+   - Check **"Checkout new branch"** and **"Configure Upstream for push and pull"** 
    - Click **Finish**
 
 ### Daily Workflow
