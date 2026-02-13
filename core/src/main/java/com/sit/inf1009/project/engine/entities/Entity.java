@@ -2,12 +2,23 @@ package com.sit.inf1009.project.engine.entities;
 
 import com.badlogic.gdx.graphics.Texture;
 
-public class Entity {
+public abstract class Entity {
 	private double xPosition;
 	private double yPosition;
 	private double rotation;
 	private boolean visible;
 	private Texture texture;
+	private int id;
+	
+	public Entity() {
+	}
+	
+	public Entity(double x, double y, double rotate, boolean visible) {
+		this.xPosition = x;
+		this.yPosition = y;
+		this.rotation = rotate;
+		this.visible = visible;
+	}
 
 	// xPosition Methods
 	public void setX(double x) {
@@ -55,4 +66,12 @@ public class Entity {
 		return texture;
 	}
 	
+	// id Methods
+	public void setID(int id) {
+		this.id = id;
+	}
+
+	public int getID() {
+		return this.id;
+	}
 }
