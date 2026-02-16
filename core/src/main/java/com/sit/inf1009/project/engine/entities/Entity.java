@@ -13,11 +13,12 @@ public abstract class Entity {
 	public Entity() {
 	}
 	
-	public Entity(double x, double y, double rotate, boolean visible) {
-		this.xPosition = x;
-		this.yPosition = y;
-		this.rotation = rotate;
-		this.visible = visible;
+	public Entity(int id) {
+		this.id = id;
+		this.xPosition = 0;
+		this.yPosition = 0;
+		this.rotation = 0;
+		this.visible = true;
 	}
 
 	// xPosition Methods
@@ -72,6 +73,6 @@ public abstract class Entity {
 	}
 
 	public int getID() {
-		return this.id;
+		return id;
 	}
 }
