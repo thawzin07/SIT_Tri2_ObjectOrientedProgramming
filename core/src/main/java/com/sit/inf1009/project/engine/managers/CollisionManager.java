@@ -120,8 +120,8 @@ public class CollisionManager {
      * Check if two entities are colliding using circle collision detection
      */
     private boolean isColliding(CollidableEntity a, CollidableEntity b) {
-        double dx = a.getXPosition() - b.getXPosition();
-        double dy = a.getYPosition() - b.getYPosition();
+        double dx = a.getX() - b.getX();
+        double dy = a.getY() - b.getY();
 
         double r = a.getCollisionRadius() + b.getCollisionRadius();
         double dist2 = dx * dx + dy * dy;
