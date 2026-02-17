@@ -3,7 +3,6 @@ package com.sit.inf1009.project.engine.managers;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import com.sit.inf1009.project.engine.entities.CollidableEntity;
@@ -84,9 +83,6 @@ public class CollisionManager {
                 }
             }
         }
-
-        // Remove entities with collision disabled (destroyed entities)
-        removeDisabledEntities();
     }
 
     /**
@@ -135,18 +131,5 @@ public class CollisionManager {
         int lo = Math.min(idA, idB);
         int hi = Math.max(idA, idB);
         return lo + ":" + hi;
-    }
-
-    /**
-     * Remove entities that have collision disabled (destroyed)
-     */
-    private void removeDisabledEntities() {
-        Iterator<CollidableEntity> iterator = collidables.iterator();
-        while (iterator.hasNext()) {
-            CollidableEntity entity = iterator.next();
-            if (entity != null && !entity.isCollisionEnabled()) {
-                iterator.remove();
-            }
-        }
     }
 }
