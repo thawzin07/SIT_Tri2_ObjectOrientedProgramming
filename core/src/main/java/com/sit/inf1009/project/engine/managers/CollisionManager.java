@@ -25,7 +25,7 @@ import com.sit.inf1009.project.engine.entities.CollidableEntity;
  * - int getId()
  * - boolean isCollisionEnabled()
  * - double getCollisionRadius()
- * - double getXPosition(), double getYPosition()
+ * - double getX(), double getY()
  * - void onCollision(CollidableInterface other)
  */
 public class CollisionManager {
