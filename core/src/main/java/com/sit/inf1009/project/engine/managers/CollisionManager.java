@@ -31,11 +31,10 @@ import com.sit.inf1009.project.engine.entities.CollidableEntity;
 public class CollisionManager {
 
     private final List<CollidableEntity> collidables;
-    private final Set<String> processedPairs;
+    private final Set<String> processedPairs = new HashSet<>();
 
     public CollisionManager() {
         this.collidables = new ArrayList<>();
-        this.processedPairs = new HashSet<>();
     }
 
     /**
