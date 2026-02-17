@@ -36,13 +36,7 @@ public class CollidableEntity extends Entity implements CollidableInterface {
 
     @Override
     public void onCollision(CollidableInterface other) {
-        // Default implementation destroyed entity. Subclasses can override this method to define specific collision behavior.
-        this.collisionEnabled = false;  // Disable collision for this object
-        
-        // If the other object is also a CollidableEntity, disable its collision too
-        if (other instanceof CollidableEntity) {
-            ((CollidableEntity) other).setCollisionEnabled(false);
-        }
+        // Default implementation does nothing.
     }
 
     public int getId() {
