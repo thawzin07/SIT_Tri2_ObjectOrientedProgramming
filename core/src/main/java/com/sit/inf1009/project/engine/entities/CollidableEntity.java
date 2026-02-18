@@ -7,11 +7,9 @@ public class CollidableEntity extends Entity implements CollidableInterface {
 
     private double collisionRadius;
     private boolean collisionEnabled;
-    private int id;
 
     public CollidableEntity(int id, double radius) {
         super();
-        this.id = id;
         setCollisionRadius(radius);
         this.collisionEnabled = true;
     }
@@ -39,9 +37,5 @@ public class CollidableEntity extends Entity implements CollidableInterface {
     public void onCollision(CollidableInterface other) {
         // Default implementation: simply print collision info and beep
         Toolkit.getDefaultToolkit().beep(); // Example: beep on collision
-    }
-
-    public int getId() {
-        return id;
     }
 }
