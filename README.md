@@ -1,12 +1,13 @@
 # SIT Tri2 Object-Oriented Programming - Team Project
 
-Developed by 
-Ee Chew Fong Olivia,
-Gan Wei Yang,
-Gerome Wong Jun Hong,
-Mohamad Danish Bin Mohammad,
-Sreekantom Sai Saketh,
-Thaw Zin Htun
+**Developed by:**
+
+- Thaw Zin Htun
+- Ee Chew Fong Olivia  
+- Gan Wei Yang  
+- Gerome Wong Jun Hong  
+- Mohamad Danish Bin Mohammad  
+- Sreekantom Sai Saketh  
 
 ## Project Overview
 This project develops a simulation environment using object-oriented programming principles in Java with libGDX framework. The project is divided into two main components:
