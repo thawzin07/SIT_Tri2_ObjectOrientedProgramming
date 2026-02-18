@@ -5,6 +5,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import com.badlogic.gdx.Input;
 import com.sit.inf1009.project.engine.entities.CollidableEntity;
 
 /**
@@ -31,9 +33,15 @@ public class CollisionManager {
 
     private final List<CollidableEntity> collidables;
     private final Set<String> processedPairs = new HashSet<>();
+    private final InputOutputManager ioManager; // For triggering collision sound
 
     public CollisionManager() {
+        this(null); // Allow null for ioManager if collision sound is not needed
+    }
+
+    public CollisionManager(InputOutputManager ioManager) {
         this.collidables = new ArrayList<>();
+        this.ioManager = ioManager;
     }
 
     /**
@@ -77,6 +85,12 @@ public class CollisionManager {
 
                 if (isColliding(a, b)) {
                     System.out.println("Collision detected between Entity " + a.getID() + " and Entity " + b.getID());
+
+                    // Trigger collision sound effect via IOManager
+                    if(ioManager != null) {
+                        ioManager.sendOutput(new IOEvent(IOEvent.Type.SOUND_PLAY, "collision"));
+                    }
+
                     // Trigger collision callbacks
                     a.onCollision(b);
                     b.onCollision(a);
