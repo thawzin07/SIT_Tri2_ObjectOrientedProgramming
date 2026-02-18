@@ -12,11 +12,11 @@ public class MovementEntity implements MovementInterface {
     private double velocityX;
     private double velocityY;
 
-    private double speed;
-    private boolean isPlayerControlled;
+    private final double speed;
+    private final boolean isPlayerControlled;
 
-    private float width;
-    private float height;
+    private final float width;
+    private final float height;
 
     public MovementEntity(double x, double y,
                           double speed,
@@ -37,6 +37,8 @@ public class MovementEntity implements MovementInterface {
 
         if (isPlayerControlled) {
             playerMovement();
+        } else {
+            aiMovement();
         }
 
         x += velocityX * dt;
@@ -45,15 +47,21 @@ public class MovementEntity implements MovementInterface {
         float screenWidth = Gdx.graphics.getWidth();
         float screenHeight = Gdx.graphics.getHeight();
 
-        // Clamp X
-        if (x < 0) x = 0;
-        if (x > screenWidth - width)
-            x = screenWidth - width;
+        // Clamp / wrap behavior
+        if (isPlayerControlled) {
+            // Bucket: clamp within screen
+            if (x < 0) x = 0;
+            if (x > screenWidth - width) x = screenWidth - width;
 
-        // Clamp Y
-        if (y < 0) y = 0;
-        if (y > screenHeight - height)
-            y = screenHeight - height;
+            if (y < 0) y = 0;
+            if (y > screenHeight - height) y = screenHeight - height;
+        } else {
+            // Droplet: when it hits bottom, respawn at top with random X
+            if (y <= 0) {
+                y = screenHeight - height;
+                x = Math.random() * (screenWidth - width);
+            }
+        }
     }
 
     private void playerMovement() {
@@ -64,6 +72,12 @@ public class MovementEntity implements MovementInterface {
         if (Gdx.input.isKeyPressed(Input.Keys.S)) velocityY = -speed;
         if (Gdx.input.isKeyPressed(Input.Keys.A)) velocityX = -speed;
         if (Gdx.input.isKeyPressed(Input.Keys.D)) velocityX = speed;
+    }
+
+    private void aiMovement() {
+        // Simple droplet AI: always fall down
+        velocityX = 0;
+        velocityY = -speed;
     }
 
     @Override
@@ -80,4 +94,6 @@ public class MovementEntity implements MovementInterface {
 
     public float getX() { return (float) x; }
     public float getY() { return (float) y; }
+
+    public boolean isPlayerControlled() { return isPlayerControlled; }
 }
