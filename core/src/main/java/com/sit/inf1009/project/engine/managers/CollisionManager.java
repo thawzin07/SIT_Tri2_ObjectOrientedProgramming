@@ -76,6 +76,7 @@ public class CollisionManager {
                 if (processedPairs.contains(key)) continue;
 
                 if (isColliding(a, b)) {
+                    System.out.println("Collision detected between Entity " + a.getId() + " and Entity " + b.getId());
                     // Trigger collision callbacks
                     a.onCollision(b);
                     b.onCollision(a);
