@@ -8,7 +8,7 @@ public class CollidableEntity extends Entity implements CollidableInterface {
     private double collisionRadius;
     private boolean collisionEnabled;
 
-    public CollidableEntity(int id, double radius) {
+    public CollidableEntity(double radius) {
         super();
         setCollisionRadius(radius);
         this.collisionEnabled = true;
