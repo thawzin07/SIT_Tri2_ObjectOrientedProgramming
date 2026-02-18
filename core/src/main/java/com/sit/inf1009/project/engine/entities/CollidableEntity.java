@@ -1,6 +1,7 @@
 package com.sit.inf1009.project.engine.entities;
 
 import com.sit.inf1009.project.engine.interfaces.CollidableInterface;
+import java.awt.Toolkit;
 
 public class CollidableEntity extends Entity implements CollidableInterface {
 
@@ -36,7 +37,8 @@ public class CollidableEntity extends Entity implements CollidableInterface {
 
     @Override
     public void onCollision(CollidableInterface other) {
-        // Default implementation does nothing.
+        // Default implementation: simply print collision info and beep
+        Toolkit.getDefaultToolkit().beep(); // Example: beep on collision
     }
 
     public int getId() {
