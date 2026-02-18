@@ -72,11 +72,11 @@ public class CollisionManager {
                 CollidableEntity b = collidables.get(j);
                 if (b == null || !b.isCollisionEnabled()) continue;
 
-                String key = makePairKey(a.getId(), b.getId());
+                String key = makePairKey(a.getID(), b.getID());
                 if (processedPairs.contains(key)) continue;
 
                 if (isColliding(a, b)) {
-                    System.out.println("Collision detected between Entity " + a.getId() + " and Entity " + b.getId());
+                    System.out.println("Collision detected between Entity " + a.getID() + " and Entity " + b.getID());
                     // Trigger collision callbacks
                     a.onCollision(b);
                     b.onCollision(a);
