@@ -1,44 +1,42 @@
 package com.sit.inf1009.project.engine.core.handlers;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.InputAdapter;
 import com.sit.inf1009.project.engine.managers.IOEvent;
 import com.sit.inf1009.project.engine.managers.InputOutputManager;
 
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
-import javax.swing.JComponent;
-
 /**
- * Captures raw keyboard events and dispatches KEY_PRESSED / KEY_RELEASED.
- * No key interpretation — raw KeyEvent is the payload.
+ * Captures LibGDX keyboard events and dispatches KEY_PRESSED / KEY_RELEASED.
+ * Payload is the LibGDX keycode (int).
  */
 public class KeyboardInputHandler extends AbstractInputHandler {
 
-    private final JComponent target;
-    private final KeyAdapter keyAdapter;
+    private final InputAdapter processor;
 
-    public KeyboardInputHandler(InputOutputManager ioManager, JComponent target) {
+    public KeyboardInputHandler(InputOutputManager ioManager) {
         super(ioManager);
-        this.target = target;
 
-        this.keyAdapter = new KeyAdapter() {
+        this.processor = new InputAdapter() {
             @Override
-            public void keyPressed(KeyEvent e) {
-                dispatch(new IOEvent(IOEvent.Type.KEY_PRESSED, e));
+            public boolean keyDown(int keycode) {
+                dispatch(new IOEvent(IOEvent.Type.KEY_PRESSED, keycode));
+                return true;
             }
 
             @Override
-            public void keyReleased(KeyEvent e) {
-                dispatch(new IOEvent(IOEvent.Type.KEY_RELEASED, e));
+            public boolean keyUp(int keycode) {
+                dispatch(new IOEvent(IOEvent.Type.KEY_RELEASED, keycode));
+                return true;
             }
         };
 
-        target.addKeyListener(this.keyAdapter);
-        target.setFocusable(true);
-        target.requestFocusInWindow();
+        Gdx.input.setInputProcessor(processor);
     }
 
     @Override
     public void detach() {
-        target.removeKeyListener(keyAdapter);
+        if (Gdx.input.getInputProcessor() == processor) {
+            Gdx.input.setInputProcessor(null);
+        }
     }
 }
