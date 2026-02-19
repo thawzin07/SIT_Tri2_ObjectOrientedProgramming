@@ -43,8 +43,8 @@ public class CollisionManager {
 
                 if (isColliding(a, ca, b, cb)) {
                     // 3) On collision: queue deletions (SAFE)
-                    entityManager.queueRemove(a);
-                    entityManager.queueRemove(b);
+                	if (ca.isRemoveOnCollision()) entityManager.queueRemove(a);
+                	if (cb.isRemoveOnCollision()) entityManager.queueRemove(b);
 
                     // Optional: call component hooks (effects only, not deletions)
                     ca.onCollision(cb);
