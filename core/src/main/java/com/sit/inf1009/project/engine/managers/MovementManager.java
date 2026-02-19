@@ -1,8 +1,7 @@
 package com.sit.inf1009.project.engine.managers;
-
-import com.sit.inf1009.project.engine.entities.Entity;
 import java.util.ArrayList;
 import java.util.List;
+import com.sit.inf1009.project.engine.entities.Entity;
 
 public class MovementManager {
     private final List<Entity> movables = new ArrayList<>();
@@ -17,7 +16,9 @@ public class MovementManager {
 
     public void updateAll(double dt) {
         for (Entity e : movables) {
-            e.update(dt);
+            if (e == null) continue;
+            if (e.getMovement() == null) continue;
+            e.getMovement().update(e, dt);
         }
     }
 

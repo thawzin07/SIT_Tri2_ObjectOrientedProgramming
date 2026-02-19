@@ -1,22 +1,24 @@
 package com.sit.inf1009.project.engine.entities;
-
 import com.badlogic.gdx.graphics.Texture;
-import com.sit.inf1009.project.engine.entities.MovementComponent;
+import com.sit.inf1009.project.engine.components.MovementComponent;
+import com.sit.inf1009.project.engine.components.CollidableComponent;
 
-public abstract class Entity {
+public class Entity {
     private double xPosition;
     private double yPosition;
     private double rotation;
     private boolean visible;
     private Texture texture;
     private int id;
-
     private MovementComponent movement;
-
-    public Entity() {}
+    private CollidableComponent collidable;
 
     public Entity(int id) {
+        this();          // call the default constructor so you don’t repeat code
         this.id = id;
+    }
+    
+    public Entity() {
         this.xPosition = 0;
         this.yPosition = 0;
         this.rotation = 0;
@@ -48,6 +50,10 @@ public abstract class Entity {
     // Movement
     public void setMovement(MovementComponent movement) { this.movement = movement; }
     public MovementComponent getMovement() { return movement; }
+    
+    // Collisions
+    public void setCollidable(CollidableComponent collidable) { this.collidable = collidable; }
+    public CollidableComponent getCollidable() { return collidable; }
 
     public void update(double dt) {
         if (movement != null) movement.update(this, dt);

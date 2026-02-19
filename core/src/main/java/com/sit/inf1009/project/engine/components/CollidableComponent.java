@@ -1,19 +1,17 @@
-package com.sit.inf1009.project.engine.entities;
-
+package com.sit.inf1009.project.engine.components;
 import com.sit.inf1009.project.engine.interfaces.CollidableInterface;
 
-public class CollidableEntity extends Entity implements CollidableInterface {
+public class CollidableComponent implements CollidableInterface {
 
     private double collisionRadius;
     private boolean collisionEnabled;
 
-    public CollidableEntity(int id, double radius) {
-        super(id);
+    public CollidableComponent(double radius, boolean collisionEnabled) 
+    {
         setCollisionRadius(radius);
-        this.collisionEnabled = true;
+        this.collisionEnabled = collisionEnabled;
     }
 
-    @Override
     public double getCollisionRadius() {
         return collisionRadius;
     }
@@ -23,7 +21,6 @@ public class CollidableEntity extends Entity implements CollidableInterface {
         this.collisionRadius = radius;
     }
 
-    @Override
     public boolean isCollisionEnabled() {
         return collisionEnabled;
     }
@@ -32,7 +29,6 @@ public class CollidableEntity extends Entity implements CollidableInterface {
         this.collisionEnabled = collisionEnabled;
     }
 
-    @Override
     public void onCollision(CollidableInterface other) {
         // Default behavior: do nothing. Subclasses can override this.
     }

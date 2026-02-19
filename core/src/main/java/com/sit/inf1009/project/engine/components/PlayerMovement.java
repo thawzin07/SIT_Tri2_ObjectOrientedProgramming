@@ -1,7 +1,7 @@
-package com.sit.inf1009.project.engine.entities;
-
+package com.sit.inf1009.project.engine.components;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input.Keys;
+import com.sit.inf1009.project.engine.entities.Entity;
 import com.sit.inf1009.project.engine.interfaces.IOListener;
 import com.sit.inf1009.project.engine.managers.IOEvent;
 import com.sit.inf1009.project.engine.managers.InputOutputManager;
@@ -12,7 +12,8 @@ public class PlayerMovement extends MovementComponent implements IOListener {
 
     public PlayerMovement(InputOutputManager ioManager, double speed) {
         super(speed);
-        ioManager.addGlobalListener(this); // IMPORTANT: register to receive events
+        ioManager.addListener(IOEvent.Type.KEY_PRESSED, this);
+        ioManager.addListener(IOEvent.Type.KEY_RELEASED, this);
     }
 
     @Override
@@ -27,11 +28,22 @@ public class PlayerMovement extends MovementComponent implements IOListener {
         if (keycode == null) return;
 
         switch (keycode) {
-            case Keys.W -> w = pressed;
-            case Keys.A -> a = pressed;
-            case Keys.S -> s = pressed;
-            case Keys.D -> d = pressed;
-        }
+        case Keys.W:
+            w = pressed;
+            break;
+        case Keys.A:
+            a = pressed;
+            break;
+        case Keys.S:
+            s = pressed;
+            break;
+        case Keys.D:
+            d = pressed;
+            break;
+        default:
+            break;
+    }
+
     }
 
     @Override
@@ -56,12 +68,17 @@ public class PlayerMovement extends MovementComponent implements IOListener {
         int screenWidth = Gdx.graphics.getWidth();
         int screenHeight = Gdx.graphics.getHeight();
 
-        float size = 30f;
-        if (e instanceof PlayerSquareEntity p) size = p.getSize();
+        float width = 30f;
+        float height = 30f;
+
+        if (e.getTexture() != null) {
+            width = e.getTexture().getWidth();
+            height = e.getTexture().getHeight();
+        }
 
         // clamp inside screen
-        newX = Math.max(0, Math.min(newX, screenWidth - size));
-        newY = Math.max(0, Math.min(newY, screenHeight - size));
+        newX = Math.max(0, Math.min(newX, screenWidth - width));
+        newY = Math.max(0, Math.min(newY, screenHeight - height));
 
         e.setXPosition(newX);
         e.setYPosition(newY);

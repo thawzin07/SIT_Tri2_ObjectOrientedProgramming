@@ -1,150 +1,86 @@
 package com.sit.inf1009.project.engine.managers;
-
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+import com.sit.inf1009.project.engine.components.CollidableComponent;
+import com.sit.inf1009.project.engine.entities.Entity;
 
-import com.badlogic.gdx.Input;
-import com.sit.inf1009.project.engine.entities.CollidableEntity;
 
-/**
- * CollisionManager (EXACT per UML)
- *
- * - collidables : List<CollidableEntity>
- * - processedPairs : Set<String>
- *
- * + add(collidable: CollidableEntity) : void
- * + remove(collidable: CollidableEntity) : void
- * + update() : void
- * + getCollidables() : List<CollidableEntity>
- * + getCount() : int
- * + clear() : void
- *
- * Assumes CollidableEntity supports:
- * - int getId()
- * - boolean isCollisionEnabled()
- * - double getCollisionRadius()
- * - double getX(), double getY()
- * - void onCollision(CollidableInterface other)
- */
 public class CollisionManager {
 
-    private final List<CollidableEntity> collidables;
-    private final Set<String> processedPairs = new HashSet<>();
-    private final InputOutputManager ioManager; // For triggering collision sound
+    private final EntityManager entityManager;
+    // Optional hook: keep if you already have it. Otherwise delete both lines.
+    private final InputOutputManager ioManager;
 
-    public CollisionManager() {
-        this(null); // Allow null for ioManager if collision sound is not needed
+    public CollisionManager(EntityManager entityManager, InputOutputManager ioManager) {
+        if (entityManager == null) throw new IllegalArgumentException("EntityManager cannot be null");
+        this.entityManager = entityManager;
+        this.ioManager = ioManager; // can be null if you want sound optional
     }
 
-    public CollisionManager(InputOutputManager ioManager) {
-        this.collidables = new ArrayList<>();
-        this.ioManager = ioManager;
-    }
-
-    /**
-     * Add a collidable entity to the manager
-     */
-    public void add(CollidableEntity collidable) {
-        if (collidable == null) {
-            throw new IllegalArgumentException("collidable cannot be null");
-        }
-        if (!collidables.contains(collidable)) {
-            collidables.add(collidable);
-        }
-    }
-
-    /**
-     * Remove a collidable entity from the manager
-     */
-    public void remove(CollidableEntity collidable) {
-        if (collidable == null) return;
-        collidables.remove(collidable);
-    }
-
-    /**
-     * Update collision detection and handle collisions
-     * Also removes entities that have collision disabled (destroyed)
-     */
     public void update() {
-        processedPairs.clear();
+        // 1) Gather collidable entities (snapshot list to avoid issues)
+        List<Entity> collidableEntities = new ArrayList<>();
+        for (Entity e : entityManager.getEntities()) {
+            CollidableComponent c = e.getCollidable();
+            if (c != null && c.isCollisionEnabled()) {
+                collidableEntities.add(e);
+            }
+        }
 
-        // Process collisions
-        for (int i = 0; i < collidables.size(); i++) {
-            CollidableEntity a = collidables.get(i);
-            if (a == null || !a.isCollisionEnabled()) continue;
+        int n = collidableEntities.size();
+        if (n < 2) return;
 
-            for (int j = i + 1; j < collidables.size(); j++) {
-                CollidableEntity b = collidables.get(j);
-                if (b == null || !b.isCollisionEnabled()) continue;
+        // 2) Check each pair once
+        for (int i = 0; i < n; i++) {
+            Entity a = collidableEntities.get(i);
+            CollidableComponent ca = a.getCollidable();
+            if (ca == null || !ca.isCollisionEnabled()) continue;
 
-                String key = makePairKey(a.getID(), b.getID());
-                if (processedPairs.contains(key)) continue;
+            for (int j = i + 1; j < n; j++) {
+                Entity b = collidableEntities.get(j);
+                CollidableComponent cb = b.getCollidable();
+                if (cb == null || !cb.isCollisionEnabled()) continue;
 
-                if (isColliding(a, b)) {
-                    System.out.println("Collision detected between Entity " + a.getID() + " and Entity " + b.getID());
+                if (isColliding(a, ca, b, cb)) {
+                    // 3) On collision: queue deletions (SAFE)
+                    entityManager.queueRemove(a);
+                    entityManager.queueRemove(b);
 
-                    // Trigger collision sound effect via IOManager
-                    if(ioManager != null) {
-                        ioManager.sendOutput(new IOEvent(IOEvent.Type.SOUND_PLAY, "collision"));
+                    // Optional: call component hooks (effects only, not deletions)
+                    ca.onCollision(cb);
+                    cb.onCollision(ca);
+
+                    if (ioManager != null) {
+                        ioManager.sendOutput(new IOEvent(IOEvent.Type.SOUND_PLAY, "Droplet"));
                     }
 
-                    // Trigger collision callbacks
-                    a.onCollision(b);
-                    b.onCollision(a);
-                    processedPairs.add(key);
+                    // Since both disappear, no need to check more pairs with a/b
+                    break;
                 }
             }
         }
     }
 
-    /**
-     * Get an unmodifiable list of all collidables
-     */
-    public List<CollidableEntity> getCollidables() {
-        return Collections.unmodifiableList(collidables);
+    private boolean isColliding(Entity a, CollidableComponent ca, Entity b, CollidableComponent cb) {
+        double dx = a.getXPosition() - b.getXPosition();
+        double dy = a.getYPosition() - b.getYPosition();
+
+        double r = ca.getCollisionRadius() + cb.getCollisionRadius();
+        // Compare squared distance to avoid sqrt (faster + clean)
+        return (dx * dx + dy * dy) <= (r * r);
     }
 
-    /**
-     * Get the count of collidable entities
-     */
+    // Debug helper
     public int getCount() {
-        return collidables.size();
+        int count = 0;
+        for (Entity e : entityManager.getEntities()) {
+            if (e.getCollidable() != null) count++;
+        }
+        return count;
     }
 
-    /**
-     * Clear all collidables and processed pairs
-     */
     public void clear() {
-        collidables.clear();
-        processedPairs.clear();
-    }
-
-    // -------------------------
-    // Helpers (private)
-    // -------------------------
-
-    /**
-     * Check if two entities are colliding using circle collision detection
-     */
-    private boolean isColliding(CollidableEntity a, CollidableEntity b) {
-        double dx = a.getX() - b.getX();
-        double dy = a.getY() - b.getY();
-
-        double r = a.getCollisionRadius() + b.getCollisionRadius();
-        double dist2 = dx * dx + dy * dy;
-
-        return dist2 <= (r * r);
-    }
-
-    /**
-     * Create a unique key for a pair of entities
-     */
-    private String makePairKey(int idA, int idB) {
-        int lo = Math.min(idA, idB);
-        int hi = Math.max(idA, idB);
-        return lo + ":" + hi;
+        // Nothing stored internally right now.
+        // Keeping method in case your UML expects it.
     }
 }
