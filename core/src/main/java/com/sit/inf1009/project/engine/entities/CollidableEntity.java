@@ -1,17 +1,14 @@
 package com.sit.inf1009.project.engine.entities;
 
 import com.sit.inf1009.project.engine.interfaces.CollidableInterface;
-import java.awt.Toolkit;
 
 public class CollidableEntity extends Entity implements CollidableInterface {
 
     private double collisionRadius;
     private boolean collisionEnabled;
-    private int id;
 
-    public CollidableEntity(int id, double radius) {
+    public CollidableEntity(double radius) {
         super();
-        this.id = id;
         setCollisionRadius(radius);
         this.collisionEnabled = true;
     }
@@ -37,11 +34,6 @@ public class CollidableEntity extends Entity implements CollidableInterface {
 
     @Override
     public void onCollision(CollidableInterface other) {
-        // Default implementation: simply print collision info and beep
-        Toolkit.getDefaultToolkit().beep(); // Example: beep on collision
-    }
-
-    public int getId() {
-        return id;
+        // Default behavior: do nothing. Subclasses can override this.
     }
 }
