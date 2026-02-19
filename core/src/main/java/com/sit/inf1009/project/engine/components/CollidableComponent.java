@@ -5,6 +5,7 @@ public class CollidableComponent implements CollidableInterface {
 
     private double collisionRadius;
     private boolean collisionEnabled;
+    private boolean removeOnCollision = true;
 
     public CollidableComponent(double radius, boolean collisionEnabled) 
     {
@@ -32,4 +33,12 @@ public class CollidableComponent implements CollidableInterface {
     public void onCollision(CollidableInterface other) {
         // Default behavior: do nothing. Subclasses can override this.
     }
+    public boolean isRemoveOnCollision() {
+        return removeOnCollision;
+    }
+
+    public void setRemoveOnCollision(boolean removeOnCollision) {
+        this.removeOnCollision = removeOnCollision;
+    }
+
 }
