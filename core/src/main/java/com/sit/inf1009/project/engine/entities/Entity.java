@@ -1,6 +1,7 @@
 package com.sit.inf1009.project.engine.entities;
 
 import com.badlogic.gdx.graphics.Texture;
+import com.sit.project.engine.render.RenderComponent;
 
 public abstract class Entity {
 	private double xPosition;
@@ -8,12 +9,15 @@ public abstract class Entity {
 	private double rotation;
 	private boolean visible;
 	private Texture texture;
-	private int id;
+	private RenderComponent renderer;
+	private final int id;
 	
 	public Entity() {
+		this.id = 0;
 	}
 	
-	public Entity(int id) {
+	// constructor, id is set here permanently
+	protected Entity(int id) {
 		this.id = id;
 		this.xPosition = 0;
 		this.yPosition = 0;
@@ -68,11 +72,15 @@ public abstract class Entity {
 	}
 	
 	// id Methods
-	public void setID(int id) {
-		this.id = id;
-	}
-
 	public int getID() {
 		return id;
 	}
+	
+	// renderer methods
+	public void setRenderer(RenderComponent renderer) {
+        this.renderer = renderer;
+    }
+    public RenderComponent getRenderer() {
+        return renderer;
+    }
 }
