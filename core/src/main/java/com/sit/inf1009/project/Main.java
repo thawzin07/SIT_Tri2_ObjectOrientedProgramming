@@ -1,5 +1,4 @@
 package com.sit.inf1009.project;
-
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -63,7 +62,7 @@ public class Main extends ApplicationAdapter {
     // helper method to instantiate and register entities based on current scene
     private void loadEntitiesForLevel(int levelNum) {
     	//create player entity
-        Entity player = new Entity(1);
+        Entity player = new Entity(1); // 1 = entity ID (can be used for anything, here just a unique identifier)
         player.setXPosition(200);
         player.setYPosition(200);
         
@@ -73,6 +72,11 @@ public class Main extends ApplicationAdapter {
         
         //delegate registration to scenemanager
         sceneManager.spawnEntity(player);
+
+        player.setMovement(new PlayerMovement(ioManager, 250));
+        player.setCollidable(new CollidableComponent(15, true)); // radius 15
+        player.getCollidable().setRemoveOnCollision(false);
+
 
         // create NPC entities
         java.util.Random rng = new java.util.Random();
