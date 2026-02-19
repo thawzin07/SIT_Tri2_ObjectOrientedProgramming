@@ -4,6 +4,7 @@ import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.utils.ScreenUtils;
+import com.badlogic.gdx.graphics.Color;
 
 import com.sit.inf1009.project.engine.components.AIMovement;
 import com.sit.inf1009.project.engine.components.CollidableComponent;
@@ -12,6 +13,8 @@ import com.sit.inf1009.project.engine.components.PlayerMovement;
 import com.sit.inf1009.project.engine.core.handlers.KeyboardInputHandler;
 import com.sit.inf1009.project.engine.core.handlers.SoundOutputHandler;
 
+import com.sit.inf1009.project.engine.core.Scene;
+import com.sit.inf1009.project.engine.managers.SceneManager;
 import com.sit.inf1009.project.engine.entities.Entity;
 import com.sit.inf1009.project.engine.managers.CollisionManager;
 import com.sit.inf1009.project.engine.managers.EntityManager;
@@ -28,6 +31,7 @@ public class Main extends ApplicationAdapter {
     private EntityManager entityManager;
     private MovementManager movementManager;
     private CollisionManager collisionManager;
+    private SceneManager sceneManager;
 
     @Override
     public void create() {
@@ -38,6 +42,8 @@ public class Main extends ApplicationAdapter {
         entityManager = new EntityManager();
         movementManager = new MovementManager();
         collisionManager = new CollisionManager(entityManager, ioManager);
+        sceneManager = new SceneManager(entityManager, movementManager, collisionManager);
+        sceneManager.push(new Scene("Level 1", new Color(0.1f, 0.2f, 0.3f, 1f)));
 
         // IO wiring
         new KeyboardInputHandler(ioManager);
@@ -52,6 +58,8 @@ public class Main extends ApplicationAdapter {
 
         entityManager.addEntity(player);
         movementManager.addMovable(player);
+        
+        sceneManager.spawnEntity(player);
 
         // --- Create AI balls (just Entities) ---
         Random rng = new Random();
@@ -66,8 +74,9 @@ public class Main extends ApplicationAdapter {
             npc.setMovement(new AIMovement(120, dirX, dirY));
             npc.setCollidable(new CollidableComponent(8, true)); // radius 8
 
-            entityManager.addEntity(npc);
-            movementManager.addMovable(npc);
+//            entityManager.addEntity(npc);
+//            movementManager.addMovable(npc);
+            sceneManager.spawnEntity(npc);
         }
     }
 
@@ -77,14 +86,28 @@ public class Main extends ApplicationAdapter {
 
         double dt = Gdx.graphics.getDeltaTime();
 
+        if (Gdx.input.isKeyJustPressed(com.badlogic.gdx.Input.Keys.NUM_2)) {
+            sceneManager.push(new Scene("Level 2", Color.MAROON));
+        }
+        
+        // Press '1' to pop back to the previous scene (Level 1)
+        if (Gdx.input.isKeyJustPressed(com.badlogic.gdx.Input.Keys.NUM_1)) {
+            sceneManager.pop();
+        }
+        
         // 1) Move
         movementManager.updateAll(dt);
 
         // 2) Collisions (queues deletions + plays clink)
         collisionManager.update();
 
+        
+        sceneManager.update((float) dt);
+        
         // 3) Apply deletions (entities disappear)
         entityManager.flushRemovals();
+        
+        sceneManager.render(null);
 
         // 4) Draw (simple: draw everyone as circles using collidable radius)
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
