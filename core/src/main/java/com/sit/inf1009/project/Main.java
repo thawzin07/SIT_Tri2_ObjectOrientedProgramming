@@ -22,7 +22,6 @@ import com.sit.inf1009.project.engine.managers.EntityManager;
 import com.sit.inf1009.project.engine.managers.InputOutputManager;
 import com.sit.inf1009.project.engine.managers.MovementManager;
 
-import java.util.Random;
 
 public class Main extends ApplicationAdapter {
 
