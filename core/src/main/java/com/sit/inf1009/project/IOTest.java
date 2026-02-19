@@ -69,7 +69,7 @@ public class IOTest {
         io.enableLogger(true);
 
         // Input handlers
-        io.registerInputHandler(new KeyboardInputHandler(io, panel));
+        io.registerInputHandler(new KeyboardInputHandler(io));
         io.registerInputHandler(new MouseInputHandler(io, panel));
         io.registerInputHandler(new WindowInputHandler(io, frame));
 
