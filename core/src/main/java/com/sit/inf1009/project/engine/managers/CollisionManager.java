@@ -14,7 +14,7 @@ public class CollisionManager {
     public CollisionManager(EntityManager entityManager, InputOutputManager ioManager) {
         if (entityManager == null) throw new IllegalArgumentException("EntityManager cannot be null");
         this.entityManager = entityManager;
-        this.ioManager = ioManager; // can be null if you want sound optional
+        this.ioManager = ioManager;
     }
 
     public void update() {
@@ -42,21 +42,10 @@ public class CollisionManager {
                 if (cb == null || !cb.isCollisionEnabled()) continue;
 
                 if (isColliding(a, ca, b, cb)) {
-                    // 3) On collision: queue deletions (SAFE)
-                    entityManager.queueRemove(a);
-                    entityManager.queueRemove(b);
-
                     // Optional: call component hooks (effects only, not deletions)
                     ca.onCollision(cb);
                     cb.onCollision(ca);
-
-                    if (ioManager != null) {
-                        ioManager.sendOutput(new IOEvent(IOEvent.Type.SOUND_PLAY, "Droplet"));
                     }
-
-                    // Since both disappear, no need to check more pairs with a/b
-                    break;
-                }
             }
         }
     }
