@@ -6,11 +6,9 @@ public class CollidableEntity extends Entity implements CollidableInterface {
 
     private double collisionRadius;
     private boolean collisionEnabled;
-    private int id;
 
-    public CollidableEntity(int id, double radius) {
+    public CollidableEntity(double radius) {
         super();
-        this.id = id;
         setCollisionRadius(radius);
         this.collisionEnabled = true;
     }
@@ -36,10 +34,6 @@ public class CollidableEntity extends Entity implements CollidableInterface {
 
     @Override
     public void onCollision(CollidableInterface other) {
-        // Default implementation does nothing
-    }
-
-    public int getId() {
-        return id;
+        // Default behavior: do nothing. Subclasses can override this.
     }
 }
