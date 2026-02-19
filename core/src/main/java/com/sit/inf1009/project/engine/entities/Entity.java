@@ -14,7 +14,7 @@ public class Entity {
     private CollidableComponent collidable;
 
     public Entity(int id) {
-        this();          // call the default constructor so you don’t repeat code
+        this();          // call the default constructor so you don't repeat code
         this.id = id;
     }
     

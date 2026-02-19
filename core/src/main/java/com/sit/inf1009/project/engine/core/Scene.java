@@ -6,8 +6,8 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.sit.inf1009.project.engine.entities.Entity;
-import com.sit.inf1009.project.engine.entities.CollidableEntity;
-import com.sit.inf1009.project.engine.interfaces.MovementInterface;
+//import com.sit.inf1009.project.engine.entities.CollidableEntity;
+//import com.sit.inf1009.project.engine.interfaces.MovementInterface;
 import com.sit.inf1009.project.engine.managers.CollisionManager;
 import com.sit.inf1009.project.engine.managers.MovementManager;
 
@@ -38,18 +38,18 @@ public class Scene {
         System.out.println("Scene " + name + " entered. Wiring up physics...");
         
         // Loop through every entity sitting in this scene's inventory
-        for (Entity entity : entityList) {
+//        for (Entity entity : entityList) {
             
-            // If the entity is allowed to move, give it to the MovementManager
-            if (entity instanceof MovementInterface) {
-                globalMovement.add((MovementInterface) entity);
-            }
-            
-            // If the entity has a hitbox, give it to the CollisionManager
-            if (entity instanceof CollidableEntity) {
-                globalCollision.add((CollidableEntity) entity);
-            }
-        }
+//            // If the entity is allowed to move, give it to the MovementManager
+//            if (entity.getMovement() != null) {
+//                globalMovement.add((MovementInterface) entity);
+//            }
+//            
+//            // If the entity has a hitbox, give it to the CollisionManager
+//            if (entity instanceof CollidableEntity) {
+//                globalCollision.add((CollidableEntity) entity);
+//            }
+//        }
     }
 
     /**
@@ -61,14 +61,14 @@ public class Scene {
         System.out.println("Scene " + name + " exited. Unplugging physics...");
         
         // Tell the Global Managers to forget about these entities
-        for (Entity entity : entityList) {
-            if (entity instanceof MovementInterface) {
-                globalMovement.remove((MovementInterface) entity);
-            }
-            if (entity instanceof CollidableEntity) {
-                globalCollision.remove((CollidableEntity) entity);
-            }
-        }
+//        for (Entity entity : entityList) {
+//            if (entity instanceof MovementInterface) {
+//                globalMovement.remove((MovementInterface) entity);
+//            }
+//            if (entity instanceof CollidableEntity) {
+//                globalCollision.remove((CollidableEntity) entity);
+//            }
+//        }
     }
 
     // Adds a new entity to this level's inventory
@@ -96,7 +96,7 @@ public class Scene {
         // Draw every entity in the inventory to the screen
         for (Entity e : entityList) {
             if (e.getTexture() != null) {
-                 batch.draw(e.getTexture(), (float)e.getX(), (float)e.getY());
+                 batch.draw(e.getTexture(), (float)e.getXPosition(), (float)e.getYPosition());
             }
         }
     }
