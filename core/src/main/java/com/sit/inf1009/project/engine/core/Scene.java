@@ -28,7 +28,6 @@ public class Scene {
     }
 
     private void clampToScreen(Entity e, int w, int h) {
-        // Use collision radius as your “size” proxy since you already draw using it
         float r = 0f;
         CollidableComponent c = e.getCollidable();
         if (c != null) r = (float) c.getCollisionRadius();

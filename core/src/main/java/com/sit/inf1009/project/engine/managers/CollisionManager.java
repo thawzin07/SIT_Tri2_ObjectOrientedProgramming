@@ -42,20 +42,10 @@ public class CollisionManager {
                 if (cb == null || !cb.isCollisionEnabled()) continue;
 
                 if (isColliding(a, ca, b, cb)) {
-                    // 3) On collision: queue deletions (SAFE)
-                	if (ca.isRemoveOnCollision()) entityManager.queueRemove(a);
-                	if (cb.isRemoveOnCollision()) entityManager.queueRemove(b);
+                	ca.onCollision(a, b, entityManager, ioManager);
+                	cb.onCollision(b, a, entityManager, ioManager);
+                	break;
 
-                    // Optional: call component hooks (effects only, not deletions)
-                    ca.onCollision(cb);
-                    cb.onCollision(ca);
-
-                    if (ioManager != null) {
-                        ioManager.sendOutput(new IOEvent(IOEvent.Type.SOUND_PLAY, "Droplet"));
-                    }
-
-                    // Since both disappear, no need to check more pairs with a/b
-                    break;
                 }
             }
         }

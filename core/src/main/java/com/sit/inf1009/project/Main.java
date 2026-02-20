@@ -61,20 +61,17 @@ public class Main extends ApplicationAdapter {
     // helper method to instantiate and register entities based on current scene
     private void loadEntitiesForLevel(int levelNum) {
     	//create player entity
-        Entity player = new Entity(1); // 1 = entity ID (can be used for anything, here just a unique identifier)
-        player.setXPosition(200);
-        player.setYPosition(200);
-        
-        //attach components: input-driven movement and physical collision bounds
-        player.setMovement(new PlayerMovement(ioManager, 250f));
-        player.setCollidable(new CollidableComponent(15, true));
-        
-        //delegate registration to scenemanager
-        sceneManager.spawnEntity(player);
+    	Entity player = new Entity(1);
+    	player.setXPosition(200);
+    	player.setYPosition(200);
 
-        player.setMovement(new PlayerMovement(ioManager, 250));
-        player.setCollidable(new CollidableComponent(15, true)); // radius 15
-        player.getCollidable().setRemoveOnCollision(false);
+    	player.setMovement(new PlayerMovement(ioManager, 250f));
+
+    	CollidableComponent pc = new CollidableComponent(15, true);
+    	pc.setRemoveOnCollision(false); // player stays
+    	player.setCollidable(pc);
+
+    	sceneManager.spawnEntity(player);
 
 
         // create NPC entities
