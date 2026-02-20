@@ -13,7 +13,6 @@ public class SceneManager {
     private MovementManager movementManager;
     private CollisionManager collisionManager;
 
-    // Updated Constructor
     public SceneManager(EntityManager em, MovementManager mm, CollisionManager cm) {
         this.scenes = new Stack<>();
         this.em = em;
@@ -23,10 +22,10 @@ public class SceneManager {
 
     public void push(Scene scene) {
         if (em != null) {
-            em.clear(); // Wipes entities from the master database
+            em.clear(); // clears entities from the master database
         }
         if (movementManager != null) {
-            movementManager.clear(); // Wipes physics calculations
+            movementManager.clear(); // clears physics calculations
         }
         scenes.push(scene);
     }
@@ -43,16 +42,12 @@ public class SceneManager {
         }
     }
 
-    // The new spawn method Main.java is looking for!
     public void spawnEntity(Entity entity) {
         // 1. Add to the master database
         em.addEntity(entity);
         
         // 2. Pass it directly to MovementManager
         movementManager.addMovable(entity);
-        
-        // Note: CollisionManager automatically checks EntityManager now, 
-        // so we don't need to add it manually here!
     }
 
     public void removeEntity(Entity entity) {
