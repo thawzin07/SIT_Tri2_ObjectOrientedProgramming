@@ -17,15 +17,36 @@ public class AIMovement extends MovementComponent {
         double vx = dirX * speed;
         double vy = dirY * speed;
 
-        e.setXPosition(e.getXPosition() + vx * dt);
-        e.setYPosition(e.getYPosition() + vy * dt);
+        double newX = e.getXPosition() + vx * dt;
+        double newY = e.getYPosition() + vy * dt;
 
         int w = com.badlogic.gdx.Gdx.graphics.getWidth();
         int h = com.badlogic.gdx.Gdx.graphics.getHeight();
 
-        if (e.getXPosition() < 0) { e.setXPosition(0); dirX *= -1; }
-        if (e.getXPosition() > w) { e.setXPosition(w); dirX *= -1; }
-        if (e.getYPosition() < 0) { e.setYPosition(0); dirY *= -1; }
-        if (e.getYPosition() > h) { e.setYPosition(h); dirY *= -1; }
+        float r = 0f;
+        if (e.getCollidable() != null) {
+            r = (float) e.getCollidable().getCollisionRadius();
+        }
+
+        // Bounce horizontally
+        if (newX <= r) {
+            newX = r;
+            dirX *= -1;
+        } else if (newX >= w - r) {
+            newX = w - r;
+            dirX *= -1;
+        }
+
+        // Bounce vertically
+        if (newY <= r) {
+            newY = r;
+            dirY *= -1;
+        } else if (newY >= h - r) {
+            newY = h - r;
+            dirY *= -1;
+        }
+
+        e.setXPosition(newX);
+        e.setYPosition(newY);
     }
 }

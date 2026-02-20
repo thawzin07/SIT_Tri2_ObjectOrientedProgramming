@@ -55,9 +55,10 @@ public class SceneManager {
         movementManager.removeMovable(entity);
     }
 
-    public void update(float dt) {
+    public void update(float dt) 
+    {
         if (!scenes.isEmpty()) {
-            scenes.peek().update(dt);
+            scenes.peek().update(dt, em.getEntities());
         }
     }
 

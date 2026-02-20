@@ -122,13 +122,14 @@ public class Main extends ApplicationAdapter {
         
         // 1) Move
         movementManager.updateAll(dt);
+        
+        // 2) Update current scene state timers and clamping (e.g. keep entities on screen)
+        sceneManager.update((float) dt);   
 
-        // 2) Collisions (queues deletions + plays clink)
+        // 3) Collisions (queues deletions + plays clink)
         collisionManager.update();
 
-        // 3) Update current scene state timers
-        sceneManager.update((float) dt);
-        
+       
         // 4) Apply deletions (entities disappear)
         entityManager.flushRemovals();
         
