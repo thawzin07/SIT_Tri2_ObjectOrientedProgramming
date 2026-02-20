@@ -22,7 +22,6 @@ import com.sit.inf1009.project.engine.managers.EntityManager;
 import com.sit.inf1009.project.engine.managers.InputOutputManager;
 import com.sit.inf1009.project.engine.managers.MovementManager;
 
-import java.util.Random;
 
 public class Main extends ApplicationAdapter {
 
@@ -62,20 +61,17 @@ public class Main extends ApplicationAdapter {
     // helper method to instantiate and register entities based on current scene
     private void loadEntitiesForLevel(int levelNum) {
     	//create player entity
-        Entity player = new Entity(1); // 1 = entity ID (can be used for anything, here just a unique identifier)
-        player.setXPosition(200);
-        player.setYPosition(200);
-        
-        //attach components: input-driven movement and physical collision bounds
-        player.setMovement(new PlayerMovement(ioManager, 250f));
-        player.setCollidable(new CollidableComponent(15, true));
-        
-        //delegate registration to scenemanager
-        sceneManager.spawnEntity(player);
+    	Entity player = new Entity(1);
+    	player.setXPosition(200);
+    	player.setYPosition(200);
 
-        player.setMovement(new PlayerMovement(ioManager, 250));
-        player.setCollidable(new CollidableComponent(15, true)); // radius 15
-        player.getCollidable().setRemoveOnCollision(false);
+    	player.setMovement(new PlayerMovement(ioManager, 250f));
+
+    	CollidableComponent pc = new CollidableComponent(15, true);
+    	pc.setRemoveOnCollision(false); // player stays
+    	player.setCollidable(pc);
+
+    	sceneManager.spawnEntity(player);
 
 
         // create NPC entities
@@ -123,13 +119,14 @@ public class Main extends ApplicationAdapter {
         
         // 1) Move
         movementManager.updateAll(dt);
+        
+        // 2) Update current scene state timers and clamping (e.g. keep entities on screen)
+        sceneManager.update((float) dt);   
 
-        // 2) Collisions (queues deletions + plays clink)
+        // 3) Collisions (queues deletions + plays clink)
         collisionManager.update();
 
-        // 3) Update current scene state timers
-        sceneManager.update((float) dt);
-        
+       
         // 4) Apply deletions (entities disappear)
         entityManager.flushRemovals();
         
