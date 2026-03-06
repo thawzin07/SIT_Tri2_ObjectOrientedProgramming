@@ -40,10 +40,11 @@ public class SoundOutputHandler extends AbstractOutputHandler {
     }
 
     private void play(String clipName) {
-        try {
+    	try {
             Clip clip = getOrLoad(clipName);
             if (clip != null) {
-                clip.setFramePosition(0); // rewind so it plays from start every time
+                if (clip.isRunning()) clip.stop();  
+                clip.setFramePosition(0);
                 clip.start();
             }
         } catch (Exception e) {

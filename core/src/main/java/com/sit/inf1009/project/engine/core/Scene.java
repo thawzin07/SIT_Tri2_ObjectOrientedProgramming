@@ -9,7 +9,7 @@ import java.util.List;
 public class Scene {
     private String name;
     private Color backgroundColor;
-    public float timeAlive = 0;
+    private float timeAlive = 0f;
 
     public Scene(String name, Color color) {
         this.name = name;
@@ -25,6 +25,9 @@ public class Scene {
         for (Entity e : entities) {
             clampToScreen(e, w, h);
         }
+    }
+    public float getTimeAlive() {
+        return timeAlive;
     }
 
     private void clampToScreen(Entity e, int w, int h) {
