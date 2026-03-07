@@ -65,21 +65,6 @@ public class PlayerMovement extends MovementComponent implements IOListener {
         double newX = e.getXPosition() + vx * dt;
         double newY = e.getYPosition() + vy * dt;
 
-        int screenWidth = Gdx.graphics.getWidth();
-        int screenHeight = Gdx.graphics.getHeight();
-
-        float width = 30f;
-        float height = 30f;
-
-        if (e.getTexture() != null) {
-            width = e.getTexture().getWidth();
-            height = e.getTexture().getHeight();
-        }
-
-        // clamp inside screen
-        newX = Math.max(0, Math.min(newX, screenWidth - width));
-        newY = Math.max(0, Math.min(newY, screenHeight - height));
-
         e.setXPosition(newX);
         e.setYPosition(newY);
     }
