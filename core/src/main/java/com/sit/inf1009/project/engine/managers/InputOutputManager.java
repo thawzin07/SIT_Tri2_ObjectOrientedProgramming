@@ -115,12 +115,22 @@ public class InputOutputManager {
         List<IOListener> typed = typedListeners.get(event.getType());
         if (typed != null) {
             for (IOListener listener : typed) {
-                listener.onIOEvent(event);
+                try {
+                    listener.onIOEvent(event);
+                } catch (Exception e) {
+                    System.err.println("[InputOutputManager] Input listener failed for " + event.getType()
+                            + ": " + e.getMessage());
+                }
             }
         }
 
         for (IOListener listener : globalListeners) {
-            listener.onIOEvent(event);
+            try {
+                listener.onIOEvent(event);
+            } catch (Exception e) {
+                System.err.println("[InputOutputManager] Global listener failed for " + event.getType()
+                        + ": " + e.getMessage());
+            }
         }
     }
 
@@ -139,7 +149,12 @@ public class InputOutputManager {
         logger.onIOEvent(event);
 
         for (OutputHandler handler : outputHandlers) {
-            handler.onIOEvent(event);
+            try {
+                handler.onIOEvent(event);
+            } catch (Exception e) {
+                System.err.println("[InputOutputManager] Output handler failed for " + event.getType()
+                        + ": " + e.getMessage());
+            }
         }
     }
 
