@@ -104,17 +104,17 @@ public class Main extends ApplicationAdapter {
         // calculate time passed since last frame
         double dt = Gdx.graphics.getDeltaTime();
 
-        if (Gdx.input.isKeyJustPressed(com.badlogic.gdx.Input.Keys.NUM_3)) {
+        if (isSceneKeyJustPressed(com.badlogic.gdx.Input.Keys.NUM_3, com.badlogic.gdx.Input.Keys.NUMPAD_3)) {
             sceneManager.push(new Scene("Level 3", Color.TEAL));
             loadEntitiesForLevel(3); 
         }
 
-        if (Gdx.input.isKeyJustPressed(com.badlogic.gdx.Input.Keys.NUM_2)) {
+        if (isSceneKeyJustPressed(com.badlogic.gdx.Input.Keys.NUM_2, com.badlogic.gdx.Input.Keys.NUMPAD_2)) {
             sceneManager.push(new Scene("Level 2", Color.MAROON));
             loadEntitiesForLevel(2); 
         }
 
-        if (Gdx.input.isKeyJustPressed(com.badlogic.gdx.Input.Keys.NUM_1)) {
+        if (isSceneKeyJustPressed(com.badlogic.gdx.Input.Keys.NUM_1, com.badlogic.gdx.Input.Keys.NUMPAD_1)) {
             sceneManager.push(new Scene("Level 1", new Color(0.1f, 0.2f, 0.3f, 1f)));
             loadEntitiesForLevel(1); 
         }
@@ -159,5 +159,9 @@ public class Main extends ApplicationAdapter {
         batch.dispose();
         font.dispose();
         ioManager.shutdown(); // optional but nice cleanup
+    }
+
+    private boolean isSceneKeyJustPressed(int mainKey, int numpadKey) {
+        return Gdx.input.isKeyJustPressed(mainKey) || Gdx.input.isKeyJustPressed(numpadKey);
     }
 }
