@@ -110,6 +110,15 @@ public class InputOutputManager {
      * Called internally by input handlers — do not call directly.
      */
     public void handleEvent(IOEvent event) {
+        if (event == null) {
+            System.err.println("[InputOutputManager] Ignored null input event.");
+            return;
+        }
+        if (event.getType() == null) {
+            System.err.println("[InputOutputManager] Ignored input event with null type.");
+            return;
+        }
+
         logger.onIOEvent(event);
 
         List<IOListener> typed = typedListeners.get(event.getType());
@@ -146,6 +155,15 @@ public class InputOutputManager {
      *   ioManager.sendOutput(new IOEvent(IOEvent.Type.DISPLAY_EFFECT, "flash"));
      */
     public void sendOutput(IOEvent event) {
+        if (event == null) {
+            System.err.println("[InputOutputManager] Ignored null output event.");
+            return;
+        }
+        if (event.getType() == null) {
+            System.err.println("[InputOutputManager] Ignored output event with null type.");
+            return;
+        }
+
         logger.onIOEvent(event);
 
         for (OutputHandler handler : outputHandlers) {
