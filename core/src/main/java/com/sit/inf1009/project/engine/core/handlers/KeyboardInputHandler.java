@@ -2,6 +2,8 @@ package com.sit.inf1009.project.engine.core.handlers;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputAdapter;
+import com.badlogic.gdx.InputMultiplexer;
+import com.badlogic.gdx.InputProcessor;
 import com.sit.inf1009.project.engine.managers.IOEvent;
 import com.sit.inf1009.project.engine.managers.InputOutputManager;
 
@@ -30,13 +32,34 @@ public class KeyboardInputHandler extends AbstractInputHandler {
             }
         };
 
-        Gdx.input.setInputProcessor(processor);
+        attachToGdxInput(processor);
     }
 
     @Override
     public void detach() {
-        if (Gdx.input.getInputProcessor() == processor) {
+        InputProcessor current = Gdx.input.getInputProcessor();
+        if (current instanceof InputMultiplexer multiplexer) {
+            multiplexer.removeProcessor(processor);
+            if (multiplexer.size() == 0) {
+                Gdx.input.setInputProcessor(null);
+            }
+        } else if (current == processor) {
             Gdx.input.setInputProcessor(null);
         }
+    }
+
+    private static void attachToGdxInput(InputProcessor nextProcessor) {
+        InputProcessor current = Gdx.input.getInputProcessor();
+        if (current instanceof InputMultiplexer multiplexer) {
+            multiplexer.addProcessor(nextProcessor);
+            return;
+        }
+
+        InputMultiplexer multiplexer = new InputMultiplexer();
+        if (current != null) {
+            multiplexer.addProcessor(current);
+        }
+        multiplexer.addProcessor(nextProcessor);
+        Gdx.input.setInputProcessor(multiplexer);
     }
 }
