@@ -27,6 +27,11 @@ public class IOEvent {
         WINDOW_FOCUS_GAINED,
         WINDOW_CLOSED,
 
+        // Input: Player image upload (scene UI -> IO service -> scene/render listeners)
+        PLAYER_IMAGE_UPLOAD_REQUEST,   // payload: optional String source/context
+        PLAYER_IMAGE_SELECTED,         // payload: String absolute image path
+        PLAYER_IMAGE_SELECTION_FAILED, // payload: String reason
+
         // ── Output: Audio ─────────────────────────────────────────────────────
         SOUND_PLAY,        // payload: String  — sound clip name
         SOUND_STOP,        // payload: String  — sound clip name
@@ -51,6 +56,28 @@ public class IOEvent {
     public Type getType()      { return type; }
     public Object getPayload() { return payload; }
     public long getTimestamp() { return timestamp; }
+
+    public boolean hasPayload() {
+        return payload != null;
+    }
+
+    public <T> T getPayloadOrNull(Class<T> clazz) {
+        if (payload == null) return null;
+        if (!clazz.isInstance(payload)) return null;
+        return clazz.cast(payload);
+    }
+
+    public <T> T requirePayload(Class<T> clazz) {
+        if (payload == null) {
+            throw new IllegalStateException("Expected payload of type " + clazz.getSimpleName() + " but payload is null.");
+        }
+        if (!clazz.isInstance(payload)) {
+            throw new IllegalStateException(
+                    "Expected payload of type " + clazz.getSimpleName()
+                            + " but got " + payload.getClass().getSimpleName() + ".");
+        }
+        return clazz.cast(payload);
+    }
 
     @SuppressWarnings("unchecked")
     public <T> T getPayload(Class<T> clazz) {

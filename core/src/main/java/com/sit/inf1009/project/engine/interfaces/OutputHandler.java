@@ -6,7 +6,7 @@ import com.sit.inf1009.project.engine.managers.IOEvent;
  * Contract for all output handlers (audio, display).
  *
  * Output handlers receive output-type IOEvents from InputOutputManager
- * and act on them — playing a sound, triggering a render, showing an effect.
+ * and act on them - playing a sound, triggering a render, showing an effect.
  *
  * They implement IOListener so they plug into the same event routing system.
  */

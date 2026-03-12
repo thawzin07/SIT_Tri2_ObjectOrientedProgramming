@@ -1,5 +1,4 @@
 package com.sit.inf1009.project.engine.components;
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input.Keys;
 import com.sit.inf1009.project.engine.entities.Entity;
 import com.sit.inf1009.project.engine.interfaces.IOListener;
@@ -29,15 +28,19 @@ public class PlayerMovement extends MovementComponent implements IOListener {
 
         switch (keycode) {
         case Keys.W:
+        case Keys.UP:
             w = pressed;
             break;
         case Keys.A:
+        case Keys.LEFT:
             a = pressed;
             break;
         case Keys.S:
+        case Keys.DOWN:
             s = pressed;
             break;
         case Keys.D:
+        case Keys.RIGHT:
             d = pressed;
             break;
         default:

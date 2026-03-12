@@ -12,19 +12,23 @@ import java.util.Map;
  * Output handler responsible for audio playback.
  *
  * Reacts to:
- *  SOUND_PLAY     → plays the named clip (payload: String clip name)
- *  SOUND_STOP     → stops the named clip (payload: String clip name)
- *  SOUND_STOP_ALL → stops all currently playing clips
+ *  SOUND_PLAY     -> plays the named clip (payload: String clip name)
+ *  SOUND_STOP     -> stops the named clip (payload: String clip name)
+ *  SOUND_STOP_ALL -> stops all currently playing clips
  *
- * Clip names map to audio files under /sounds/ on the classpath.
- * Example: "hit" maps to /sounds/hit.wav
- *
- * Usage — other managers trigger sound through IO:
- *   ioManager.sendOutput(new IOEvent(IOEvent.Type.SOUND_PLAY, "hit"));
+ * Clip names map to audio files on the classpath.
+ * Usage: ioManager.sendOutput(new IOEvent(IOEvent.Type.SOUND_PLAY, "hit"));
  */
 public class SoundOutputHandler extends AbstractOutputHandler {
 
     private final Map<String, Clip> loadedClips = new HashMap<>();
+    private final Map<String, Long> lastPlayedAtMs = new HashMap<>();
+    private long minReplayIntervalMs = 90;
+
+    public SoundOutputHandler() {
+        // Preload common collision sound to reduce first-play latency.
+        getOrLoad("Droplet");
+    }
 
     @Override
     protected void handleOutput(IOEvent event) {
@@ -40,15 +44,24 @@ public class SoundOutputHandler extends AbstractOutputHandler {
     }
 
     private void play(String clipName) {
-    	try {
+        try {
+            if (clipName == null || clipName.isBlank()) return;
+
+            long now = System.currentTimeMillis();
+            Long lastPlayedAt = lastPlayedAtMs.get(clipName);
+            if (lastPlayedAt != null && (now - lastPlayedAt) < minReplayIntervalMs) {
+                return;
+            }
+
             Clip clip = getOrLoad(clipName);
             if (clip != null) {
-                if (clip.isRunning()) clip.stop();  
+                if (clip.isRunning()) clip.stop();
                 clip.setFramePosition(0);
                 clip.start();
+                lastPlayedAtMs.put(clipName, now);
             }
         } catch (Exception e) {
-            System.err.println("[SoundOutputHandler] Failed to play: " + clipName + " — " + e.getMessage());
+            System.err.println("[SoundOutputHandler] Failed to play: " + clipName + " - " + e.getMessage());
         }
     }
 
@@ -70,11 +83,29 @@ public class SoundOutputHandler extends AbstractOutputHandler {
             return loadedClips.get(clipName);
         }
 
-        String path = "/sounds/" + clipName + ".wav";
-        URL url = getClass().getResource(path);
+        String normalizedName = clipName;
+        if (normalizedName != null && normalizedName.toLowerCase().endsWith(".wav")) {
+            normalizedName = normalizedName.substring(0, normalizedName.length() - 4);
+        }
+
+        String[] candidatePaths = new String[] {
+                "/Sounds/" + normalizedName + ".wav",
+                "/sounds/" + normalizedName + ".wav",
+                "/" + normalizedName + ".wav"
+        };
+
+        URL url = null;
+        String resolvedPath = null;
+        for (String path : candidatePaths) {
+            url = getClass().getResource(path);
+            if (url != null) {
+                resolvedPath = path;
+                break;
+            }
+        }
 
         if (url == null) {
-            System.err.println("[SoundOutputHandler] Sound file not found: " + path);
+            System.err.println("[SoundOutputHandler] Sound file not found for clip: " + clipName);
             return null;
         }
 
@@ -85,7 +116,7 @@ public class SoundOutputHandler extends AbstractOutputHandler {
             loadedClips.put(clipName, clip);
             return clip;
         } catch (UnsupportedAudioFileException | IOException | LineUnavailableException e) {
-            System.err.println("[SoundOutputHandler] Could not load: " + path + " — " + e.getMessage());
+            System.err.println("[SoundOutputHandler] Could not load: " + resolvedPath + " - " + e.getMessage());
             return null;
         }
     }
@@ -95,6 +126,11 @@ public class SoundOutputHandler extends AbstractOutputHandler {
         stopAll();
         loadedClips.values().forEach(Clip::close);
         loadedClips.clear();
+        lastPlayedAtMs.clear();
         deactivate();
+    }
+
+    public void setMinReplayIntervalMs(long minReplayIntervalMs) {
+        this.minReplayIntervalMs = Math.max(0, minReplayIntervalMs);
     }
 }

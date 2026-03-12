@@ -9,6 +9,7 @@ import javax.swing.JComponent;
 /**
  * Captures raw mouse events and dispatches the appropriate IOEvent type.
  * Raw MouseEvent / MouseWheelEvent is the payload.
+ * This handler is for AWT/Swing frontends and is optional in the current libGDX runtime.
  */
 public class MouseInputHandler extends AbstractInputHandler {
 

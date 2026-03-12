@@ -11,6 +11,9 @@ import java.util.Map;
 
 /**
  * Central IO manager for the simulation.
+ * Runtime note for this project:
+ *  - Active in current LWJGL/libGDX runtime: KeyboardInputHandler.
+ *  - Optional/planned adapters: MouseInputHandler, WindowInputHandler (AWT/Swing-bound).
  *
  * ── Input side ────────────────────────────────────────────────────────────────
  *  Owns: KeyboardInputHandler, MouseInputHandler, WindowInputHandler
@@ -110,17 +113,36 @@ public class InputOutputManager {
      * Called internally by input handlers — do not call directly.
      */
     public void handleEvent(IOEvent event) {
+        if (event == null) {
+            System.err.println("[InputOutputManager] Ignored null input event.");
+            return;
+        }
+        if (event.getType() == null) {
+            System.err.println("[InputOutputManager] Ignored input event with null type.");
+            return;
+        }
+
         logger.onIOEvent(event);
 
         List<IOListener> typed = typedListeners.get(event.getType());
         if (typed != null) {
             for (IOListener listener : typed) {
-                listener.onIOEvent(event);
+                try {
+                    listener.onIOEvent(event);
+                } catch (Exception e) {
+                    System.err.println("[InputOutputManager] Input listener failed for " + event.getType()
+                            + ": " + e.getMessage());
+                }
             }
         }
 
         for (IOListener listener : globalListeners) {
-            listener.onIOEvent(event);
+            try {
+                listener.onIOEvent(event);
+            } catch (Exception e) {
+                System.err.println("[InputOutputManager] Global listener failed for " + event.getType()
+                        + ": " + e.getMessage());
+            }
         }
     }
 
@@ -136,10 +158,24 @@ public class InputOutputManager {
      *   ioManager.sendOutput(new IOEvent(IOEvent.Type.DISPLAY_EFFECT, "flash"));
      */
     public void sendOutput(IOEvent event) {
+        if (event == null) {
+            System.err.println("[InputOutputManager] Ignored null output event.");
+            return;
+        }
+        if (event.getType() == null) {
+            System.err.println("[InputOutputManager] Ignored output event with null type.");
+            return;
+        }
+
         logger.onIOEvent(event);
 
         for (OutputHandler handler : outputHandlers) {
-            handler.onIOEvent(event);
+            try {
+                handler.onIOEvent(event);
+            } catch (Exception e) {
+                System.err.println("[InputOutputManager] Output handler failed for " + event.getType()
+                        + ": " + e.getMessage());
+            }
         }
     }
 
@@ -149,6 +185,30 @@ public class InputOutputManager {
 
     public void enableLogger(boolean enabled) {
         logger.setEnabled(enabled);
+    }
+
+    public int getLoggedEventCount(IOEvent.Type type) {
+        return logger.getCount(type);
+    }
+
+    public Map<IOEvent.Type, Integer> getLoggedEventCounts() {
+        return logger.getCountsSnapshot();
+    }
+
+    public List<IOEvent> getRecentLoggedEvents() {
+        return logger.getRecentEventsSnapshot();
+    }
+
+    public void setRecentLogLimit(int limit) {
+        logger.setRecentEventLimit(limit);
+    }
+
+    public int getRecentLogLimit() {
+        return logger.getRecentEventLimit();
+    }
+
+    public void clearLogs() {
+        logger.clear();
     }
 
     // =========================================================================
