@@ -184,6 +184,30 @@ public class InputOutputManager {
         logger.setEnabled(enabled);
     }
 
+    public int getLoggedEventCount(IOEvent.Type type) {
+        return logger.getCount(type);
+    }
+
+    public Map<IOEvent.Type, Integer> getLoggedEventCounts() {
+        return logger.getCountsSnapshot();
+    }
+
+    public List<IOEvent> getRecentLoggedEvents() {
+        return logger.getRecentEventsSnapshot();
+    }
+
+    public void setRecentLogLimit(int limit) {
+        logger.setRecentEventLimit(limit);
+    }
+
+    public int getRecentLogLimit() {
+        return logger.getRecentEventLimit();
+    }
+
+    public void clearLogs() {
+        logger.clear();
+    }
+
     // =========================================================================
     // Lifecycle
     // =========================================================================
