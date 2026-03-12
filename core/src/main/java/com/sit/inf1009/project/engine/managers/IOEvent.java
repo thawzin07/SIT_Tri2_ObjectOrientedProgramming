@@ -27,6 +27,11 @@ public class IOEvent {
         WINDOW_FOCUS_GAINED,
         WINDOW_CLOSED,
 
+        // Input: Player image upload (scene UI -> IO service -> scene/render listeners)
+        PLAYER_IMAGE_UPLOAD_REQUEST,   // payload: optional String source/context
+        PLAYER_IMAGE_SELECTED,         // payload: String absolute image path
+        PLAYER_IMAGE_SELECTION_FAILED, // payload: String reason
+
         // ── Output: Audio ─────────────────────────────────────────────────────
         SOUND_PLAY,        // payload: String  — sound clip name
         SOUND_STOP,        // payload: String  — sound clip name

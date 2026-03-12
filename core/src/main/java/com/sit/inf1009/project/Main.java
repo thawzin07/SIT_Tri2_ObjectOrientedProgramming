@@ -12,6 +12,7 @@ import com.sit.inf1009.project.engine.components.CollidableComponent;
 import com.sit.inf1009.project.engine.components.PlayerMovement;
 
 import com.sit.inf1009.project.engine.core.handlers.KeyboardInputHandler;
+import com.sit.inf1009.project.engine.core.handlers.PlayerImageInputService;
 import com.sit.inf1009.project.engine.core.handlers.SoundOutputHandler;
 
 import com.sit.inf1009.project.engine.core.Scene;
@@ -51,6 +52,7 @@ public class Main extends ApplicationAdapter {
 
         // IO wiring
         ioManager.registerInputHandler(new KeyboardInputHandler(ioManager));
+        new PlayerImageInputService(ioManager);
         ioManager.registerOutputHandler(new SoundOutputHandler()); // enables SOUND_PLAY
         
         // Populate initial scene
