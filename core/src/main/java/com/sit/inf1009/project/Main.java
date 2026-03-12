@@ -35,6 +35,7 @@ public class Main extends ApplicationAdapter {
     private MovementManager movementManager;
     private CollisionManager collisionManager;
     private SceneManager sceneManager;
+    private boolean paused;
 
     @Override
     public void create() {
@@ -49,6 +50,7 @@ public class Main extends ApplicationAdapter {
         sceneManager.push(new Scene("Level 1", new Color(0.1f, 0.2f, 0.3f, 1f)));
         batch = new SpriteBatch();
         font = new BitmapFont();
+        paused = false;
 
         // IO wiring
         ioManager.registerInputHandler(new KeyboardInputHandler(ioManager));
@@ -104,6 +106,10 @@ public class Main extends ApplicationAdapter {
         // calculate time passed since last frame
         double dt = Gdx.graphics.getDeltaTime();
 
+        if (Gdx.input.isKeyJustPressed(com.badlogic.gdx.Input.Keys.SPACE)) {
+            paused = !paused;
+        }
+
         if (isSceneKeyJustPressed(com.badlogic.gdx.Input.Keys.NUM_3, com.badlogic.gdx.Input.Keys.NUMPAD_3)) {
             sceneManager.push(new Scene("Level 3", Color.TEAL));
             loadEntitiesForLevel(3); 
@@ -119,18 +125,19 @@ public class Main extends ApplicationAdapter {
             loadEntitiesForLevel(1); 
         }
         
-        // 1) Move
-        movementManager.updateAll(dt);
-        
-        // 2) Update current scene state timers and clamping (e.g. keep entities on screen)
-        sceneManager.update((float) dt);   
+        if (!paused) {
+            // 1) Move
+            movementManager.updateAll(dt);
 
-        // 3) Collisions (queues deletions + plays clink)
-        collisionManager.update();
+            // 2) Update current scene state timers and clamping (e.g. keep entities on screen)
+            sceneManager.update((float) dt);
 
-       
-        // 4) Apply deletions (entities disappear)
-        entityManager.flushRemovals();
+            // 3) Collisions (queues deletions + plays clink)
+            collisionManager.update();
+
+            // 4) Apply deletions (entities disappear)
+            entityManager.flushRemovals();
+        }
         
         // 5) Apply current scene background color
         sceneManager.render(null);
@@ -150,6 +157,10 @@ public class Main extends ApplicationAdapter {
         batch.begin();
         font.draw(batch, "Move with WASD", 20, Gdx.graphics.getHeight() - 20);
         font.draw(batch, "Switch between scenes with num 1, 2 & 3", 20, Gdx.graphics.getHeight() - 5);
+        font.draw(batch, "Space: Pause/Resume", 20, Gdx.graphics.getHeight() - 35);
+        if (paused) {
+            font.draw(batch, "PAUSED", Gdx.graphics.getWidth() / 2f - 25f, Gdx.graphics.getHeight() / 2f);
+        }
         batch.end();
     }
 
