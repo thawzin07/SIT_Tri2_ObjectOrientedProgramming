@@ -11,6 +11,9 @@ import java.util.Map;
 
 /**
  * Central IO manager for the simulation.
+ * Runtime note for this project:
+ *  - Active in current LWJGL/libGDX runtime: KeyboardInputHandler.
+ *  - Optional/planned adapters: MouseInputHandler, WindowInputHandler (AWT/Swing-bound).
  *
  * ── Input side ────────────────────────────────────────────────────────────────
  *  Owns: KeyboardInputHandler, MouseInputHandler, WindowInputHandler
