@@ -52,6 +52,28 @@ public class IOEvent {
     public Object getPayload() { return payload; }
     public long getTimestamp() { return timestamp; }
 
+    public boolean hasPayload() {
+        return payload != null;
+    }
+
+    public <T> T getPayloadOrNull(Class<T> clazz) {
+        if (payload == null) return null;
+        if (!clazz.isInstance(payload)) return null;
+        return clazz.cast(payload);
+    }
+
+    public <T> T requirePayload(Class<T> clazz) {
+        if (payload == null) {
+            throw new IllegalStateException("Expected payload of type " + clazz.getSimpleName() + " but payload is null.");
+        }
+        if (!clazz.isInstance(payload)) {
+            throw new IllegalStateException(
+                    "Expected payload of type " + clazz.getSimpleName()
+                            + " but got " + payload.getClass().getSimpleName() + ".");
+        }
+        return clazz.cast(payload);
+    }
+
     @SuppressWarnings("unchecked")
     public <T> T getPayload(Class<T> clazz) {
         return clazz.cast(payload);
