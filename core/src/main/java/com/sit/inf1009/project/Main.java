@@ -50,7 +50,7 @@ public class Main extends ApplicationAdapter {
         font = new BitmapFont();
 
         // IO wiring
-        new KeyboardInputHandler(ioManager);
+        ioManager.registerInputHandler(new KeyboardInputHandler(ioManager));
         ioManager.registerOutputHandler(new SoundOutputHandler()); // enables SOUND_PLAY
         
         // Populate initial scene
