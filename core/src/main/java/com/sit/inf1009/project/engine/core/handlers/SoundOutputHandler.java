@@ -22,6 +22,13 @@ import java.util.Map;
 public class SoundOutputHandler extends AbstractOutputHandler {
 
     private final Map<String, Clip> loadedClips = new HashMap<>();
+    private final Map<String, Long> lastPlayedAtMs = new HashMap<>();
+    private long minReplayIntervalMs = 90;
+
+    public SoundOutputHandler() {
+        // Preload common collision sound to reduce first-play latency.
+        getOrLoad("Droplet");
+    }
 
     @Override
     protected void handleOutput(IOEvent event) {
@@ -38,11 +45,20 @@ public class SoundOutputHandler extends AbstractOutputHandler {
 
     private void play(String clipName) {
         try {
+            if (clipName == null || clipName.isBlank()) return;
+
+            long now = System.currentTimeMillis();
+            Long lastPlayedAt = lastPlayedAtMs.get(clipName);
+            if (lastPlayedAt != null && (now - lastPlayedAt) < minReplayIntervalMs) {
+                return;
+            }
+
             Clip clip = getOrLoad(clipName);
             if (clip != null) {
                 if (clip.isRunning()) clip.stop();
                 clip.setFramePosition(0);
                 clip.start();
+                lastPlayedAtMs.put(clipName, now);
             }
         } catch (Exception e) {
             System.err.println("[SoundOutputHandler] Failed to play: " + clipName + " - " + e.getMessage());
@@ -110,6 +126,11 @@ public class SoundOutputHandler extends AbstractOutputHandler {
         stopAll();
         loadedClips.values().forEach(Clip::close);
         loadedClips.clear();
+        lastPlayedAtMs.clear();
         deactivate();
+    }
+
+    public void setMinReplayIntervalMs(long minReplayIntervalMs) {
+        this.minReplayIntervalMs = Math.max(0, minReplayIntervalMs);
     }
 }
