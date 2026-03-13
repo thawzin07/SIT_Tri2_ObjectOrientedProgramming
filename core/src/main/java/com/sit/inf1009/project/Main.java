@@ -9,6 +9,7 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 
 import com.sit.inf1009.project.engine.components.AIMovement;
 import com.sit.inf1009.project.engine.components.CollidableComponent;
+import com.sit.inf1009.project.engine.components.FoodCollidableComponent;
 import com.sit.inf1009.project.engine.components.PlayerMovement;
 
 import com.sit.inf1009.project.engine.core.handlers.KeyboardInputHandler;
@@ -93,14 +94,21 @@ public class Main extends ApplicationAdapter {
             Entity npc = new Entity(100 + i);
             npc.setXPosition(100 + rng.nextInt(500));
             npc.setYPosition(100 + rng.nextInt(300));
-            
-            //randomize starting movement directions
+
             int dirX = rng.nextBoolean() ? 1 : -1;
             int dirY = rng.nextBoolean() ? 1 : -1;
 
             npc.setMovement(new AIMovement(120, dirX, dirY));
-            npc.setCollidable(new CollidableComponent(8, true));
-            
+
+            npc.setCollidable(
+                new FoodCollidableComponent(
+                    8,
+                    FoodCategory.VEGETABLE,
+                    1,
+                    this
+                )
+            );
+
             sceneManager.spawnEntity(npc);
         }
     }

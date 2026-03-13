@@ -1,11 +1,11 @@
 package com.sit.inf1009.project.engine.components;
 
-import com.sit.inf1009.project.GameSession;
+import com.sit.inf1009.project.Main;
 import com.sit.inf1009.project.engine.entities.Entity;
-import com.sit.inf1009.project.engine.interfaces.FoodCategory;
-import com.sit.inf1009.project.engine.interfaces.FoodCollidableInterface;
 import com.sit.inf1009.project.engine.managers.EntityManager;
 import com.sit.inf1009.project.engine.managers.InputOutputManager;
+import com.sit.inf1009.project.engine.interfaces.FoodCategory;
+import com.sit.inf1009.project.engine.interfaces.FoodCollidableInterface;
 
 public class FoodCollidableComponent extends CollidableComponent
         implements FoodCollidableInterface {
@@ -13,16 +13,16 @@ public class FoodCollidableComponent extends CollidableComponent
     private final FoodCategory category;
     private final int plateValue;
     private boolean collected;
-    private final GameSession gameSession;
+    private final Main gameMaster;
 
     public FoodCollidableComponent(double radius,
                                    FoodCategory category,
                                    int plateValue,
-                                   GameSession gameSession) {
+                                   Main gameMaster) {
         super(radius, true);
         this.category = category;
         this.plateValue = plateValue;
-        this.gameSession = gameSession;
+        this.gameMaster = gameMaster;
         this.collected = false;
         setRemoveOnCollision(false);
     }
@@ -33,7 +33,7 @@ public class FoodCollidableComponent extends CollidableComponent
                             InputOutputManager ioManager) {
         if (collected) return;
 
-        if (other.getID() == 1) {
+        if (other.getCollidable() instanceof com.sit.inf1009.project.engine.interfaces.PlayerCollidableInterface) {
             onPlayerCollision(self, other, entityManager, ioManager);
         } else {
             onObjectCollision(self, other);
@@ -45,7 +45,7 @@ public class FoodCollidableComponent extends CollidableComponent
                                   EntityManager entityManager,
                                   InputOutputManager ioManager) {
         collected = true;
-        gameSession.addFood(category, plateValue);
+        gameMaster.addFood(category, plateValue);
         entityManager.queueRemove(food);
     }
 
