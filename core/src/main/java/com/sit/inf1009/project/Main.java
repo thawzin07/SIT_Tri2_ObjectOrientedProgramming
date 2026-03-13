@@ -10,6 +10,7 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.sit.inf1009.project.engine.components.AIMovement;
 import com.sit.inf1009.project.engine.components.CollidableComponent;
 import com.sit.inf1009.project.engine.components.FoodCollidableComponent;
+import com.sit.inf1009.project.engine.components.PlayerCollidableComponent;
 import com.sit.inf1009.project.engine.components.PlayerMovement;
 
 import com.sit.inf1009.project.engine.core.handlers.KeyboardInputHandler;
@@ -79,8 +80,7 @@ public class Main extends ApplicationAdapter {
 
     	player.setMovement(new PlayerMovement(ioManager, 250f));
 
-    	CollidableComponent pc = new CollidableComponent(15, true);
-    	pc.setRemoveOnCollision(false); // player stays
+    	CollidableComponent pc = new PlayerCollidableComponent(15);
     	player.setCollidable(pc);
 
     	sceneManager.spawnEntity(player);
