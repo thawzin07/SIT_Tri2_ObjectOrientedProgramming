@@ -17,6 +17,8 @@ import com.sit.inf1009.project.engine.core.handlers.LibGdxMouseInputHandler;
 import com.sit.inf1009.project.engine.core.handlers.PlayerImageInputService;
 import com.sit.inf1009.project.engine.core.handlers.SoundOutputHandler;
 
+import com.sit.inf1009.project.engine.interfaces.FoodCategory;
+
 import com.sit.inf1009.project.engine.core.Scene;
 import com.sit.inf1009.project.engine.managers.SceneManager;
 import com.sit.inf1009.project.engine.entities.Entity;
@@ -37,6 +39,7 @@ public class Main extends ApplicationAdapter {
     private CollisionManager collisionManager;
     private SceneManager sceneManager;
     private boolean paused;
+    private GameSession gameSession;
 
     @Override
     public void create() {
@@ -62,6 +65,8 @@ public class Main extends ApplicationAdapter {
         
         // Populate initial scene
         loadEntitiesForLevel(1);
+
+        gameSession = new GameSession(60f);
     }
     
     private void loadEntitiesForLevel(int levelNum) {
