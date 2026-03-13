@@ -39,16 +39,7 @@ public class Main extends ApplicationAdapter {
     private CollisionManager collisionManager;
     private SceneManager sceneManager;
     private boolean paused;
-
-    //Plate tracking
-    private int vegetableCount;
-    private int proteinCount;
-    private int carbCount;
-    private int oilCount;
-
-    //Game stats
-    private int score;
-    private float timer;
+    private GameSession gameSession;
 
     @Override
     public void create() {
@@ -74,15 +65,7 @@ public class Main extends ApplicationAdapter {
         // Populate initial scene
         loadEntitiesForLevel(1);
 
-        //Food
-        vegetableCount = 0;
-        proteinCount = 0;
-        carbCount = 0;
-        oilCount = 0;
-
-        //Stats
-        score = 0;
-        timer = 60f; // e.g. 60 seconds to complete the game
+        gameSession = new GameSession(60f);
         
     }
     
@@ -197,47 +180,19 @@ public class Main extends ApplicationAdapter {
     }
 
     public void addFood(FoodCategory category, int scoreValue) {
-        switch(category) {
-            case VEGETABLE:
-                vegetableCount += scoreValue;
-                break;
-            case PROTEIN:
-                proteinCount += scoreValue;
-                break;
-            case CARBOHYDRATE:
-                carbCount += scoreValue;
-                break;
-            case OIL:
-                oilCount += scoreValue;
-                break;
-        }
+        gameSession.addFood(category, scoreValue);
     }
 
     public boolean isPlateHealthy() {
-    return vegetableCount >= 2 && vegetableCount <= 4
-        && proteinCount >= 1 && proteinCount <= 3
-        && carbCount >= 1 && carbCount <= 2
-        && oilCount >= 0 && oilCount <= 1;
-}
+        return gameSession.isPlateHealthy();
+    }
 
     public void submitPlate() {
-        if (isPlateHealthy()) {
-            score += 10;
-            timer += 5f;
-            System.out.println("Healthy plate submitted! Score: " + score);
-        } else {
-            timer -= 5f;
-            System.out.println("Unhealthy plate submitted!");
-        }
-
-        resetPlate();
+        gameSession.submitPlate();
     }
 
     public void resetPlate() {
-        vegetableCount = 0;
-        proteinCount = 0;
-        carbCount = 0;
-        oilCount = 0;
+        gameSession.resetPlate();
     }
 
 
