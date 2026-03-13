@@ -14,7 +14,7 @@ public interface InputHandler {
     void enable();
 
     /**
-     * Deactivates this handler — events are silently dropped.
+     * Deactivates this handler - events are silently dropped.
      */
     void disable();
 

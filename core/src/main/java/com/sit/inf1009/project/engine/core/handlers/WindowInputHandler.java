@@ -9,6 +9,7 @@ import javax.swing.JFrame;
 
 /**
  * Captures raw window-level events and dispatches the appropriate IOEvent type.
+ * This handler is for AWT/Swing frontends and is optional in the current libGDX runtime.
  *
  * Payloads:
  *  WINDOW_RESIZED      → Dimension (new size)
