@@ -1,55 +1,53 @@
-
 package com.sit.inf1009.project.engine.core;
+
+import java.util.List;
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.Gdx;
 import com.sit.inf1009.project.engine.entities.Entity;
 import com.sit.inf1009.project.engine.components.CollidableComponent;
-import java.util.List;
 
 public class Scene {
     private String name;
     private Color backgroundColor;
-    private float timeAlive = 0f;
 
-    public Scene(String name, Color color) {
+    public Scene(String name, Color backgroundColor) {
         this.name = name;
-        this.backgroundColor = color;
+        this.backgroundColor = backgroundColor;
     }
 
+    // This method is called by SceneManager, which gets the list from Main
     public void update(float dt, List<Entity> entities) {
-        timeAlive += dt;
-
-        int w = Gdx.graphics.getWidth();
-        int h = Gdx.graphics.getHeight();
+        // Use Gdx.graphics to get the REAL window size every frame
+        int screenWidth = com.badlogic.gdx.Gdx.graphics.getWidth();
+        int screenHeight = com.badlogic.gdx.Gdx.graphics.getHeight();
 
         for (Entity e : entities) {
-            clampToScreen(e, w, h);
+            clampToScreen(e, screenWidth, screenHeight); 
         }
     }
-    public float getTimeAlive() {
-        return timeAlive;
+
+    private void clampToScreen(Entity e, int screenWidth, int screenHeight) {
+        float radius = 0;
+        
+        // Check if the entity has a collision component to get its radius
+        CollidableComponent cc = e.getCollidable();
+        if (cc != null) {
+            radius = (float) cc.getCollisionRadius();
+        }
+
+        // Horizontal boundaries
+        if (e.getXPosition() < radius) e.setXPosition(radius);
+        if (e.getXPosition() > screenWidth - radius) e.setXPosition(screenWidth - radius);
+        
+        // Vertical boundaries
+        if (e.getYPosition() < radius) e.setYPosition(radius);
+        if (e.getYPosition() > screenHeight - radius) e.setYPosition(screenHeight - radius);
     }
 
-    private void clampToScreen(Entity e, int w, int h) {
-        float r = 0f;
-        CollidableComponent c = e.getCollidable();
-        if (c != null) r = (float) c.getCollisionRadius();
-
-        double x = e.getXPosition();
-        double y = e.getYPosition();
-
-        x = Math.max(r, Math.min(x, w - r));
-        y = Math.max(r, Math.min(y, h - r));
-
-        e.setXPosition(x);
-        e.setYPosition(y);
+    public Color getBackgroundColor() {
+        return backgroundColor;
     }
 
-    public Color getBackgroundColor() { 
-        return backgroundColor; 
-    }
-    
-    public String getName() { 
-        return name; 
+    public String getName() {
+        return name;
     }
 }

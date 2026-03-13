@@ -1,4 +1,5 @@
 package com.sit.inf1009.project;
+
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -24,7 +25,6 @@ import com.sit.inf1009.project.engine.managers.EntityManager;
 import com.sit.inf1009.project.engine.managers.InputOutputManager;
 import com.sit.inf1009.project.engine.managers.MovementManager;
 
-
 public class Main extends ApplicationAdapter {
 
     private ShapeRenderer shapeRenderer;
@@ -47,7 +47,10 @@ public class Main extends ApplicationAdapter {
         entityManager = new EntityManager();
         movementManager = new MovementManager();
         collisionManager = new CollisionManager(entityManager, ioManager);
-        sceneManager = new SceneManager(entityManager, movementManager, collisionManager);
+        
+        // --- PROFESSOR'S FEEDBACK: SceneManager is now simple ---
+        sceneManager = new SceneManager(); 
+        
         sceneManager.push(new Scene("Level 1", new Color(0.1f, 0.2f, 0.3f, 1f)));
         batch = new SpriteBatch();
         font = new BitmapFont();
@@ -57,30 +60,29 @@ public class Main extends ApplicationAdapter {
         ioManager.registerInputHandler(new KeyboardInputHandler(ioManager));
         ioManager.registerInputHandler(new LibGdxMouseInputHandler(ioManager));
         new PlayerImageInputService(ioManager);
-        ioManager.registerOutputHandler(new SoundOutputHandler()); // enables SOUND_PLAY
+        ioManager.registerOutputHandler(new SoundOutputHandler()); 
         
         // Populate initial scene
         loadEntitiesForLevel(1);
-        
     }
     
-    // helper method to instantiate and register entities based on current scene
     private void loadEntitiesForLevel(int levelNum) {
-    	//create player entity
-    	Entity player = new Entity(1);
-    	player.setXPosition(200);
-    	player.setYPosition(200);
+        // Create player entity
+        Entity player = new Entity(1);
+        player.setXPosition(200);
+        player.setYPosition(200);
+        player.setMovement(new PlayerMovement(ioManager, 250f));
 
-    	player.setMovement(new PlayerMovement(ioManager, 250f));
+        CollidableComponent pc = new CollidableComponent(15, true);
+        pc.setRemoveOnCollision(false);
+        player.setCollidable(pc);
 
-    	CollidableComponent pc = new CollidableComponent(15, true);
-    	pc.setRemoveOnCollision(false); // player stays
-    	player.setCollidable(pc);
+        // --- GAME MASTER ROUTING ---
+        // Instead of sceneManager.spawnEntity, Main routes to both managers directly
+        entityManager.addEntity(player);
+        movementManager.addMovable(player);
 
-    	sceneManager.spawnEntity(player);
-
-
-        // create NPC entities
+        // Create NPC entities
         java.util.Random rng = new java.util.Random();
         int npcCount = (levelNum == 1) ? 8 : 4; 
 
@@ -89,40 +91,42 @@ public class Main extends ApplicationAdapter {
             npc.setXPosition(100 + rng.nextInt(500));
             npc.setYPosition(100 + rng.nextInt(300));
             
-            //randomize starting movement directions
             int dirX = rng.nextBoolean() ? 1 : -1;
             int dirY = rng.nextBoolean() ? 1 : -1;
 
             npc.setMovement(new AIMovement(120, dirX, dirY));
             npc.setCollidable(new CollidableComponent(8, true));
             
-            sceneManager.spawnEntity(npc);
+            // --- GAME MASTER ROUTING ---
+            entityManager.addEntity(npc);
+            movementManager.addMovable(npc);
         }
     }
 
     @Override
     public void render() {
-    	//clear background completely before drawing the next frame
         ScreenUtils.clear(0, 0, 0, 1);
-
-        // calculate time passed since last frame
         double dt = Gdx.graphics.getDeltaTime();
 
         if (Gdx.input.isKeyJustPressed(com.badlogic.gdx.Input.Keys.SPACE)) {
             paused = !paused;
         }
 
+        // --- SCENE SWITCHING LOGIC (With cleanup) ---
         if (isSceneKeyJustPressed(com.badlogic.gdx.Input.Keys.NUM_3, com.badlogic.gdx.Input.Keys.NUMPAD_3)) {
+            prepareNewScene();
             sceneManager.push(new Scene("Level 3", Color.TEAL));
             loadEntitiesForLevel(3); 
         }
 
         if (isSceneKeyJustPressed(com.badlogic.gdx.Input.Keys.NUM_2, com.badlogic.gdx.Input.Keys.NUMPAD_2)) {
+            prepareNewScene();
             sceneManager.push(new Scene("Level 2", Color.MAROON));
             loadEntitiesForLevel(2); 
         }
 
         if (isSceneKeyJustPressed(com.badlogic.gdx.Input.Keys.NUM_1, com.badlogic.gdx.Input.Keys.NUMPAD_1)) {
+            prepareNewScene();
             sceneManager.push(new Scene("Level 1", new Color(0.1f, 0.2f, 0.3f, 1f)));
             loadEntitiesForLevel(1); 
         }
@@ -131,31 +135,40 @@ public class Main extends ApplicationAdapter {
             // 1) Move
             movementManager.updateAll(dt);
 
-            // 2) Update current scene state timers and clamping (e.g. keep entities on screen)
-            sceneManager.update((float) dt);
+            // 2) Update Scene Boundaries
+            // Main hands the entity list to SceneManager to process clamping
+            sceneManager.update((float) dt, entityManager.getEntities());
 
-            // 3) Collisions (queues deletions + plays clink)
+            // 3) Collisions
             collisionManager.update();
 
-            // 4) Apply deletions (entities disappear)
+            // 4) Apply deletions
             entityManager.flushRemovals();
         }
         
-        // 5) Apply current scene background color
+        // 5) Apply current scene background
         sceneManager.render(null);
 
-        // 6) Draw (simple: draw everyone as circles using collidable radius)
+        // 6) Draw
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-
         for (Entity e : entityManager.getEntities()) {
             CollidableComponent c = e.getCollidable();
             float r = (c != null) ? (float) c.getCollisionRadius() : 6f;
-
             shapeRenderer.circle((float) e.getXPosition(), (float) e.getYPosition(), r);
         }
-
         shapeRenderer.end();
         
+        // ... (UI drawing remains the same) ...
+        renderUI();
+    }
+
+    // Helper to clear existing level data
+    private void prepareNewScene() {
+        entityManager.clear();
+        movementManager.clear();
+    }
+
+    private void renderUI() {
         batch.begin();
         font.draw(batch, "Move with WASD", 20, Gdx.graphics.getHeight() - 20);
         font.draw(batch, "Switch between scenes with num 1, 2 & 3", 20, Gdx.graphics.getHeight() - 5);
@@ -171,7 +184,7 @@ public class Main extends ApplicationAdapter {
         shapeRenderer.dispose();
         batch.dispose();
         font.dispose();
-        ioManager.shutdown(); // optional but nice cleanup
+        ioManager.shutdown();
     }
 
     private boolean isSceneKeyJustPressed(int mainKey, int numpadKey) {
