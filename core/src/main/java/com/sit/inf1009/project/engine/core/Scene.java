@@ -16,7 +16,7 @@ public class Scene {
 
     // This method is called by SceneManager, which gets the list from Main
     public void update(float dt, List<Entity> entities) {
-        // Use Gdx.graphics to get the REAL window size every frame
+        // Use Gdx.graphics to get the window size every frame
         int screenWidth = com.badlogic.gdx.Gdx.graphics.getWidth();
         int screenHeight = com.badlogic.gdx.Gdx.graphics.getHeight();
 

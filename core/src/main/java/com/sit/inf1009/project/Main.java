@@ -47,8 +47,6 @@ public class Main extends ApplicationAdapter {
         entityManager = new EntityManager();
         movementManager = new MovementManager();
         collisionManager = new CollisionManager(entityManager, ioManager);
-        
-        // --- PROFESSOR'S FEEDBACK: SceneManager is now simple ---
         sceneManager = new SceneManager(); 
         
         sceneManager.push(new Scene("Level 1", new Color(0.1f, 0.2f, 0.3f, 1f)));
@@ -77,8 +75,6 @@ public class Main extends ApplicationAdapter {
         pc.setRemoveOnCollision(false);
         player.setCollidable(pc);
 
-        // --- GAME MASTER ROUTING ---
-        // Instead of sceneManager.spawnEntity, Main routes to both managers directly
         entityManager.addEntity(player);
         movementManager.addMovable(player);
 
@@ -97,7 +93,6 @@ public class Main extends ApplicationAdapter {
             npc.setMovement(new AIMovement(120, dirX, dirY));
             npc.setCollidable(new CollidableComponent(8, true));
             
-            // --- GAME MASTER ROUTING ---
             entityManager.addEntity(npc);
             movementManager.addMovable(npc);
         }
@@ -112,7 +107,7 @@ public class Main extends ApplicationAdapter {
             paused = !paused;
         }
 
-        // --- SCENE SWITCHING LOGIC (With cleanup) ---
+        // SCENE SWITCHING LOGIC
         if (isSceneKeyJustPressed(com.badlogic.gdx.Input.Keys.NUM_3, com.badlogic.gdx.Input.Keys.NUMPAD_3)) {
             prepareNewScene();
             sceneManager.push(new Scene("Level 3", Color.TEAL));
@@ -158,7 +153,6 @@ public class Main extends ApplicationAdapter {
         }
         shapeRenderer.end();
         
-        // ... (UI drawing remains the same) ...
         renderUI();
     }
 
