@@ -1,5 +1,6 @@
 package com.sit.inf1009.project;
 import com.badlogic.gdx.ApplicationAdapter;
+
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.utils.ScreenUtils;
@@ -23,11 +24,14 @@ import com.sit.inf1009.project.engine.interfaces.FoodCategory;
 import com.sit.inf1009.project.engine.core.Scene;
 import com.sit.inf1009.project.engine.managers.SceneManager;
 import com.sit.inf1009.project.engine.entities.Entity;
+import com.sit.inf1009.project.engine.entities.FoodEntity;
 import com.sit.inf1009.project.engine.managers.CollisionManager;
 import com.sit.inf1009.project.engine.managers.EntityManager;
 import com.sit.inf1009.project.engine.managers.InputOutputManager;
 import com.sit.inf1009.project.engine.managers.MovementManager;
 
+import com.sit.inf1009.project.engine.entities.FoodFactory;
+import com.sit.inf1009.project.engine.interfaces.FoodCategory;
 
 public class Main extends ApplicationAdapter {
 
@@ -87,30 +91,43 @@ public class Main extends ApplicationAdapter {
 
 
         // create NPC entities
-        java.util.Random rng = new java.util.Random();
-        int npcCount = (levelNum == 1) ? 8 : 4; 
+		/*
+		java.util.Random rng = new java.util.Random();
+		int npcCount = (levelNum == 1) ? 8 : 4;
+		
+		for (int i = 0; i < npcCount; i++) {
+		    Entity npc = new Entity(100 + i);
+		    npc.setXPosition(100 + rng.nextInt(500));
+		    npc.setYPosition(100 + rng.nextInt(300));
+		
+		    int dirX = rng.nextBoolean() ? 1 : -1;
+		    int dirY = rng.nextBoolean() ? 1 : -1;
+		
+		    npc.setMovement(new AIMovement(120, dirX, dirY));
+		
+		    npc.setCollidable(
+		        new FoodCollidableComponent(
+		            8,
+		            FoodCategory.VEGETABLE,
+		            1,
+		            this
+		        )
+		    );
+		
+		    sceneManager.spawnEntity(npc);
+		}
+		*/
 
-        for (int i = 0; i < npcCount; i++) {
-            Entity npc = new Entity(100 + i);
-            npc.setXPosition(100 + rng.nextInt(500));
-            npc.setYPosition(100 + rng.nextInt(300));
-
-            int dirX = rng.nextBoolean() ? 1 : -1;
-            int dirY = rng.nextBoolean() ? 1 : -1;
-
-            npc.setMovement(new AIMovement(120, dirX, dirY));
-
-            npc.setCollidable(
-                new FoodCollidableComponent(
-                    8,
-                    FoodCategory.VEGETABLE,
-                    1,
-                    this
-                )
-            );
-
-            sceneManager.spawnEntity(npc);
-        }
+    	// Starts the ID at 1000 to hopefully prevent any overlap
+    	FoodFactory foodFactory = new FoodFactory(1000, 8f, 120);
+    	
+    	// spawns 5 of each entity. Can be changed later.
+    	for (int i = 0; i < 5; i++) {
+    	    sceneManager.spawnEntity(foodFactory.getFood(FoodCategory.VEGETABLE));
+    	    sceneManager.spawnEntity(foodFactory.getFood(FoodCategory.PROTEIN));
+    	    sceneManager.spawnEntity(foodFactory.getFood(FoodCategory.CARBOHYDRATE));
+    	    sceneManager.spawnEntity(foodFactory.getFood(FoodCategory.OIL));
+    	}
     }
 
     @Override
@@ -160,12 +177,28 @@ public class Main extends ApplicationAdapter {
         // 6) Draw (simple: draw everyone as circles using collidable radius)
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
 
+//        for (Entity e : entityManager.getEntities()) {
+//            CollidableComponent c = e.getCollidable();
+//            float r = (c != null) ? (float) c.getCollisionRadius() : 6f;
+//            shapeRenderer.circle((float) e.getXPosition(), (float) e.getYPosition(), r);
+//        }
+        
+        // This creates the food entities with color
         for (Entity e : entityManager.getEntities()) {
+            // pick colour
+            if (e instanceof FoodEntity food) {
+                shapeRenderer.setColor(food.getColor());
+            } else {
+                shapeRenderer.setColor(Color.WHITE);
+            }
+
             CollidableComponent c = e.getCollidable();
             float r = (c != null) ? (float) c.getCollisionRadius() : 6f;
 
             shapeRenderer.circle((float) e.getXPosition(), (float) e.getYPosition(), r);
         }
+
+        shapeRenderer.end();
 
         shapeRenderer.end();
         
