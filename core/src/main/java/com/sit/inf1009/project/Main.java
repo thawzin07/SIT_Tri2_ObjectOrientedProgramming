@@ -9,12 +9,16 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 
 import com.sit.inf1009.project.engine.components.AIMovement;
 import com.sit.inf1009.project.engine.components.CollidableComponent;
+import com.sit.inf1009.project.engine.components.FoodCollidableComponent;
+import com.sit.inf1009.project.engine.components.PlayerCollidableComponent;
 import com.sit.inf1009.project.engine.components.PlayerMovement;
 
 import com.sit.inf1009.project.engine.core.handlers.KeyboardInputHandler;
 import com.sit.inf1009.project.engine.core.handlers.LibGdxMouseInputHandler;
 import com.sit.inf1009.project.engine.core.handlers.PlayerImageInputService;
 import com.sit.inf1009.project.engine.core.handlers.SoundOutputHandler;
+
+import com.sit.inf1009.project.engine.interfaces.FoodCategory;
 
 import com.sit.inf1009.project.engine.core.Scene;
 import com.sit.inf1009.project.engine.managers.SceneManager;
@@ -37,6 +41,7 @@ public class Main extends ApplicationAdapter {
     private CollisionManager collisionManager;
     private SceneManager sceneManager;
     private boolean paused;
+    private GameSession gameSession;
 
     @Override
     public void create() {
@@ -61,6 +66,8 @@ public class Main extends ApplicationAdapter {
         
         // Populate initial scene
         loadEntitiesForLevel(1);
+
+        gameSession = new GameSession(60f);
         
     }
     
@@ -73,8 +80,7 @@ public class Main extends ApplicationAdapter {
 
     	player.setMovement(new PlayerMovement(ioManager, 250f));
 
-    	CollidableComponent pc = new CollidableComponent(15, true);
-    	pc.setRemoveOnCollision(false); // player stays
+    	CollidableComponent pc = new PlayerCollidableComponent(15);
     	player.setCollidable(pc);
 
     	sceneManager.spawnEntity(player);
@@ -88,14 +94,21 @@ public class Main extends ApplicationAdapter {
             Entity npc = new Entity(100 + i);
             npc.setXPosition(100 + rng.nextInt(500));
             npc.setYPosition(100 + rng.nextInt(300));
-            
-            //randomize starting movement directions
+
             int dirX = rng.nextBoolean() ? 1 : -1;
             int dirY = rng.nextBoolean() ? 1 : -1;
 
             npc.setMovement(new AIMovement(120, dirX, dirY));
-            npc.setCollidable(new CollidableComponent(8, true));
-            
+
+            npc.setCollidable(
+                new FoodCollidableComponent(
+                    8,
+                    FoodCategory.VEGETABLE,
+                    1,
+                    this
+                )
+            );
+
             sceneManager.spawnEntity(npc);
         }
     }
@@ -173,6 +186,23 @@ public class Main extends ApplicationAdapter {
         font.dispose();
         ioManager.shutdown(); // optional but nice cleanup
     }
+
+    public void addFood(FoodCategory category, int scoreValue) {
+        gameSession.addFood(category, scoreValue);
+    }
+
+    public boolean isPlateHealthy() {
+        return gameSession.isPlateHealthy();
+    }
+
+    public void submitPlate() {
+        gameSession.submitPlate();
+    }
+
+    public void resetPlate() {
+        gameSession.resetPlate();
+    }
+
 
     private boolean isSceneKeyJustPressed(int mainKey, int numpadKey) {
         return Gdx.input.isKeyJustPressed(mainKey) || Gdx.input.isKeyJustPressed(numpadKey);
