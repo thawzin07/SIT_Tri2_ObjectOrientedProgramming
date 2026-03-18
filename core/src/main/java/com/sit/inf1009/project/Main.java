@@ -16,7 +16,9 @@ import com.sit.inf1009.project.engine.components.CollidableComponent;
 import com.sit.inf1009.project.engine.components.FoodCollidableComponent;
 import com.sit.inf1009.project.engine.components.PlayerCollidableComponent;
 import com.sit.inf1009.project.engine.components.PlayerMovement;
+import com.sit.inf1009.project.engine.core.AvatarSetupFlowScreen;
 import com.sit.inf1009.project.engine.core.Scene;
+import com.sit.inf1009.project.engine.core.StartMenuScene;
 import com.sit.inf1009.project.engine.core.handlers.KeyboardInputHandler;
 import com.sit.inf1009.project.engine.core.handlers.LibGdxMouseInputHandler;
 import com.sit.inf1009.project.engine.core.handlers.PlayerImageInputService;
@@ -38,7 +40,8 @@ import java.util.List;
 public class Main extends ApplicationAdapter {
 
     private enum GameState {
-        SETUP,
+        FOOD_MENU,
+        AVATAR_SETUP,
         PLAYING,
         LEADERBOARD_ENTRY,
         LEADERBOARD_VIEW
@@ -59,14 +62,14 @@ public class Main extends ApplicationAdapter {
     }
 
     private static final int PLAYER_ID = 1;
-    private static final float AVATAR_SIZE = 72f;
     private static final float BUTTON_W = 250f;
     private static final float BUTTON_H = 38f;
-    private static final float BUTTON_GAP = 12f;
 
     private ShapeRenderer shapeRenderer;
     private SpriteBatch batch;
     private BitmapFont font;
+    private StartMenuScene foodMenuScene;
+    private AvatarSetupFlowScreen avatarSetupScreen;
 
     private InputOutputManager ioManager;
     private EntityManager entityManager;
@@ -105,7 +108,7 @@ public class Main extends ApplicationAdapter {
         entityManager = new EntityManager();
         movementManager = new MovementManager();
         collisionManager = new CollisionManager(entityManager, ioManager);
-        sceneManager = new SceneManager(entityManager, movementManager, collisionManager, ioManager);
+        sceneManager = new SceneManager(entityManager, movementManager, collisionManager);
         gameSession = new GameSession(60f);
         paused = false;
 
@@ -121,8 +124,47 @@ public class Main extends ApplicationAdapter {
                 new Texture(Gdx.files.internal("libgdx.png"))
         };
 
+        foodMenuScene = new StartMenuScene(ioManager, new StartMenuScene.ActionListener() {
+            @Override
+            public void onStart() {
+                gameState = GameState.AVATAR_SETUP;
+            }
+
+            @Override
+            public void onDifficulty() {
+                showStatus("Difficulty - coming soon!", 2f);
+            }
+
+            @Override
+            public void onHowToPlay() {
+                showStatus("How To Play - coming soon!", 2f);
+            }
+
+            @Override
+            public void onHighScores() {
+                gameState = GameState.LEADERBOARD_VIEW;
+            }
+        });
+        foodMenuScene.create();
+        foodMenuScene.resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+
+        avatarSetupScreen = new AvatarSetupFlowScreen(ioManager, presetAvatars, presetAvatarLabels, new AvatarSetupFlowScreen.ActionListener() {
+            @Override
+            public void onBackToMainMenu() {
+                gameState = GameState.FOOD_MENU;
+            }
+
+            @Override
+            public void onStartGame(AvatarSetupFlowScreen.SelectionResult result) {
+                applyAvatarSelection(result);
+                startNewGame();
+            }
+        });
+        avatarSetupScreen.create();
+        avatarSetupScreen.resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+
         wirePlayerImageSelectionEvents();
-        gameState = GameState.SETUP;
+        gameState = GameState.FOOD_MENU;
     }
 
     @Override
@@ -137,8 +179,11 @@ public class Main extends ApplicationAdapter {
         captureClick();
 
         switch (gameState) {
-            case SETUP:
-                renderSetupScreen();
+            case FOOD_MENU:
+                foodMenuScene.render(batch);
+                break;
+            case AVATAR_SETUP:
+                avatarSetupScreen.render(batch);
                 break;
             case PLAYING:
                 renderGameplay(dt);
@@ -152,72 +197,6 @@ public class Main extends ApplicationAdapter {
             default:
                 break;
         }
-    }
-
-    private void renderSetupScreen() {
-        float centerX = Gdx.graphics.getWidth() / 2f;
-        float topY = Gdx.graphics.getHeight() - 60f;
-
-        float avatarTotalWidth = (3 * AVATAR_SIZE) + (2 * BUTTON_GAP);
-        float avatarStartX = centerX - (avatarTotalWidth / 2f);
-        float avatarY = topY - 140f;
-
-        Rectangle[] avatarRects = new Rectangle[3];
-        for (int i = 0; i < 3; i++) {
-            float x = avatarStartX + i * (AVATAR_SIZE + BUTTON_GAP);
-            avatarRects[i] = new Rectangle(x, avatarY, AVATAR_SIZE, AVATAR_SIZE);
-            if (consumeClick(avatarRects[i])) {
-                selectPresetAvatar(i);
-            }
-        }
-
-        Rectangle uploadButton = new Rectangle(centerX - (BUTTON_W / 2f), avatarY - 70f, BUTTON_W, BUTTON_H);
-        Rectangle startButton = new Rectangle(centerX - (BUTTON_W / 2f), avatarY - 130f, BUTTON_W, BUTTON_H);
-        if (consumeClick(uploadButton)) {
-            requestImageUpload("setup");
-        }
-        if (consumeClick(startButton)) {
-            if (selectedAvatarTexture == null) {
-                showStatus("Choose preset avatar or upload image first", 3f);
-            } else {
-                startNewGame();
-            }
-        }
-
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-        for (int i = 0; i < 3; i++) {
-            Rectangle rect = avatarRects[i];
-            if (selectedPresetIndex == i && !selectedAvatarIsUploaded) {
-                shapeRenderer.setColor(0.2f, 0.6f, 0.3f, 1f);
-            } else {
-                shapeRenderer.setColor(0f, 0f, 0f, 0.45f);
-            }
-            shapeRenderer.rect(rect.x - 3f, rect.y - 3f, rect.width + 6f, rect.height + 6f);
-        }
-        drawButtonRect(uploadButton);
-        drawButtonRect(startButton);
-        shapeRenderer.end();
-
-        batch.begin();
-        font.draw(batch, "Player Setup", centerX - 55f, topY);
-        font.draw(batch, "Choose a preset avatar or upload your own image", centerX - 165f, topY - 24f);
-        font.draw(batch, "Gameplay starts after avatar selection", centerX - 125f, topY - 42f);
-
-        for (int i = 0; i < 3; i++) {
-            Rectangle rect = avatarRects[i];
-            batch.draw(presetAvatars[i], rect.x, rect.y, rect.width, rect.height);
-            font.draw(batch, presetAvatarLabels[i], rect.x + 8f, rect.y - 8f);
-        }
-
-        font.draw(batch, "Upload Custom Image", uploadButton.x + 48f, uploadButton.y + 24f);
-        font.draw(batch, "Start Game", startButton.x + 86f, startButton.y + 24f);
-
-        if (selectedAvatarTexture != null) {
-            font.draw(batch, "Selected avatar preview:", centerX - 200f, startButton.y - 26f);
-            batch.draw(selectedAvatarTexture, centerX - 12f, startButton.y - 56f, 24f, 24f);
-        }
-        drawStatus(batch, 20f, 24f);
-        batch.end();
     }
 
     private void renderGameplay(float dt) {
@@ -234,15 +213,15 @@ public class Main extends ApplicationAdapter {
         }
 
         if (isSceneKeyJustPressed(Input.Keys.NUM_3, Input.Keys.NUMPAD_3)) {
-            sceneManager.setScene(new Scene("Level 3", Color.TEAL));
+            sceneManager.push(new Scene("Level 3", Color.TEAL));
             loadEntitiesForLevel(3);
         }
         if (isSceneKeyJustPressed(Input.Keys.NUM_2, Input.Keys.NUMPAD_2)) {
-            sceneManager.setScene(new Scene("Level 2", Color.MAROON));
+            sceneManager.push(new Scene("Level 2", Color.MAROON));
             loadEntitiesForLevel(2);
         }
         if (isSceneKeyJustPressed(Input.Keys.NUM_1, Input.Keys.NUMPAD_1)) {
-            sceneManager.setScene(new Scene("Level 1", new Color(0.1f, 0.2f, 0.3f, 1f)));
+            sceneManager.push(new Scene("Level 1", new Color(0.1f, 0.2f, 0.3f, 1f)));
             loadEntitiesForLevel(1);
         }
 
@@ -261,7 +240,7 @@ public class Main extends ApplicationAdapter {
             }
         }
 
-        sceneManager.render(batch);
+        sceneManager.render(null);
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         for (Entity e : entityManager.getEntities()) {
@@ -349,7 +328,7 @@ public class Main extends ApplicationAdapter {
         float topY = Gdx.graphics.getHeight() - 60f;
         Rectangle playAgainButton = new Rectangle(centerX - (BUTTON_W / 2f), 30f, BUTTON_W, BUTTON_H);
         if (consumeClick(playAgainButton)) {
-            gameState = GameState.SETUP;
+            gameState = GameState.FOOD_MENU;
             playerNameInput = "";
             showStatus("Setup ready for next run", 2f);
         }
@@ -387,16 +366,13 @@ public class Main extends ApplicationAdapter {
         gameSession = new GameSession(60f);
         paused = false;
         playerNameInput = "";
-        sceneManager.setScene(new Scene("Level 1", new Color(0.1f, 0.2f, 0.3f, 1f)));
+        sceneManager.push(new Scene("Level 1", new Color(0.1f, 0.2f, 0.3f, 1f)));
         loadEntitiesForLevel(1);
         gameState = GameState.PLAYING;
         showStatus("Game started", 2f);
     }
 
     private void loadEntitiesForLevel(int levelNum) {
-        entityManager.clear();
-        movementManager.clear();
-
         Entity player = new Entity(PLAYER_ID);
         player.setXPosition(200);
         player.setYPosition(200);
@@ -405,8 +381,7 @@ public class Main extends ApplicationAdapter {
         if (selectedAvatarTexture != null) {
             player.setTexture(selectedAvatarTexture);
         }
-        entityManager.addEntity(player);
-        movementManager.addMovable(player);
+        sceneManager.spawnEntity(player);
 
         java.util.Random rng = new java.util.Random();
         int npcCount = (levelNum == 1) ? 8 : 4;
@@ -418,9 +393,31 @@ public class Main extends ApplicationAdapter {
             int dirY = rng.nextBoolean() ? 1 : -1;
             npc.setMovement(new AIMovement(120, dirX, dirY));
             npc.setCollidable(new FoodCollidableComponent(8, FoodCategory.VEGETABLE, 1, gameSession));
-            entityManager.addEntity(npc);
-            movementManager.addMovable(npc);
+            sceneManager.spawnEntity(npc);
         }
+    }
+
+    private void applyAvatarSelection(AvatarSetupFlowScreen.SelectionResult result) {
+        if (result == null) return;
+
+        if (result.isUploaded()) {
+            try {
+                Texture newTexture = new Texture(Gdx.files.absolute(result.getUploadedPath()));
+                if (uploadedAvatarTexture != null) {
+                    uploadedAvatarTexture.dispose();
+                }
+                uploadedAvatarTexture = newTexture;
+                uploadedAvatarPath = result.getUploadedPath();
+                selectedAvatarTexture = uploadedAvatarTexture;
+                selectedAvatarIsUploaded = true;
+                selectedPresetIndex = -1;
+            } catch (Exception e) {
+                showStatus("Image load failed", 3f);
+            }
+            return;
+        }
+
+        selectPresetAvatar(result.getPresetIndex());
     }
 
     private void selectPresetAvatar(int index) {
@@ -489,6 +486,9 @@ public class Main extends ApplicationAdapter {
 
     private void wirePlayerImageSelectionEvents() {
         ioManager.addListener(IOEvent.Type.PLAYER_IMAGE_SELECTED, event -> {
+            if (gameState != GameState.LEADERBOARD_ENTRY) {
+                return;
+            }
             String path = event.requirePayload(String.class);
             try {
                 Texture newTexture = new Texture(Gdx.files.absolute(path));
@@ -508,6 +508,9 @@ public class Main extends ApplicationAdapter {
         });
 
         ioManager.addListener(IOEvent.Type.PLAYER_IMAGE_SELECTION_FAILED, event -> {
+            if (gameState != GameState.LEADERBOARD_ENTRY) {
+                return;
+            }
             String reason = event.getPayloadOrNull(String.class);
             if (reason == null || reason.isBlank()) {
                 reason = "image selection failed";
@@ -585,10 +588,12 @@ public class Main extends ApplicationAdapter {
 
     @Override
     public void resize(int width, int height) {
-        if (sceneManager != null) {
-            sceneManager.resize(width, height);
+        if (foodMenuScene != null) {
+            foodMenuScene.resize(width, height);
         }
-        ioManager.handleEvent(new IOEvent(IOEvent.Type.WINDOW_RESIZED, new int[] { width, height }));
+        if (avatarSetupScreen != null) {
+            avatarSetupScreen.resize(width, height);
+        }
     }
 
     @Override
@@ -609,17 +614,15 @@ public class Main extends ApplicationAdapter {
                 }
             }
         }
-        if (shapeRenderer != null) {
-            shapeRenderer.dispose();
+        if (foodMenuScene != null) {
+            foodMenuScene.dispose();
         }
-        if (batch != null) {
-            batch.dispose();
+        if (avatarSetupScreen != null) {
+            avatarSetupScreen.dispose();
         }
-        if (font != null) {
-            font.dispose();
-        }
-        if (ioManager != null) {
-            ioManager.shutdown();
-        }
+        shapeRenderer.dispose();
+        batch.dispose();
+        font.dispose();
+        ioManager.shutdown();
     }
 }
