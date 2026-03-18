@@ -1,6 +1,6 @@
 package com.sit.inf1009.project.engine.components;
 
-import com.sit.inf1009.project.Main;
+import com.sit.inf1009.project.GameSession;
 import com.sit.inf1009.project.engine.entities.Entity;
 import com.sit.inf1009.project.engine.managers.EntityManager;
 import com.sit.inf1009.project.engine.managers.InputOutputManager;
@@ -13,16 +13,16 @@ public class FoodCollidableComponent extends CollidableComponent
     private final FoodCategory category;
     private final int plateValue;
     private boolean collected;
-    private final Main gameMaster;
+    private final GameSession gameSession;
 
     public FoodCollidableComponent(double radius,
                                    FoodCategory category,
                                    int plateValue,
-                                   Main gameMaster) {
+                                   GameSession gameSession) {
         super(radius, true);
         this.category = category;
         this.plateValue = plateValue;
-        this.gameMaster = gameMaster;
+        this.gameSession = gameSession;
         this.collected = false;
         setRemoveOnCollision(false);
     }
@@ -45,7 +45,7 @@ public class FoodCollidableComponent extends CollidableComponent
                                   EntityManager entityManager,
                                   InputOutputManager ioManager) {
         collected = true;
-        gameMaster.addFood(category, plateValue);
+        gameSession.addFood(category, plateValue);
         entityManager.queueRemove(food);
     }
 

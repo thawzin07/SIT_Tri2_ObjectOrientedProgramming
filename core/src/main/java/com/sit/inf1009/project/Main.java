@@ -105,7 +105,7 @@ public class Main extends ApplicationAdapter {
         entityManager = new EntityManager();
         movementManager = new MovementManager();
         collisionManager = new CollisionManager(entityManager, ioManager);
-        sceneManager = new SceneManager(entityManager, movementManager, collisionManager);
+        sceneManager = new SceneManager(entityManager, movementManager, collisionManager, ioManager);
         gameSession = new GameSession(60f);
         paused = false;
 
@@ -234,15 +234,15 @@ public class Main extends ApplicationAdapter {
         }
 
         if (isSceneKeyJustPressed(Input.Keys.NUM_3, Input.Keys.NUMPAD_3)) {
-            sceneManager.push(new Scene("Level 3", Color.TEAL));
+            sceneManager.setScene(new Scene("Level 3", Color.TEAL));
             loadEntitiesForLevel(3);
         }
         if (isSceneKeyJustPressed(Input.Keys.NUM_2, Input.Keys.NUMPAD_2)) {
-            sceneManager.push(new Scene("Level 2", Color.MAROON));
+            sceneManager.setScene(new Scene("Level 2", Color.MAROON));
             loadEntitiesForLevel(2);
         }
         if (isSceneKeyJustPressed(Input.Keys.NUM_1, Input.Keys.NUMPAD_1)) {
-            sceneManager.push(new Scene("Level 1", new Color(0.1f, 0.2f, 0.3f, 1f)));
+            sceneManager.setScene(new Scene("Level 1", new Color(0.1f, 0.2f, 0.3f, 1f)));
             loadEntitiesForLevel(1);
         }
 
@@ -261,7 +261,7 @@ public class Main extends ApplicationAdapter {
             }
         }
 
-        sceneManager.render(null);
+        sceneManager.render(batch);
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         for (Entity e : entityManager.getEntities()) {
@@ -387,13 +387,16 @@ public class Main extends ApplicationAdapter {
         gameSession = new GameSession(60f);
         paused = false;
         playerNameInput = "";
-        sceneManager.push(new Scene("Level 1", new Color(0.1f, 0.2f, 0.3f, 1f)));
+        sceneManager.setScene(new Scene("Level 1", new Color(0.1f, 0.2f, 0.3f, 1f)));
         loadEntitiesForLevel(1);
         gameState = GameState.PLAYING;
         showStatus("Game started", 2f);
     }
 
     private void loadEntitiesForLevel(int levelNum) {
+        entityManager.clear();
+        movementManager.clear();
+
         Entity player = new Entity(PLAYER_ID);
         player.setXPosition(200);
         player.setYPosition(200);
@@ -402,7 +405,8 @@ public class Main extends ApplicationAdapter {
         if (selectedAvatarTexture != null) {
             player.setTexture(selectedAvatarTexture);
         }
-        sceneManager.spawnEntity(player);
+        entityManager.addEntity(player);
+        movementManager.addMovable(player);
 
         java.util.Random rng = new java.util.Random();
         int npcCount = (levelNum == 1) ? 8 : 4;
@@ -413,8 +417,9 @@ public class Main extends ApplicationAdapter {
             int dirX = rng.nextBoolean() ? 1 : -1;
             int dirY = rng.nextBoolean() ? 1 : -1;
             npc.setMovement(new AIMovement(120, dirX, dirY));
-            npc.setCollidable(new FoodCollidableComponent(8, FoodCategory.VEGETABLE, 1, this));
-            sceneManager.spawnEntity(npc);
+            npc.setCollidable(new FoodCollidableComponent(8, FoodCategory.VEGETABLE, 1, gameSession));
+            entityManager.addEntity(npc);
+            movementManager.addMovable(npc);
         }
     }
 
@@ -579,6 +584,14 @@ public class Main extends ApplicationAdapter {
     }
 
     @Override
+    public void resize(int width, int height) {
+        if (sceneManager != null) {
+            sceneManager.resize(width, height);
+        }
+        ioManager.handleEvent(new IOEvent(IOEvent.Type.WINDOW_RESIZED, new int[] { width, height }));
+    }
+
+    @Override
     public void dispose() {
         for (LeaderboardEntry entry : leaderboardEntries) {
             if (entry.ownsTexture && entry.avatarTexture != null) {
@@ -596,9 +609,17 @@ public class Main extends ApplicationAdapter {
                 }
             }
         }
-        shapeRenderer.dispose();
-        batch.dispose();
-        font.dispose();
-        ioManager.shutdown();
+        if (shapeRenderer != null) {
+            shapeRenderer.dispose();
+        }
+        if (batch != null) {
+            batch.dispose();
+        }
+        if (font != null) {
+            font.dispose();
+        }
+        if (ioManager != null) {
+            ioManager.shutdown();
+        }
     }
 }
