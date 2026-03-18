@@ -11,7 +11,6 @@ import com.badlogic.gdx.utils.viewport.Viewport;
 import com.sit.inf1009.project.engine.interfaces.IOListener;
 import com.sit.inf1009.project.engine.managers.IOEvent;
 import com.sit.inf1009.project.engine.managers.InputOutputManager;
-import com.sit.inf1009.project.engine.managers.SceneManager;
 
 public class StartMenuScene extends Scene implements IOListener {
 
@@ -172,7 +171,6 @@ public class StartMenuScene extends Scene implements IOListener {
             case 0:
                 if (ioManager != null)
                     ioManager.sendOutput(new IOEvent(IOEvent.Type.SOUND_PLAY, "btn_click"));
-                SceneManager.getInstance().setScene(new PlayerSelectionScene());
                 break;
             case 1:
                 if (ioManager != null)
