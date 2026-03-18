@@ -16,6 +16,7 @@ import com.badlogic.gdx.utils.ScreenUtils;
 import com.sit.inf1009.project.engine.components.AIMovement;
 import com.sit.inf1009.project.engine.components.CollidableComponent;
 import com.sit.inf1009.project.engine.components.FoodCollidableComponent;
+import com.sit.inf1009.project.engine.components.MovementComponent;
 import com.sit.inf1009.project.engine.components.PlayerCollidableComponent;
 import com.sit.inf1009.project.engine.components.PlayerMovement;
 import com.sit.inf1009.project.engine.core.AvatarSetupFlowScreen;
@@ -147,6 +148,11 @@ public class Main extends ApplicationAdapter {
     private boolean clickPending;
     private float clickX;
     private float clickY;
+    private int referenceViewportWidth;
+    private int referenceViewportHeight;
+    private double currentGameplayScale = 1.0;
+    private int lastViewportWidth;
+    private int lastViewportHeight;
 
     @Override
     public void create() {
@@ -225,6 +231,11 @@ public class Main extends ApplicationAdapter {
         avatarSetupScreen.resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
         wirePlayerImageSelectionEvents();
+        lastViewportWidth = Math.max(1, Gdx.graphics.getWidth());
+        lastViewportHeight = Math.max(1, Gdx.graphics.getHeight());
+        referenceViewportWidth = lastViewportWidth;
+        referenceViewportHeight = lastViewportHeight;
+        currentGameplayScale = 1.0;
         gameState = GameState.FOOD_MENU;
     }
 
@@ -530,11 +541,18 @@ public class Main extends ApplicationAdapter {
     }
 
     private void loadEntitiesForLevel(int levelNum) {
+        double playerRadius = 15d * currentGameplayScale;
+        double foodRadius = 8d * currentGameplayScale;
+        double playerSpeed = 250d * currentGameplayScale;
+        double npcSpeed = difficultyPreset.npcSpeed * currentGameplayScale;
+        int worldW = Math.max(1, Gdx.graphics.getWidth());
+        int worldH = Math.max(1, Gdx.graphics.getHeight());
+
         Entity player = new Entity(PLAYER_ID);
-        player.setXPosition(200);
-        player.setYPosition(200);
-        player.setMovement(new PlayerMovement(ioManager, 250f));
-        player.setCollidable(new PlayerCollidableComponent(15));
+        player.setXPosition(worldW * 0.3);
+        player.setYPosition(worldH * 0.35);
+        player.setMovement(new PlayerMovement(ioManager, playerSpeed));
+        player.setCollidable(new PlayerCollidableComponent(playerRadius));
         if (selectedAvatarTexture != null) {
             player.setTexture(selectedAvatarTexture);
         }
@@ -542,15 +560,19 @@ public class Main extends ApplicationAdapter {
 
         java.util.Random rng = new java.util.Random();
         int npcCount = (levelNum == 1) ? difficultyPreset.npcCount : Math.max(4, difficultyPreset.npcCount / 2);
+        int minX = (int) Math.max(40, foodRadius * 2);
+        int maxX = Math.max(minX + 1, worldW - minX);
+        int minY = (int) Math.max(60, foodRadius * 2);
+        int maxY = Math.max(minY + 1, worldH - minY);
         for (int i = 0; i < npcCount; i++) {
             Entity npc = new Entity(100 + i);
-            npc.setXPosition(100 + rng.nextInt(500));
-            npc.setYPosition(100 + rng.nextInt(300));
+            npc.setXPosition(minX + rng.nextInt(maxX - minX));
+            npc.setYPosition(minY + rng.nextInt(maxY - minY));
             int dirX = rng.nextBoolean() ? 1 : -1;
             int dirY = rng.nextBoolean() ? 1 : -1;
             FoodCategory foodCategory = randomFoodCategory(rng);
-            npc.setMovement(new AIMovement(difficultyPreset.npcSpeed, dirX, dirY));
-            npc.setCollidable(new FoodCollidableComponent(8, foodCategory, 1, gameSession));
+            npc.setMovement(new AIMovement(npcSpeed, dirX, dirY));
+            npc.setCollidable(new FoodCollidableComponent(foodRadius, foodCategory, 1, gameSession));
             Texture foodTexture = (foodCategoryTextures != null) ? foodCategoryTextures.get(foodCategory) : null;
             if (foodTexture != null) {
                 npc.setTexture(foodTexture);
@@ -918,11 +940,55 @@ public class Main extends ApplicationAdapter {
 
     @Override
     public void resize(int width, int height) {
+        int safeWidth = Math.max(1, width);
+        int safeHeight = Math.max(1, height);
+
+        if (safeWidth != lastViewportWidth || safeHeight != lastViewportHeight) {
+            rescaleEntitiesForViewportChange(lastViewportWidth, lastViewportHeight, safeWidth, safeHeight);
+            lastViewportWidth = safeWidth;
+            lastViewportHeight = safeHeight;
+        }
+
         if (foodMenuScene != null) {
             foodMenuScene.resize(width, height);
         }
         if (avatarSetupScreen != null) {
             avatarSetupScreen.resize(width, height);
+        }
+    }
+
+    private void rescaleEntitiesForViewportChange(int oldWidth, int oldHeight, int newWidth, int newHeight) {
+        if (oldWidth <= 0 || oldHeight <= 0 || entityManager == null) {
+            return;
+        }
+
+        double sx = (double) newWidth / (double) oldWidth;
+        double sy = (double) newHeight / (double) oldHeight;
+
+        double targetGameplayScale = Math.min(
+                (double) newWidth / (double) Math.max(1, referenceViewportWidth),
+                (double) newHeight / (double) Math.max(1, referenceViewportHeight));
+        if (targetGameplayScale <= 0d) {
+            targetGameplayScale = 1d;
+        }
+        double scaleDelta = targetGameplayScale / Math.max(0.0001d, currentGameplayScale);
+        currentGameplayScale = targetGameplayScale;
+
+        for (Entity entity : entityManager.getEntities()) {
+            double newX = entity.getXPosition() * sx;
+            double newY = entity.getYPosition() * sy;
+            entity.setXPosition(newX);
+            entity.setYPosition(newY);
+
+            CollidableComponent collidable = entity.getCollidable();
+            if (collidable != null) {
+                collidable.setCollisionRadius(collidable.getCollisionRadius() * scaleDelta);
+            }
+
+            MovementComponent movement = entity.getMovement();
+            if (movement != null) {
+                movement.setSpeed(movement.getSpeed() * scaleDelta);
+            }
         }
     }
 
