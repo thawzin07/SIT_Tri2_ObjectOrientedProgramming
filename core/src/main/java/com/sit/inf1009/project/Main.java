@@ -14,16 +14,22 @@ public class Main implements ApplicationListener {
 
     private SpriteBatch batch;
     private SceneManager sceneManager;
-    private InputOutputManager ioManager;
+    private static InputOutputManager ioManager;
+    private static EntityManager entityManager;
+    private static MovementManager movementManager;
+
+    public static EntityManager em() { return entityManager; }
+    public static MovementManager mm() { return movementManager; }
+    public static InputOutputManager io() { return ioManager; }
 
     @Override
     public void create() {
         batch = new SpriteBatch();
 
-        // Wire up all managers
+        // Wire up all managers, first three are static.
         ioManager                         = new InputOutputManager();
-        EntityManager entityManager       = new EntityManager();
-        MovementManager movementManager   = new MovementManager();
+        entityManager       			  = new EntityManager();
+        movementManager   				  = new MovementManager();
         CollisionManager collisionManager = new CollisionManager(entityManager, ioManager);
 
         // SceneManager gets everything — starts at StartMenuScene automatically

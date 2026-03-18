@@ -9,6 +9,8 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import com.sit.inf1009.project.engine.managers.SceneManager;
 
+import com.sit.inf1009.project.Main;
+
 public class PlayerSelectionScene extends Scene {
 
     private ShapeRenderer shapeRenderer;
@@ -81,10 +83,17 @@ public class PlayerSelectionScene extends Scene {
 
         if (player1Btn.contains(touchX, touchY)) {
             System.out.println("Player 1 selected");
-            SceneManager.getInstance().setScene(new GamePlayScene()); // go to gameplay
+
+            GamePlayScene gps = new GamePlayScene();
+            gps.initManagers(Main.em(), Main.mm(), Main.io());
+            SceneManager.getInstance().setScene(gps);
+
         } else if (player2Btn.contains(touchX, touchY)) {
             System.out.println("Player 2 selected");
-            SceneManager.getInstance().setScene(new GamePlayScene()); // go to gameplay
+
+            GamePlayScene gps = new GamePlayScene();
+            gps.initManagers(Main.em(), Main.mm(), Main.io());
+            SceneManager.getInstance().setScene(gps);
         } else if (backBtn.contains(touchX, touchY)) {
             SceneManager.getInstance().setScene(new StartMenuScene()); // back to menu
         }
