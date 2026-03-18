@@ -20,13 +20,11 @@ public class GamePlayScene extends Scene {
     public void create() {
         font = new BitmapFont();
         font.getData().setScale(2f);
-        // TODO: load your game assets, entities, etc. here
     }
 
     @Override
     public void update(float dt, List<Entity> entities) {
         super.update(dt, entities); // handles clamping + timeAlive
-        // TODO: add your gameplay update logic here
     }
 
     @Override
@@ -40,7 +38,6 @@ public class GamePlayScene extends Scene {
                   Gdx.graphics.getWidth() / 2f - 180,
                   Gdx.graphics.getHeight() / 2f);
         batch.end();
-        // TODO: render your entities, HUD, etc.
     }
 
     @Override

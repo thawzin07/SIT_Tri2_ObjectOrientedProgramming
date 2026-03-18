@@ -45,7 +45,6 @@ public class CollisionManager {
                 	ca.onCollision(a, b, entityManager, ioManager);
                 	cb.onCollision(b, a, entityManager, ioManager);
                 	break;
-
                 }
             }
         }

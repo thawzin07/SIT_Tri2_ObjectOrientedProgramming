@@ -12,14 +12,12 @@ public class SceneManager {
     
     private EntityManager em;
     private MovementManager movementManager;
-    private CollisionManager collisionManager;
 
-    public SceneManager(EntityManager em, MovementManager mm, CollisionManager cm) {
+    public SceneManager(EntityManager em, MovementManager mm) {
         instance = this;
         this.scenes = new Stack<>();
         this.em = em;
         this.movementManager = mm;
-        this.collisionManager = cm;
     }
 
     public static SceneManager getInstance() {

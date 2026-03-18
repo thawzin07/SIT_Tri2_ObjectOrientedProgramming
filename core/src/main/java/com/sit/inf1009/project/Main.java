@@ -77,13 +77,13 @@ public class Main extends ApplicationAdapter {
     private CollisionManager collisionManager;
     private SceneManager sceneManager;
     private GameSession gameSession;
+    private PlayerImageInputService playerImageInputService;
 
     private GameState gameState;
     private boolean paused;
 
     private Texture[] presetAvatars;
     private String[] presetAvatarLabels;
-    private int selectedPresetIndex = -1;
     private Texture uploadedAvatarTexture;
     private String uploadedAvatarPath;
     private Texture selectedAvatarTexture;
@@ -108,13 +108,13 @@ public class Main extends ApplicationAdapter {
         entityManager = new EntityManager();
         movementManager = new MovementManager();
         collisionManager = new CollisionManager(entityManager, ioManager);
-        sceneManager = new SceneManager(entityManager, movementManager, collisionManager);
+        sceneManager = new SceneManager(entityManager, movementManager);
         gameSession = new GameSession(60f);
         paused = false;
 
         ioManager.registerInputHandler(new KeyboardInputHandler(ioManager));
         ioManager.registerInputHandler(new LibGdxMouseInputHandler(ioManager));
-        new PlayerImageInputService(ioManager);
+        playerImageInputService = new PlayerImageInputService(ioManager);
         ioManager.registerOutputHandler(new SoundOutputHandler());
 
         presetAvatarLabels = new String[] { "Droplet", "Bucket", "LibGDX" };
@@ -200,6 +200,8 @@ public class Main extends ApplicationAdapter {
     }
 
     private void renderGameplay(float dt) {
+        applyFullScreenProjection();
+
         if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
             paused = !paused;
         }
@@ -281,6 +283,8 @@ public class Main extends ApplicationAdapter {
     }
 
     private void renderLeaderboardEntry() {
+        applyFullScreenProjection();
+
         float centerX = Gdx.graphics.getWidth() / 2f;
         float topY = Gdx.graphics.getHeight() - 70f;
 
@@ -324,6 +328,8 @@ public class Main extends ApplicationAdapter {
     }
 
     private void renderLeaderboardView() {
+        applyFullScreenProjection();
+
         float centerX = Gdx.graphics.getWidth() / 2f;
         float topY = Gdx.graphics.getHeight() - 60f;
         Rectangle playAgainButton = new Rectangle(centerX - (BUTTON_W / 2f), 30f, BUTTON_W, BUTTON_H);
@@ -410,7 +416,6 @@ public class Main extends ApplicationAdapter {
                 uploadedAvatarPath = result.getUploadedPath();
                 selectedAvatarTexture = uploadedAvatarTexture;
                 selectedAvatarIsUploaded = true;
-                selectedPresetIndex = -1;
             } catch (Exception e) {
                 showStatus("Image load failed", 3f);
             }
@@ -422,7 +427,6 @@ public class Main extends ApplicationAdapter {
 
     private void selectPresetAvatar(int index) {
         if (index < 0 || index >= presetAvatars.length) return;
-        selectedPresetIndex = index;
         selectedAvatarIsUploaded = false;
         selectedAvatarTexture = presetAvatars[index];
         applyAvatarToPlayer();
@@ -499,7 +503,6 @@ public class Main extends ApplicationAdapter {
                 uploadedAvatarPath = path;
                 selectedAvatarTexture = uploadedAvatarTexture;
                 selectedAvatarIsUploaded = true;
-                selectedPresetIndex = -1;
                 applyAvatarToPlayer();
                 showStatus("Uploaded: " + new File(path).getName(), 3f);
             } catch (Exception e) {
@@ -554,6 +557,14 @@ public class Main extends ApplicationAdapter {
         shapeRenderer.setColor(0f, 0f, 0f, 0.45f);
         shapeRenderer.rect(bounds.x, bounds.y, bounds.width, bounds.height);
         shapeRenderer.setColor(Color.WHITE);
+    }
+
+    private void applyFullScreenProjection() {
+        int width = Gdx.graphics.getWidth();
+        int height = Gdx.graphics.getHeight();
+        Gdx.gl.glViewport(0, 0, width, height);
+        batch.getProjectionMatrix().setToOrtho2D(0, 0, width, height);
+        shapeRenderer.setProjectionMatrix(batch.getProjectionMatrix());
     }
 
     private void drawStatus(SpriteBatch targetBatch, float x, float y) {
@@ -620,6 +631,7 @@ public class Main extends ApplicationAdapter {
         if (avatarSetupScreen != null) {
             avatarSetupScreen.dispose();
         }
+        playerImageInputService = null;
         shapeRenderer.dispose();
         batch.dispose();
         font.dispose();
