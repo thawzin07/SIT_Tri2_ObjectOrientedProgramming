@@ -1,243 +1,61 @@
 package com.sit.inf1009.project;
-import com.badlogic.gdx.ApplicationAdapter;
 
+import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.utils.ScreenUtils;
-import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.g2d.BitmapFont;
-
-import com.sit.inf1009.project.engine.components.AIMovement;
-import com.sit.inf1009.project.engine.components.CollidableComponent;
-import com.sit.inf1009.project.engine.components.FoodCollidableComponent;
-import com.sit.inf1009.project.engine.components.PlayerCollidableComponent;
-import com.sit.inf1009.project.engine.components.PlayerMovement;
-
-import com.sit.inf1009.project.engine.core.handlers.KeyboardInputHandler;
-import com.sit.inf1009.project.engine.core.handlers.LibGdxMouseInputHandler;
-import com.sit.inf1009.project.engine.core.handlers.PlayerImageInputService;
-import com.sit.inf1009.project.engine.core.handlers.SoundOutputHandler;
-
-import com.sit.inf1009.project.engine.interfaces.FoodCategory;
-
-import com.sit.inf1009.project.engine.core.Scene;
-import com.sit.inf1009.project.engine.managers.SceneManager;
-import com.sit.inf1009.project.engine.entities.Entity;
-import com.sit.inf1009.project.engine.entities.FoodEntity;
 import com.sit.inf1009.project.engine.managers.CollisionManager;
 import com.sit.inf1009.project.engine.managers.EntityManager;
 import com.sit.inf1009.project.engine.managers.InputOutputManager;
 import com.sit.inf1009.project.engine.managers.MovementManager;
+import com.sit.inf1009.project.engine.managers.SceneManager;
 
-import com.sit.inf1009.project.engine.entities.FoodFactory;
-import com.sit.inf1009.project.engine.interfaces.FoodCategory;
+public class Main implements ApplicationListener {
 
-public class Main extends ApplicationAdapter {
-
-    private ShapeRenderer shapeRenderer;
     private SpriteBatch batch;
-    private BitmapFont font;
-
-    private InputOutputManager ioManager;
-    private EntityManager entityManager;
-    private MovementManager movementManager;
-    private CollisionManager collisionManager;
     private SceneManager sceneManager;
-    private boolean paused;
-    private GameSession gameSession;
+    private InputOutputManager ioManager;
 
     @Override
     public void create() {
-        shapeRenderer = new ShapeRenderer();
-
-        // Managers
-        ioManager = new InputOutputManager();
-        entityManager = new EntityManager();
-        movementManager = new MovementManager();
-        collisionManager = new CollisionManager(entityManager, ioManager);
-        sceneManager = new SceneManager(entityManager, movementManager, collisionManager);
-        sceneManager.push(new Scene("Level 1", new Color(0.1f, 0.2f, 0.3f, 1f)));
         batch = new SpriteBatch();
-        font = new BitmapFont();
-        paused = false;
 
-        // IO wiring
-        ioManager.registerInputHandler(new KeyboardInputHandler(ioManager));
-        ioManager.registerInputHandler(new LibGdxMouseInputHandler(ioManager));
-        new PlayerImageInputService(ioManager);
-        ioManager.registerOutputHandler(new SoundOutputHandler()); // enables SOUND_PLAY
-        
-        // Populate initial scene
-        loadEntitiesForLevel(1);
+        // Wire up all managers
+        ioManager                         = new InputOutputManager();
+        EntityManager entityManager       = new EntityManager();
+        MovementManager movementManager   = new MovementManager();
+        CollisionManager collisionManager = new CollisionManager(entityManager, ioManager);
 
-        gameSession = new GameSession(60f);
-        
-    }
-    
-    // helper method to instantiate and register entities based on current scene
-    private void loadEntitiesForLevel(int levelNum) {
-    	//create player entity
-    	Entity player = new Entity(1);
-    	player.setXPosition(200);
-    	player.setYPosition(200);
-
-    	player.setMovement(new PlayerMovement(ioManager, 250f));
-
-    	CollidableComponent pc = new PlayerCollidableComponent(15);
-    	player.setCollidable(pc);
-
-    	sceneManager.spawnEntity(player);
-
-
-        // create NPC entities
-		/*
-		java.util.Random rng = new java.util.Random();
-		int npcCount = (levelNum == 1) ? 8 : 4;
-		
-		for (int i = 0; i < npcCount; i++) {
-		    Entity npc = new Entity(100 + i);
-		    npc.setXPosition(100 + rng.nextInt(500));
-		    npc.setYPosition(100 + rng.nextInt(300));
-		
-		    int dirX = rng.nextBoolean() ? 1 : -1;
-		    int dirY = rng.nextBoolean() ? 1 : -1;
-		
-		    npc.setMovement(new AIMovement(120, dirX, dirY));
-		
-		    npc.setCollidable(
-		        new FoodCollidableComponent(
-		            8,
-		            FoodCategory.VEGETABLE,
-		            1,
-		            this
-		        )
-		    );
-		
-		    sceneManager.spawnEntity(npc);
-		}
-		*/
-
-    	// Starts the ID at 1000 to hopefully prevent any overlap
-    	FoodFactory foodFactory = new FoodFactory(1000, 8f, 120);
-    	
-    	// spawns 5 of each entity. Can be changed later.
-    	for (int i = 0; i < 5; i++) {
-    	    sceneManager.spawnEntity(foodFactory.getFood(FoodCategory.VEGETABLE));
-    	    sceneManager.spawnEntity(foodFactory.getFood(FoodCategory.PROTEIN));
-    	    sceneManager.spawnEntity(foodFactory.getFood(FoodCategory.CARBOHYDRATE));
-    	    sceneManager.spawnEntity(foodFactory.getFood(FoodCategory.OIL));
-    	}
+        // SceneManager gets everything — starts at StartMenuScene automatically
+        sceneManager = new SceneManager(entityManager, movementManager,
+                                        collisionManager, ioManager);
     }
 
     @Override
     public void render() {
-    	//clear background completely before drawing the next frame
-        ScreenUtils.clear(0, 0, 0, 1);
-
-        // calculate time passed since last frame
-        double dt = Gdx.graphics.getDeltaTime();
-
-        if (Gdx.input.isKeyJustPressed(com.badlogic.gdx.Input.Keys.SPACE)) {
-            paused = !paused;
-        }
-
-        if (isSceneKeyJustPressed(com.badlogic.gdx.Input.Keys.NUM_3, com.badlogic.gdx.Input.Keys.NUMPAD_3)) {
-            sceneManager.push(new Scene("Level 3", Color.TEAL));
-            loadEntitiesForLevel(3); 
-        }
-
-        if (isSceneKeyJustPressed(com.badlogic.gdx.Input.Keys.NUM_2, com.badlogic.gdx.Input.Keys.NUMPAD_2)) {
-            sceneManager.push(new Scene("Level 2", Color.MAROON));
-            loadEntitiesForLevel(2); 
-        }
-
-        if (isSceneKeyJustPressed(com.badlogic.gdx.Input.Keys.NUM_1, com.badlogic.gdx.Input.Keys.NUMPAD_1)) {
-            sceneManager.push(new Scene("Level 1", new Color(0.1f, 0.2f, 0.3f, 1f)));
-            loadEntitiesForLevel(1); 
-        }
-        
-        if (!paused) {
-            // 1) Move
-            movementManager.updateAll(dt);
-
-            // 2) Update current scene state timers and clamping (e.g. keep entities on screen)
-            sceneManager.update((float) dt);
-
-            // 3) Collisions (queues deletions + plays clink)
-            collisionManager.update();
-
-            // 4) Apply deletions (entities disappear)
-            entityManager.flushRemovals();
-        }
-        
-        // 5) Apply current scene background color
-        sceneManager.render(null);
-
-        // 6) Draw (simple: draw everyone as circles using collidable radius)
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-
-//        for (Entity e : entityManager.getEntities()) {
-//            CollidableComponent c = e.getCollidable();
-//            float r = (c != null) ? (float) c.getCollisionRadius() : 6f;
-//            shapeRenderer.circle((float) e.getXPosition(), (float) e.getYPosition(), r);
-//        }
-        
-        // This creates the food entities with color
-        for (Entity e : entityManager.getEntities()) {
-            // pick colour
-            if (e instanceof FoodEntity food) {
-                shapeRenderer.setColor(food.getColor());
-            } else {
-                shapeRenderer.setColor(Color.WHITE);
-            }
-
-            CollidableComponent c = e.getCollidable();
-            float r = (c != null) ? (float) c.getCollisionRadius() : 6f;
-
-            shapeRenderer.circle((float) e.getXPosition(), (float) e.getYPosition(), r);
-        }
-
-        shapeRenderer.end();
-
-        shapeRenderer.end();
-        
-        batch.begin();
-        font.draw(batch, "Move with WASD", 20, Gdx.graphics.getHeight() - 20);
-        font.draw(batch, "Switch between scenes with num 1, 2 & 3", 20, Gdx.graphics.getHeight() - 5);
-        font.draw(batch, "Space: Pause/Resume", 20, Gdx.graphics.getHeight() - 35);
-        if (paused) {
-            font.draw(batch, "PAUSED", Gdx.graphics.getWidth() / 2f - 25f, Gdx.graphics.getHeight() / 2f);
-        }
-        batch.end();
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+        sceneManager.update(Gdx.graphics.getDeltaTime());
+        sceneManager.render(batch);
     }
 
     @Override
+    public void resize(int width, int height) {
+        sceneManager.resize(width, height);
+        // Also fire through IO system so any IOListener can react
+        ioManager.handleEvent(
+            new com.sit.inf1009.project.engine.managers.IOEvent(
+                com.sit.inf1009.project.engine.managers.IOEvent.Type.WINDOW_RESIZED,
+                new int[]{width, height}
+            )
+        );
+    }
+
+    @Override public void pause() {}
+    @Override public void resume() {}
+
+    @Override
     public void dispose() {
-        shapeRenderer.dispose();
-        batch.dispose();
-        font.dispose();
-        ioManager.shutdown(); // optional but nice cleanup
-    }
-
-    public void addFood(FoodCategory category, int scoreValue) {
-        gameSession.addFood(category, scoreValue);
-    }
-
-    public boolean isPlateHealthy() {
-        return gameSession.isPlateHealthy();
-    }
-
-    public void submitPlate() {
-        gameSession.submitPlate();
-    }
-
-    public void resetPlate() {
-        gameSession.resetPlate();
-    }
-
-
-    private boolean isSceneKeyJustPressed(int mainKey, int numpadKey) {
-        return Gdx.input.isKeyJustPressed(mainKey) || Gdx.input.isKeyJustPressed(numpadKey);
+        if (batch != null) batch.dispose();
+        if (ioManager != null) ioManager.shutdown();
     }
 }
