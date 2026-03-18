@@ -11,9 +11,15 @@ import com.badlogic.gdx.utils.viewport.Viewport;
 import com.sit.inf1009.project.engine.interfaces.IOListener;
 import com.sit.inf1009.project.engine.managers.IOEvent;
 import com.sit.inf1009.project.engine.managers.InputOutputManager;
-import com.sit.inf1009.project.engine.managers.SceneManager;
 
 public class StartMenuScene extends Scene implements IOListener {
+
+    public interface ActionListener {
+        void onStart();
+        void onDifficulty();
+        void onHowToPlay();
+        void onHighScores();
+    }
 
     private static final float VIRTUAL_W = 800f;
     private static final float VIRTUAL_H = 600f;
@@ -25,37 +31,40 @@ public class StartMenuScene extends Scene implements IOListener {
     private MenuInputHandler inputHandler;
     private MenuButton[] buttons;
 
-    // ioManager is optional — null safe for scenes that don't need IO
     private InputOutputManager ioManager;
+    private ActionListener actionListener;
 
     public StartMenuScene() {
         super("Start Menu", Color.BLACK);
     }
 
-    // Called when SceneManager has IO wired up
     public StartMenuScene(InputOutputManager ioManager) {
         super("Start Menu", Color.BLACK);
         this.ioManager = ioManager;
     }
 
+    public StartMenuScene(InputOutputManager ioManager, ActionListener actionListener) {
+        super("Start Menu", Color.BLACK);
+        this.ioManager = ioManager;
+        this.actionListener = actionListener;
+    }
+
     @Override
     public void create() {
         backgroundTexture = new Texture("start_menu_background.png");
-        buttonRenderer    = new ButtonRenderer();
+        buttonRenderer = new ButtonRenderer();
 
-        camera   = new OrthographicCamera();
+        camera = new OrthographicCamera();
         viewport = new FitViewport(VIRTUAL_W, VIRTUAL_H, camera);
         viewport.apply();
         camera.position.set(VIRTUAL_W / 2f, VIRTUAL_H / 2f, 0);
         camera.update();
 
-        // Wire input handler to IO system if available
         if (ioManager != null) {
             inputHandler = new MenuInputHandler(ioManager);
-            // Listen for display events directed at this scene
             ioManager.addListener(IOEvent.Type.DISPLAY_SHOW_HUD, this);
         } else {
-            inputHandler = new MenuInputHandler(createDummyIoManager());
+            inputHandler = new MenuInputHandler(new InputOutputManager());
         }
 
         setupButtons();
@@ -65,7 +74,7 @@ public class StartMenuScene extends Scene implements IOListener {
         float btnW = VIRTUAL_W * 0.46f;
         float btnH = VIRTUAL_H * 0.10f;
         float btnX = (VIRTUAL_W - btnW) / 2f;
-        float gap  = VIRTUAL_H * 0.025f;
+        float gap = VIRTUAL_H * 0.025f;
         float topY = VIRTUAL_H * 0.44f;
 
         buttons = new MenuButton[] {
@@ -112,16 +121,13 @@ public class StartMenuScene extends Scene implements IOListener {
         batch.setProjectionMatrix(camera.combined);
         buttonRenderer.setProjectionMatrix(camera.combined);
 
-        // Draw background
         batch.begin();
         batch.draw(backgroundTexture, 0, 0, VIRTUAL_W, VIRTUAL_H);
         batch.end();
 
-        // Update input
         inputHandler.update(buttons, camera, viewport);
         int active = inputHandler.getActiveBtn();
 
-        // Draw buttons
         Gdx.gl.glEnable(GL20.GL_BLEND);
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
         for (int i = 0; i < buttons.length; i++) {
@@ -129,66 +135,73 @@ public class StartMenuScene extends Scene implements IOListener {
         }
         Gdx.gl.glDisable(GL20.GL_BLEND);
 
-        // Draw labels
         for (int i = 0; i < buttons.length; i++) {
             buttonRenderer.drawLabel(buttons[i], active == i);
         }
 
-        // Handle transitions
         if (inputHandler.wasJustTouched()) {
             handleButtonClick(active);
         }
     }
 
     private void handleButtonClick(int btnIndex) {
+        if (actionListener != null) {
+            switch (btnIndex) {
+                case 0:
+                    if (ioManager != null)
+                        ioManager.sendOutput(new IOEvent(IOEvent.Type.SOUND_PLAY, "btn_click"));
+                    actionListener.onStart();
+                    break;
+                case 1:
+                    actionListener.onDifficulty();
+                    break;
+                case 2:
+                    actionListener.onHowToPlay();
+                    break;
+                case 3:
+                    actionListener.onHighScores();
+                    break;
+                default:
+                    break;
+            }
+            return;
+        }
+
         switch (btnIndex) {
             case 0:
-                // Fire IO event before transitioning
                 if (ioManager != null)
                     ioManager.sendOutput(new IOEvent(IOEvent.Type.SOUND_PLAY, "btn_click"));
-                SceneManager.getInstance().setScene(new PlayerSelectionScene());
                 break;
             case 1:
                 if (ioManager != null)
-                    ioManager.sendOutput(new IOEvent(IOEvent.Type.DISPLAY_SHOW_HUD, "Difficulty — coming soon!"));
-                else
-                    System.out.println("Difficulty — coming soon!");
+                    ioManager.sendOutput(new IOEvent(IOEvent.Type.DISPLAY_SHOW_HUD, "Difficulty - coming soon!"));
                 break;
             case 2:
                 if (ioManager != null)
-                    ioManager.sendOutput(new IOEvent(IOEvent.Type.DISPLAY_SHOW_HUD, "How To Play — coming soon!"));
-                else
-                    System.out.println("How To Play — coming soon!");
+                    ioManager.sendOutput(new IOEvent(IOEvent.Type.DISPLAY_SHOW_HUD, "How To Play - coming soon!"));
                 break;
             case 3:
                 if (ioManager != null)
-                    ioManager.sendOutput(new IOEvent(IOEvent.Type.DISPLAY_SHOW_HUD, "High Scores — coming soon!"));
-                else
-                    System.out.println("High Scores — coming soon!");
+                    ioManager.sendOutput(new IOEvent(IOEvent.Type.DISPLAY_SHOW_HUD, "High Scores - coming soon!"));
+                break;
+            default:
                 break;
         }
     }
 
-    // IOListener — reacts to display events sent to this scene
     @Override
     public void onIOEvent(IOEvent event) {
         if (event.getType() == IOEvent.Type.DISPLAY_SHOW_HUD) {
-            // Could display a HUD message on screen in future
             System.out.println("[StartMenuScene] HUD: " + event.getPayload());
         }
-    }
-
-    // Fallback if no IO manager is provided
-    private InputOutputManager createDummyIoManager() {
-        return new InputOutputManager();
     }
 
     @Override
     public void dispose() {
         if (backgroundTexture != null) backgroundTexture.dispose();
-        if (buttonRenderer    != null) buttonRenderer.dispose();
-        if (inputHandler      != null) inputHandler.detach();
-        if (ioManager         != null)
+        if (buttonRenderer != null) buttonRenderer.dispose();
+        if (inputHandler != null) inputHandler.detach();
+        if (ioManager != null)
             ioManager.removeListener(IOEvent.Type.DISPLAY_SHOW_HUD, this);
     }
 }
