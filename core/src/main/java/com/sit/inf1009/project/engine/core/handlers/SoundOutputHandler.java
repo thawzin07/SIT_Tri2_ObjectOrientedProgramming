@@ -5,7 +5,9 @@ import com.sit.inf1009.project.engine.managers.IOEvent;
 import javax.sound.sampled.*;
 import java.io.IOException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -21,13 +23,12 @@ import java.util.Map;
  */
 public class SoundOutputHandler extends AbstractOutputHandler {
 
-    private final Map<String, Clip> loadedClips = new HashMap<>();
-    private final Map<String, Long> lastPlayedAtMs = new HashMap<>();
-    private long minReplayIntervalMs = 90;
+    private final Map<String, List<Clip>> clipPools = new HashMap<>();
+    private static final int DEFAULT_POOL_SIZE = 6;
 
     public SoundOutputHandler() {
         // Preload common collision sound to reduce first-play latency.
-        getOrLoad("Droplet");
+        getOrCreatePool("Droplet");
     }
 
     @Override
@@ -46,41 +47,37 @@ public class SoundOutputHandler extends AbstractOutputHandler {
     private void play(String clipName) {
         try {
             if (clipName == null || clipName.isBlank()) return;
-
-            long now = System.currentTimeMillis();
-            Long lastPlayedAt = lastPlayedAtMs.get(clipName);
-            if (lastPlayedAt != null && (now - lastPlayedAt) < minReplayIntervalMs) {
-                return;
-            }
-
-            Clip clip = getOrLoad(clipName);
-            if (clip != null) {
-                if (clip.isRunning()) clip.stop();
-                clip.setFramePosition(0);
-                clip.start();
-                lastPlayedAtMs.put(clipName, now);
-            }
+            List<Clip> pool = getOrCreatePool(clipName);
+            Clip clip = selectAvailableClip(pool);
+            if (clip == null) return;
+            clip.setFramePosition(0);
+            clip.start();
         } catch (Exception e) {
             System.err.println("[SoundOutputHandler] Failed to play: " + clipName + " - " + e.getMessage());
         }
     }
 
     private void stop(String clipName) {
-        Clip clip = loadedClips.get(clipName);
-        if (clip != null && clip.isRunning()) {
-            clip.stop();
+        List<Clip> pool = clipPools.get(clipName);
+        if (pool == null) return;
+        for (Clip clip : pool) {
+            if (clip != null && clip.isRunning()) {
+                clip.stop();
+            }
         }
     }
 
     private void stopAll() {
-        loadedClips.values().forEach(clip -> {
-            if (clip.isRunning()) clip.stop();
+        clipPools.values().forEach(pool -> {
+            for (Clip clip : pool) {
+                if (clip != null && clip.isRunning()) clip.stop();
+            }
         });
     }
 
-    private Clip getOrLoad(String clipName) {
-        if (loadedClips.containsKey(clipName)) {
-            return loadedClips.get(clipName);
+    private List<Clip> getOrCreatePool(String clipName) {
+        if (clipPools.containsKey(clipName)) {
+            return clipPools.get(clipName);
         }
 
         String normalizedName = clipName;
@@ -110,27 +107,36 @@ public class SoundOutputHandler extends AbstractOutputHandler {
         }
 
         try {
-            AudioInputStream stream = AudioSystem.getAudioInputStream(url);
-            Clip clip = AudioSystem.getClip();
-            clip.open(stream);
-            loadedClips.put(clipName, clip);
-            return clip;
+            List<Clip> pool = new ArrayList<>();
+            for (int i = 0; i < DEFAULT_POOL_SIZE; i++) {
+                AudioInputStream stream = AudioSystem.getAudioInputStream(url);
+                Clip clip = AudioSystem.getClip();
+                clip.open(stream);
+                pool.add(clip);
+            }
+            clipPools.put(clipName, pool);
+            return pool;
         } catch (UnsupportedAudioFileException | IOException | LineUnavailableException e) {
             System.err.println("[SoundOutputHandler] Could not load: " + resolvedPath + " - " + e.getMessage());
-            return null;
+            return new ArrayList<>();
         }
+    }
+
+    private Clip selectAvailableClip(List<Clip> pool) {
+        if (pool == null || pool.isEmpty()) return null;
+        for (Clip clip : pool) {
+            if (!clip.isRunning()) {
+                return clip;
+            }
+        }
+        return pool.get(0);
     }
 
     @Override
     public void close() {
         stopAll();
-        loadedClips.values().forEach(Clip::close);
-        loadedClips.clear();
-        lastPlayedAtMs.clear();
+        clipPools.values().forEach(pool -> pool.forEach(Clip::close));
+        clipPools.clear();
         deactivate();
-    }
-
-    public void setMinReplayIntervalMs(long minReplayIntervalMs) {
-        this.minReplayIntervalMs = Math.max(0, minReplayIntervalMs);
     }
 }

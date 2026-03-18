@@ -11,11 +11,24 @@ public class GameSession {
 
     private int score;
     private float timer;
+    private final int healthyScoreBonus;
+    private final float healthyTimerBonus;
+    private final float unhealthyTimerPenalty;
 
     public GameSession(float startingTimer) {
+        this(startingTimer, 10, 5f, 5f);
+    }
+
+    public GameSession(float startingTimer,
+                       int healthyScoreBonus,
+                       float healthyTimerBonus,
+                       float unhealthyTimerPenalty) {
         resetPlate();
         score = 0;
         timer = startingTimer;
+        this.healthyScoreBonus = healthyScoreBonus;
+        this.healthyTimerBonus = healthyTimerBonus;
+        this.unhealthyTimerPenalty = unhealthyTimerPenalty;
     }
 
     public void addFood(FoodCategory category, int plateValue) {
@@ -46,11 +59,11 @@ public class GameSession {
 
     public void submitPlate() {
         if (isPlateHealthy()) {
-            score += 10;
-            timer += 5f;
+            score += healthyScoreBonus;
+            timer += healthyTimerBonus;
             System.out.println("Healthy plate submitted! Score: " + score);
         } else {
-            timer -= 5f;
+            timer -= unhealthyTimerPenalty;
             System.out.println("Unhealthy plate submitted!");
         }
 
@@ -90,5 +103,17 @@ public class GameSession {
 
     public void setTimer(float timer) {
         this.timer = timer;
+    }
+
+    public int getHealthyScoreBonus() {
+        return healthyScoreBonus;
+    }
+
+    public float getHealthyTimerBonus() {
+        return healthyTimerBonus;
+    }
+
+    public float getUnhealthyTimerPenalty() {
+        return unhealthyTimerPenalty;
     }
 }
