@@ -148,6 +148,7 @@ public class Main extends ApplicationAdapter {
     private boolean clickPending;
     private float clickX;
     private float clickY;
+    private boolean leaderboardNameEditing;
     private int referenceViewportWidth;
     private int referenceViewportHeight;
     private double currentGameplayScale = 1.0;
@@ -280,13 +281,17 @@ public class Main extends ApplicationAdapter {
     private void renderDifficultySettings() {
         applyFullScreenProjection();
 
-        float centerX = Gdx.graphics.getWidth() / 2f;
-        float topY = Gdx.graphics.getHeight() - 80f;
+        float width = Gdx.graphics.getWidth();
+        float height = Gdx.graphics.getHeight();
+        float centerX = width / 2f;
+        float panelW = Math.min(760f, width - 80f);
+        float panelH = Math.min(500f, height - 80f);
+        Rectangle panel = new Rectangle(centerX - panelW / 2f, (height - panelH) / 2f, panelW, panelH);
 
-        Rectangle easyButton = new Rectangle(centerX - (BUTTON_W / 2f), topY - 130f, BUTTON_W, BUTTON_H);
-        Rectangle normalButton = new Rectangle(centerX - (BUTTON_W / 2f), topY - 178f, BUTTON_W, BUTTON_H);
-        Rectangle hardButton = new Rectangle(centerX - (BUTTON_W / 2f), topY - 226f, BUTTON_W, BUTTON_H);
-        Rectangle backButton = new Rectangle(centerX - (BUTTON_W / 2f), 40f, BUTTON_W, BUTTON_H);
+        Rectangle easyButton = new Rectangle(panel.x + 40f, panel.y + panelH - 180f, panelW - 80f, 48f);
+        Rectangle normalButton = new Rectangle(panel.x + 40f, panel.y + panelH - 240f, panelW - 80f, 48f);
+        Rectangle hardButton = new Rectangle(panel.x + 40f, panel.y + panelH - 300f, panelW - 80f, 48f);
+        Rectangle backButton = new Rectangle(panel.x + 40f, panel.y + 30f, panelW - 80f, 44f);
 
         if (consumeClick(easyButton)) {
             difficultyPreset = DifficultyPreset.EASY;
@@ -304,20 +309,19 @@ public class Main extends ApplicationAdapter {
             gameState = GameState.FOOD_MENU;
         }
 
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-        drawButtonRect(easyButton);
-        drawButtonRect(normalButton);
-        drawButtonRect(hardButton);
-        drawButtonRect(backButton);
-        shapeRenderer.end();
+        drawScreenPanel(panel);
+        drawActionButton(easyButton, difficultyPreset == DifficultyPreset.EASY ? new Color(0.16f, 0.62f, 0.2f, 1f) : new Color(0.12f, 0.34f, 0.18f, 1f));
+        drawActionButton(normalButton, difficultyPreset == DifficultyPreset.NORMAL ? new Color(0.1f, 0.45f, 0.78f, 1f) : new Color(0.1f, 0.26f, 0.45f, 1f));
+        drawActionButton(hardButton, difficultyPreset == DifficultyPreset.HARD ? new Color(0.75f, 0.22f, 0.22f, 1f) : new Color(0.4f, 0.16f, 0.16f, 1f));
+        drawActionButton(backButton, new Color(0.2f, 0.2f, 0.25f, 1f));
 
         batch.begin();
-        font.draw(batch, "Difficulty Settings", centerX - 62f, topY);
-        font.draw(batch, "Current: " + difficultyPreset.label, centerX - 52f, topY - 32f);
-        font.draw(batch, "Easy  (75s, slower, +6s/-3s submit)", easyButton.x + 24f, easyButton.y + 24f);
-        font.draw(batch, "Normal (60s, balanced, +5s/-5s submit)", normalButton.x + 26f, normalButton.y + 24f);
-        font.draw(batch, "Hard  (45s, faster, +4s/-6s submit)", hardButton.x + 30f, hardButton.y + 24f);
-        font.draw(batch, "Back to Main Menu", backButton.x + 62f, backButton.y + 24f);
+        font.draw(batch, "GAME SETTINGS", panel.x + 40f, panel.y + panelH - 28f);
+        font.draw(batch, "Difficulty: " + difficultyPreset.label, panel.x + 40f, panel.y + panelH - 58f);
+        font.draw(batch, "Easy   - 75s, slower, +6s / -3s submit", easyButton.x + 20f, easyButton.y + 30f);
+        font.draw(batch, "Normal - 60s, balanced, +5s / -5s submit", normalButton.x + 20f, normalButton.y + 30f);
+        font.draw(batch, "Hard   - 45s, faster, +4s / -6s submit", hardButton.x + 20f, hardButton.y + 30f);
+        font.draw(batch, "Back to Main Menu", backButton.x + 20f, backButton.y + 28f);
         drawStatus(batch, 20f, 24f);
         batch.end();
     }
@@ -325,29 +329,34 @@ public class Main extends ApplicationAdapter {
     private void renderHowToPlay() {
         applyFullScreenProjection();
 
-        float centerX = Gdx.graphics.getWidth() / 2f;
-        float topY = Gdx.graphics.getHeight() - 80f;
-        Rectangle backButton = new Rectangle(centerX - (BUTTON_W / 2f), 40f, BUTTON_W, BUTTON_H);
+        float width = Gdx.graphics.getWidth();
+        float height = Gdx.graphics.getHeight();
+        float centerX = width / 2f;
+        float panelW = Math.min(840f, width - 80f);
+        float panelH = Math.min(520f, height - 80f);
+        Rectangle panel = new Rectangle(centerX - panelW / 2f, (height - panelH) / 2f, panelW, panelH);
+        Rectangle backButton = new Rectangle(panel.x + 40f, panel.y + 30f, panelW - 80f, 44f);
 
         if (consumeClick(backButton)) {
             gameState = GameState.FOOD_MENU;
         }
 
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-        drawButtonRect(backButton);
-        shapeRenderer.end();
+        drawScreenPanel(panel);
+        drawActionButton(backButton, new Color(0.2f, 0.2f, 0.25f, 1f));
 
         batch.begin();
-        font.draw(batch, "How To Play", centerX - 38f, topY);
-        font.draw(batch, "1. Click START from Food Menu.", 90f, topY - 45f);
-        font.draw(batch, "2. Choose preset avatar or upload a custom image.", 90f, topY - 70f);
-        font.draw(batch, "3. Click Start Game to begin simulation.", 90f, topY - 95f);
-        font.draw(batch, "4. Move player with WASD keys.", 90f, topY - 120f);
-        font.draw(batch, "5. Catch food items and build a healthy plate.", 90f, topY - 145f);
-        font.draw(batch, "6. Press Enter to submit plate, R to reset plate.", 90f, topY - 170f);
-        font.draw(batch, "7. Press Space to pause/resume.", 90f, topY - 195f);
-        font.draw(batch, "8. When timer ends, submit your name/avatar to leaderboard.", 90f, topY - 220f);
-        font.draw(batch, "Back to Main Menu", backButton.x + 62f, backButton.y + 24f);
+        float textX = panel.x + 40f;
+        float topY = panel.y + panelH - 28f;
+        font.draw(batch, "HOW TO PLAY", textX, topY);
+        font.draw(batch, "1. Press START on the main menu.", textX, topY - 42f);
+        font.draw(batch, "2. Select a preset avatar or upload your own image.", textX, topY - 70f);
+        font.draw(batch, "3. Press Start Game to begin.", textX, topY - 98f);
+        font.draw(batch, "4. Move with WASD and catch food items.", textX, topY - 126f);
+        font.draw(batch, "5. Build a healthy plate target: V2-4 P1-3 C1-2 O0-1", textX, topY - 154f);
+        font.draw(batch, "6. Press Enter to submit plate (this resets plate).", textX, topY - 182f);
+        font.draw(batch, "7. Press R to clear plate, Space to pause/resume.", textX, topY - 210f);
+        font.draw(batch, "8. Timer end -> submit name/avatar to leaderboard.", textX, topY - 238f);
+        font.draw(batch, "Back to Main Menu", backButton.x + 20f, backButton.y + 28f);
         drawStatus(batch, 20f, 24f);
         batch.end();
     }
@@ -391,6 +400,7 @@ public class Main extends ApplicationAdapter {
             if (nextTimer <= 0f) {
                 paused = false;
                 gameState = GameState.LEADERBOARD_ENTRY;
+                leaderboardNameEditing = true;
                 showStatus("Time up! Enter name and submit to leaderboard", 4f);
             }
         }
@@ -440,45 +450,64 @@ public class Main extends ApplicationAdapter {
 
     private void renderLeaderboardEntry() {
         applyFullScreenProjection();
+        handleLeaderboardNameTyping();
 
-        float centerX = Gdx.graphics.getWidth() / 2f;
-        float topY = Gdx.graphics.getHeight() - 70f;
+        float width = Gdx.graphics.getWidth();
+        float height = Gdx.graphics.getHeight();
+        float centerX = width / 2f;
+        float panelW = Math.min(760f, width - 80f);
+        float panelH = Math.min(520f, height - 80f);
+        Rectangle panel = new Rectangle(centerX - panelW / 2f, (height - panelH) / 2f, panelW, panelH);
 
-        Rectangle nameButton = new Rectangle(centerX - (BUTTON_W / 2f), topY - 130f, BUTTON_W, BUTTON_H);
-        Rectangle uploadButton = new Rectangle(centerX - (BUTTON_W / 2f), topY - 180f, BUTTON_W, BUTTON_H);
-        Rectangle submitButton = new Rectangle(centerX - (BUTTON_W / 2f), topY - 230f, BUTTON_W, BUTTON_H);
+        Rectangle nameField = new Rectangle(panel.x + 40f, panel.y + panelH - 170f, panelW - 80f, 48f);
+        Rectangle uploadButton = new Rectangle(panel.x + 40f, panel.y + panelH - 235f, panelW - 80f, 48f);
+        Rectangle submitButton = new Rectangle(panel.x + 40f, panel.y + panelH - 300f, panelW - 80f, 48f);
+        Rectangle backButton = new Rectangle(panel.x + 40f, panel.y + 30f, panelW - 80f, 44f);
 
-        if (consumeClick(nameButton)) {
-            requestNameInput();
+        if (consumeClick(nameField)) {
+            leaderboardNameEditing = true;
+            showStatus("Typing enabled. Press Enter to confirm name.", 2.5f);
         }
         if (consumeClick(uploadButton)) {
+            leaderboardNameEditing = false;
             requestImageUpload("leaderboard-entry");
         }
         if (consumeClick(submitButton)) {
+            leaderboardNameEditing = false;
             submitLeaderboardEntry();
         }
-
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-        drawButtonRect(nameButton);
-        drawButtonRect(uploadButton);
-        drawButtonRect(submitButton);
-        shapeRenderer.end();
-
-        batch.begin();
-        font.draw(batch, "Leaderboard Submission", centerX - 90f, topY);
-        font.draw(batch, "Final Score: " + gameSession.getScore(), centerX - 60f, topY - 30f);
-        font.draw(batch, "Name: " + (playerNameInput.isBlank() ? "<not set>" : playerNameInput), centerX - 120f, topY - 60f);
-
-        if (selectedAvatarTexture != null) {
-            font.draw(batch, "Avatar:", centerX - 120f, topY - 90f);
-            batch.draw(selectedAvatarTexture, centerX - 50f, topY - 112f, 24f, 24f);
-        } else {
-            font.draw(batch, "Avatar: <none>", centerX - 120f, topY - 90f);
+        if (consumeClick(backButton)) {
+            leaderboardNameEditing = false;
+            gameState = GameState.FOOD_MENU;
         }
 
-        font.draw(batch, "Enter Name", nameButton.x + 90f, nameButton.y + 24f);
-        font.draw(batch, "Upload / Change Image", uploadButton.x + 58f, uploadButton.y + 24f);
-        font.draw(batch, "Submit to Leaderboard", submitButton.x + 55f, submitButton.y + 24f);
+        drawScreenPanel(panel);
+        drawTextInputField(nameField, leaderboardNameEditing);
+        drawActionButton(uploadButton, new Color(0.12f, 0.34f, 0.5f, 1f));
+        drawActionButton(submitButton, new Color(0.13f, 0.47f, 0.2f, 1f));
+        drawActionButton(backButton, new Color(0.2f, 0.2f, 0.25f, 1f));
+
+        batch.begin();
+        float headerY = panel.y + panelH - 28f;
+        font.draw(batch, "RUN COMPLETE", panel.x + 40f, headerY);
+        font.draw(batch, "Final Score: " + gameSession.getScore(), panel.x + 40f, headerY - 30f);
+        font.draw(batch, "Enter your name and submit to leaderboard", panel.x + 40f, headerY - 58f);
+
+        if (selectedAvatarTexture != null) {
+            font.draw(batch, "Avatar:", panel.x + 40f, headerY - 86f);
+            batch.draw(selectedAvatarTexture, panel.x + 90f, headerY - 104f, 28f, 28f);
+        } else {
+            font.draw(batch, "Avatar: <none>", panel.x + 40f, headerY - 86f);
+        }
+
+        String shownName = playerNameInput.isBlank() ? "Type your name..." : playerNameInput;
+        if (leaderboardNameEditing && ((System.currentTimeMillis() / 350L) % 2L == 0L)) {
+            shownName += "_";
+        }
+        font.draw(batch, shownName, nameField.x + 16f, nameField.y + 30f);
+        font.draw(batch, "Upload / Change Image", uploadButton.x + 16f, uploadButton.y + 30f);
+        font.draw(batch, "Submit to Leaderboard", submitButton.x + 16f, submitButton.y + 30f);
+        font.draw(batch, "Back to Main Menu", backButton.x + 16f, backButton.y + 28f);
         drawStatus(batch, 20f, 24f);
         batch.end();
     }
@@ -486,42 +515,48 @@ public class Main extends ApplicationAdapter {
     private void renderLeaderboardView() {
         applyFullScreenProjection();
 
-        float centerX = Gdx.graphics.getWidth() / 2f;
-        float topY = Gdx.graphics.getHeight() - 60f;
+        float width = Gdx.graphics.getWidth();
+        float height = Gdx.graphics.getHeight();
+        float centerX = width / 2f;
+        float panelW = Math.min(800f, width - 80f);
+        float panelH = Math.min(540f, height - 80f);
+        Rectangle panel = new Rectangle(centerX - panelW / 2f, (height - panelH) / 2f, panelW, panelH);
         String footerLabel = leaderboardOpenedFromMenu ? "Back to Main Menu" : "Play Again";
-        Rectangle footerButton = new Rectangle(centerX - (BUTTON_W / 2f), 30f, BUTTON_W, BUTTON_H);
+        Rectangle footerButton = new Rectangle(panel.x + 40f, panel.y + 30f, panelW - 80f, 44f);
         if (consumeClick(footerButton)) {
             gameState = GameState.FOOD_MENU;
             playerNameInput = "";
+            leaderboardNameEditing = false;
             leaderboardOpenedFromMenu = false;
             showStatus("Setup ready for next run", 2f);
         }
 
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-        drawButtonRect(footerButton);
-        shapeRenderer.end();
+        drawScreenPanel(panel);
+        drawActionButton(footerButton, new Color(0.2f, 0.2f, 0.25f, 1f));
 
         batch.begin();
-        font.draw(batch, "Leaderboard", centerX - 45f, topY);
+        float topY = panel.y + panelH - 28f;
+        font.draw(batch, "LEADERBOARD", panel.x + 40f, topY);
 
         int maxRows = Math.min(10, leaderboardEntries.size());
-        float rowY = topY - 36f;
+        float rowY = topY - 42f;
         for (int i = 0; i < maxRows; i++) {
             LeaderboardEntry entry = leaderboardEntries.get(i);
-            font.draw(batch, (i + 1) + ".", centerX - 210f, rowY);
+            float rowX = panel.x + 40f;
+            font.draw(batch, String.format("%2d.", i + 1), rowX, rowY);
             if (entry.avatarTexture != null) {
-                batch.draw(entry.avatarTexture, centerX - 190f, rowY - 16f, 20f, 20f);
+                batch.draw(entry.avatarTexture, rowX + 34f, rowY - 18f, 24f, 24f);
             }
-            font.draw(batch, entry.name, centerX - 160f, rowY);
-            font.draw(batch, "Score: " + entry.score, centerX + 40f, rowY);
+            font.draw(batch, entry.name, rowX + 70f, rowY);
+            font.draw(batch, "Score: " + entry.score, panel.x + panelW - 170f, rowY);
             rowY -= 30f;
         }
 
         if (leaderboardEntries.isEmpty()) {
-            font.draw(batch, "No entries yet.", centerX - 45f, topY - 40f);
+            font.draw(batch, "No entries yet.", panel.x + 40f, topY - 42f);
         }
 
-        font.draw(batch, footerLabel, footerButton.x + 66f, footerButton.y + 24f);
+        font.draw(batch, footerLabel, footerButton.x + 16f, footerButton.y + 28f);
         drawStatus(batch, 20f, 24f);
         batch.end();
     }
@@ -533,6 +568,7 @@ public class Main extends ApplicationAdapter {
                 difficultyPreset.healthyTimerBonus,
                 difficultyPreset.unhealthyTimerPenalty);
         paused = false;
+        leaderboardNameEditing = false;
         playerNameInput = "";
         sceneManager.push(new Scene("Level 1", new Color(0.1f, 0.2f, 0.3f, 1f)));
         loadEntitiesForLevel(1);
@@ -668,6 +704,94 @@ public class Main extends ApplicationAdapter {
                 showStatus("Name input cancelled", 2f);
             }
         }, "Enter Name", playerNameInput, "Player name");
+    }
+
+    private void handleLeaderboardNameTyping() {
+        if (gameState != GameState.LEADERBOARD_ENTRY || !leaderboardNameEditing) {
+            return;
+        }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+            leaderboardNameEditing = false;
+            showStatus("Name confirmed", 2f);
+            return;
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+            leaderboardNameEditing = false;
+            showStatus("Name edit cancelled", 2f);
+            return;
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.BACKSPACE)) {
+            if (!playerNameInput.isEmpty()) {
+                playerNameInput = playerNameInput.substring(0, playerNameInput.length() - 1);
+            }
+            return;
+        }
+
+        boolean shift = Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) || Gdx.input.isKeyPressed(Input.Keys.SHIFT_RIGHT);
+
+        appendNameCharIfPressed(Input.Keys.SPACE, ' ');
+        appendNameCharIfPressed(Input.Keys.MINUS, shift ? '_' : '-');
+        appendNameCharIfPressed(Input.Keys.PERIOD, '.');
+
+        appendNameCharIfPressed(Input.Keys.NUM_0, '0');
+        appendNameCharIfPressed(Input.Keys.NUM_1, '1');
+        appendNameCharIfPressed(Input.Keys.NUM_2, '2');
+        appendNameCharIfPressed(Input.Keys.NUM_3, '3');
+        appendNameCharIfPressed(Input.Keys.NUM_4, '4');
+        appendNameCharIfPressed(Input.Keys.NUM_5, '5');
+        appendNameCharIfPressed(Input.Keys.NUM_6, '6');
+        appendNameCharIfPressed(Input.Keys.NUM_7, '7');
+        appendNameCharIfPressed(Input.Keys.NUM_8, '8');
+        appendNameCharIfPressed(Input.Keys.NUM_9, '9');
+
+        appendNameCharIfPressed(Input.Keys.NUMPAD_0, '0');
+        appendNameCharIfPressed(Input.Keys.NUMPAD_1, '1');
+        appendNameCharIfPressed(Input.Keys.NUMPAD_2, '2');
+        appendNameCharIfPressed(Input.Keys.NUMPAD_3, '3');
+        appendNameCharIfPressed(Input.Keys.NUMPAD_4, '4');
+        appendNameCharIfPressed(Input.Keys.NUMPAD_5, '5');
+        appendNameCharIfPressed(Input.Keys.NUMPAD_6, '6');
+        appendNameCharIfPressed(Input.Keys.NUMPAD_7, '7');
+        appendNameCharIfPressed(Input.Keys.NUMPAD_8, '8');
+        appendNameCharIfPressed(Input.Keys.NUMPAD_9, '9');
+
+        appendNameCharIfPressed(Input.Keys.A, shift ? 'A' : 'a');
+        appendNameCharIfPressed(Input.Keys.B, shift ? 'B' : 'b');
+        appendNameCharIfPressed(Input.Keys.C, shift ? 'C' : 'c');
+        appendNameCharIfPressed(Input.Keys.D, shift ? 'D' : 'd');
+        appendNameCharIfPressed(Input.Keys.E, shift ? 'E' : 'e');
+        appendNameCharIfPressed(Input.Keys.F, shift ? 'F' : 'f');
+        appendNameCharIfPressed(Input.Keys.G, shift ? 'G' : 'g');
+        appendNameCharIfPressed(Input.Keys.H, shift ? 'H' : 'h');
+        appendNameCharIfPressed(Input.Keys.I, shift ? 'I' : 'i');
+        appendNameCharIfPressed(Input.Keys.J, shift ? 'J' : 'j');
+        appendNameCharIfPressed(Input.Keys.K, shift ? 'K' : 'k');
+        appendNameCharIfPressed(Input.Keys.L, shift ? 'L' : 'l');
+        appendNameCharIfPressed(Input.Keys.M, shift ? 'M' : 'm');
+        appendNameCharIfPressed(Input.Keys.N, shift ? 'N' : 'n');
+        appendNameCharIfPressed(Input.Keys.O, shift ? 'O' : 'o');
+        appendNameCharIfPressed(Input.Keys.P, shift ? 'P' : 'p');
+        appendNameCharIfPressed(Input.Keys.Q, shift ? 'Q' : 'q');
+        appendNameCharIfPressed(Input.Keys.R, shift ? 'R' : 'r');
+        appendNameCharIfPressed(Input.Keys.S, shift ? 'S' : 's');
+        appendNameCharIfPressed(Input.Keys.T, shift ? 'T' : 't');
+        appendNameCharIfPressed(Input.Keys.U, shift ? 'U' : 'u');
+        appendNameCharIfPressed(Input.Keys.V, shift ? 'V' : 'v');
+        appendNameCharIfPressed(Input.Keys.W, shift ? 'W' : 'w');
+        appendNameCharIfPressed(Input.Keys.X, shift ? 'X' : 'x');
+        appendNameCharIfPressed(Input.Keys.Y, shift ? 'Y' : 'y');
+        appendNameCharIfPressed(Input.Keys.Z, shift ? 'Z' : 'z');
+    }
+
+    private void appendNameCharIfPressed(int keycode, char value) {
+        if (!Gdx.input.isKeyJustPressed(keycode)) {
+            return;
+        }
+        if (playerNameInput.length() >= 24) {
+            return;
+        }
+        playerNameInput += value;
     }
 
     private void submitLeaderboardEntry() {
@@ -890,6 +1014,54 @@ public class Main extends ApplicationAdapter {
         shapeRenderer.setColor(0f, 0f, 0f, 0.45f);
         shapeRenderer.rect(bounds.x, bounds.y, bounds.width, bounds.height);
         shapeRenderer.setColor(Color.WHITE);
+    }
+
+    private void drawScreenPanel(Rectangle panel) {
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        shapeRenderer.setColor(0.02f, 0.03f, 0.06f, 0.9f);
+        shapeRenderer.rect(panel.x, panel.y, panel.width, panel.height);
+        shapeRenderer.setColor(0.08f, 0.1f, 0.16f, 0.92f);
+        shapeRenderer.rect(panel.x + 6f, panel.y + 6f, panel.width - 12f, panel.height - 12f);
+        shapeRenderer.end();
+
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+        shapeRenderer.setColor(0.72f, 0.78f, 0.9f, 0.7f);
+        shapeRenderer.rect(panel.x + 2f, panel.y + 2f, panel.width - 4f, panel.height - 4f);
+        shapeRenderer.end();
+    }
+
+    private void drawActionButton(Rectangle bounds, Color fillColor) {
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        shapeRenderer.setColor(fillColor.r, fillColor.g, fillColor.b, 0.92f);
+        shapeRenderer.rect(bounds.x, bounds.y, bounds.width, bounds.height);
+        shapeRenderer.setColor(
+                Math.min(1f, fillColor.r + 0.12f),
+                Math.min(1f, fillColor.g + 0.12f),
+                Math.min(1f, fillColor.b + 0.12f),
+                0.32f);
+        shapeRenderer.rect(bounds.x + 2f, bounds.y + bounds.height * 0.52f, bounds.width - 4f, bounds.height * 0.42f);
+        shapeRenderer.end();
+
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+        shapeRenderer.setColor(0.9f, 0.92f, 1f, 0.85f);
+        shapeRenderer.rect(bounds.x, bounds.y, bounds.width, bounds.height);
+        shapeRenderer.end();
+    }
+
+    private void drawTextInputField(Rectangle bounds, boolean active) {
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        shapeRenderer.setColor(0.04f, 0.05f, 0.08f, 0.96f);
+        shapeRenderer.rect(bounds.x, bounds.y, bounds.width, bounds.height);
+        shapeRenderer.end();
+
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+        if (active) {
+            shapeRenderer.setColor(0.36f, 0.82f, 1f, 1f);
+        } else {
+            shapeRenderer.setColor(0.78f, 0.82f, 0.92f, 0.85f);
+        }
+        shapeRenderer.rect(bounds.x, bounds.y, bounds.width, bounds.height);
+        shapeRenderer.end();
     }
 
     private void applyFullScreenProjection() {
