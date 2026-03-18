@@ -90,7 +90,7 @@ public class GamePlayScene extends Scene {
 	    worldSpawned = true;
 
 	    if (em == null || mm == null || io == null) {
-	        throw new IllegalStateException("GamePlayScene managers not wired. Call initManagers(...) before create().");
+	        throw new IllegalStateException("GamePlayScene managers not wired, call initManagers(...) before create().");
 	    }
 
 	    // Plate

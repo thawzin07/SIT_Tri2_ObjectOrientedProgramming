@@ -82,14 +82,14 @@ public class PlayerSelectionScene extends Scene {
         float touchY = Gdx.graphics.getHeight() - Gdx.input.getY();
 
         if (player1Btn.contains(touchX, touchY)) {
-            System.out.println("Player 1 selected");
+            System.out.println("Player 1 selected.");
 
             GamePlayScene gps = new GamePlayScene();
             gps.initManagers(Main.em(), Main.mm(), Main.io());
             SceneManager.getInstance().setScene(gps);
 
         } else if (player2Btn.contains(touchX, touchY)) {
-            System.out.println("Player 2 selected");
+            System.out.println("Player 2 selected.");
 
             GamePlayScene gps = new GamePlayScene();
             gps.initManagers(Main.em(), Main.mm(), Main.io());

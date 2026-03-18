@@ -26,7 +26,7 @@ public class Main implements ApplicationListener {
     public void create() {
         batch = new SpriteBatch();
 
-        // Wire up all managers, first three are static.
+        // Wire up all managers, first three are static now.
         ioManager                         = new InputOutputManager();
         entityManager       			  = new EntityManager();
         movementManager   				  = new MovementManager();
