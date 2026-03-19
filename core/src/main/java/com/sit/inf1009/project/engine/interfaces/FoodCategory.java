@@ -4,5 +4,6 @@ public enum FoodCategory {
     VEGETABLE,
     PROTEIN,
     CARBOHYDRATE,
-    OIL
+    OIL,
+    RANDOM
 }

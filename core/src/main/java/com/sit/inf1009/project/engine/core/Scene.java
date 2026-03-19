@@ -1,53 +1,58 @@
 package com.sit.inf1009.project.engine.core;
 
-import java.util.List;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.sit.inf1009.project.engine.entities.Entity;
 import com.sit.inf1009.project.engine.components.CollidableComponent;
+import java.util.List;
 
 public class Scene {
     private String name;
     private Color backgroundColor;
+    private float timeAlive = 0f;
 
-    public Scene(String name, Color backgroundColor) {
+    public Scene(String name, Color color) {
         this.name = name;
-        this.backgroundColor = backgroundColor;
+        this.backgroundColor = color;
     }
 
-    // This method is called by SceneManager, which gets the list from Main
+    // Override in subclasses to set up textures, stage, etc.
+    public void create() {}
+
+    // Override in subclasses to draw
+    public void render(SpriteBatch batch) {}
+    
+    public void resize(int width, int height) {}
+
+    // Override in subclasses for custom update; base handles clamping
     public void update(float dt, List<Entity> entities) {
-        // Use Gdx.graphics to get the window size every frame
-        int screenWidth = com.badlogic.gdx.Gdx.graphics.getWidth();
-        int screenHeight = com.badlogic.gdx.Gdx.graphics.getHeight();
-
+        timeAlive += dt;
+        if (entities == null) return;
+        int w = Gdx.graphics.getWidth();
+        int h = Gdx.graphics.getHeight();
         for (Entity e : entities) {
-            clampToScreen(e, screenWidth, screenHeight); 
+            clampToScreen(e, w, h);
         }
     }
 
-    private void clampToScreen(Entity e, int screenWidth, int screenHeight) {
-        float radius = 0;
-        
-        // Check if the entity has a collision component to get its radius
-        CollidableComponent cc = e.getCollidable();
-        if (cc != null) {
-            radius = (float) cc.getCollisionRadius();
-        }
+    // Override in subclasses to clean up resources
+    public void dispose() {}
 
-        // Horizontal boundaries
-        if (e.getXPosition() < radius) e.setXPosition(radius);
-        if (e.getXPosition() > screenWidth - radius) e.setXPosition(screenWidth - radius);
-        
-        // Vertical boundaries
-        if (e.getYPosition() < radius) e.setYPosition(radius);
-        if (e.getYPosition() > screenHeight - radius) e.setYPosition(screenHeight - radius);
+    public float getTimeAlive() { return timeAlive; }
+
+    private void clampToScreen(Entity e, int w, int h) {
+        float r = 0f;
+        CollidableComponent c = e.getCollidable();
+        if (c != null) r = (float) c.getCollisionRadius();
+        double x = e.getXPosition();
+        double y = e.getYPosition();
+        x = Math.max(r, Math.min(x, w - r));
+        y = Math.max(r, Math.min(y, h - r));
+        e.setXPosition(x);
+        e.setYPosition(y);
     }
 
-    public Color getBackgroundColor() {
-        return backgroundColor;
-    }
-
-    public String getName() {
-        return name;
-    }
+    public Color getBackgroundColor() { return backgroundColor; }
+    public String getName() { return name; }
 }

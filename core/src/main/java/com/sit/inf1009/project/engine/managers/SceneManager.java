@@ -1,20 +1,36 @@
 package com.sit.inf1009.project.engine.managers;
 
 import java.util.Stack;
-import java.util.List;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.sit.inf1009.project.engine.core.Scene;
 import com.sit.inf1009.project.engine.entities.Entity;
 
 public class SceneManager {
+    private static SceneManager instance;
     private Stack<Scene> scenes;
+    
+    private EntityManager em;
+    private MovementManager movementManager;
 
-    public SceneManager() {
+    public SceneManager(EntityManager em, MovementManager mm) {
+        instance = this;
         this.scenes = new Stack<>();
+        this.em = em;
+        this.movementManager = mm;
+    }
+
+    public static SceneManager getInstance() {
+        return instance;
     }
 
     public void push(Scene scene) {
+        if (em != null) {
+            em.clear(); // clears entities from the master database
+        }
+        if (movementManager != null) {
+            movementManager.clear(); // clears physics calculations
+        }
         scenes.push(scene);
     }
 
@@ -22,22 +38,41 @@ public class SceneManager {
         if (!scenes.isEmpty()) {
             scenes.pop();
         }
-    }
-    
-    public String getCurrentSceneName() {
-        return scenes.isEmpty() ? "None" : scenes.peek().getName();
+        if (em != null) {
+            em.clear(); 
+        }
+        if (movementManager != null) {
+            movementManager.clear(); 
+        }
     }
 
-    // Pass-through method: Receives the list from Main and gives it to the active Scene
-    public void update(float dt, List<Entity> entities) {
+    public void setScene(Scene scene) {
+        pop();
+        push(scene);
+    }
+
+    public void spawnEntity(Entity entity) {
+        // 1. Add to the master database
+        em.addEntity(entity);
+        
+        // 2. Pass it directly to MovementManager
+        movementManager.addMovable(entity);
+    }
+
+    public void removeEntity(Entity entity) {
+        em.removeEntity(entity);
+        movementManager.removeMovable(entity);
+    }
+
+    public void update(float dt) 
+    {
         if (!scenes.isEmpty()) {
-            scenes.peek().update(dt, entities);
+            scenes.peek().update(dt, em.getEntities());
         }
     }
 
     public void render(SpriteBatch batch) {
         if (!scenes.isEmpty()) {
-            // Apply the background color defined by the current scene
             ScreenUtils.clear(scenes.peek().getBackgroundColor());
         }
     }

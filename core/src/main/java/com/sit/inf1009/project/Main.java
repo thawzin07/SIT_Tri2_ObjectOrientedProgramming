@@ -1,280 +1,1286 @@
 package com.sit.inf1009.project;
 
 import com.badlogic.gdx.ApplicationAdapter;
+
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.utils.ScreenUtils;
+import com.badlogic.gdx.Input.TextInputListener;
+import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.Preferences;
-
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.utils.ScreenUtils;
+import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.math.Vector3;
+import com.sit.inf1009.project.engine.components.AIMovement;
 import com.sit.inf1009.project.engine.components.CollidableComponent;
+import com.sit.inf1009.project.engine.components.FoodCollidableComponent;
+import com.sit.inf1009.project.engine.components.MovementComponent;
+import com.sit.inf1009.project.engine.components.PlayerCollidableComponent;
 import com.sit.inf1009.project.engine.components.PlayerMovement;
-import com.sit.inf1009.project.engine.core.handlers.*;
+import com.sit.inf1009.project.engine.core.AvatarSetupFlowScreen;
 import com.sit.inf1009.project.engine.core.Scene;
+import com.sit.inf1009.project.engine.core.StartMenuScene;
+import com.sit.inf1009.project.engine.core.handlers.KeyboardInputHandler;
+import com.sit.inf1009.project.engine.core.handlers.LibGdxMouseInputHandler;
+import com.sit.inf1009.project.engine.core.handlers.PlayerImageInputService;
+import com.sit.inf1009.project.engine.core.handlers.SoundOutputHandler;
 import com.sit.inf1009.project.engine.entities.Entity;
-import com.sit.inf1009.project.engine.managers.*;
+import com.sit.inf1009.project.engine.interfaces.FoodCategory;
+import com.sit.inf1009.project.engine.entities.FoodFactory;
+import com.sit.inf1009.project.engine.managers.CollisionManager;
+import com.sit.inf1009.project.engine.managers.EntityManager;
+import com.sit.inf1009.project.engine.managers.IOEvent;
+import com.sit.inf1009.project.engine.managers.InputOutputManager;
+import com.sit.inf1009.project.engine.managers.MovementManager;
+import com.sit.inf1009.project.engine.managers.SceneManager;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 
 public class Main extends ApplicationAdapter {
+
+    private enum GameState {
+        FOOD_MENU,
+        DIFFICULTY_SETTINGS,
+        HOW_TO_PLAY,
+        AVATAR_SETUP,
+        PLAYING,
+        LEADERBOARD_ENTRY,
+        LEADERBOARD_VIEW
+    }
+
+    private enum DifficultyPreset {
+        EASY("Easy", 75f, 6, 95f, 8, 6f, 3f, 10),
+        NORMAL("Normal", 60f, 8, 120f, 10, 5f, 5f, 15),
+        HARD("Hard", 45f, 10, 150f, 12, 4f, 6f, 20);
+
+        final String label;
+        final float startingTimer;
+        final int npcCount;
+        final float npcSpeed;
+        final int healthyScoreBonus;
+        final float healthyTimerBonus;
+        final float unhealthyTimerPenalty;
+        final int foodEntityCount;
+
+        DifficultyPreset(String label,
+                         float startingTimer,
+                         int npcCount,
+                         float npcSpeed,
+                         int healthyScoreBonus,
+                         float healthyTimerBonus,
+                         float unhealthyTimerPenalty, 
+                         int foodEntityCount) {
+            this.label = label;
+            this.startingTimer = startingTimer;
+            this.npcCount = npcCount;
+            this.npcSpeed = npcSpeed;
+            this.healthyScoreBonus = healthyScoreBonus;
+            this.healthyTimerBonus = healthyTimerBonus;
+            this.unhealthyTimerPenalty = unhealthyTimerPenalty;
+            this.foodEntityCount = foodEntityCount;
+        }
+    }
+
+    private static class LeaderboardEntry {
+        final String name;
+        final int score;
+        final Texture avatarTexture;
+        final boolean ownsTexture;
+        final int presetIndex;
+        final String uploadedPath;
+
+        LeaderboardEntry(String name,
+                         int score,
+                         Texture avatarTexture,
+                         boolean ownsTexture,
+                         int presetIndex,
+                         String uploadedPath) {
+            this.name = name;
+            this.score = score;
+            this.avatarTexture = avatarTexture;
+            this.ownsTexture = ownsTexture;
+            this.presetIndex = presetIndex;
+            this.uploadedPath = uploadedPath;
+        }
+    }
+
+    private static final int PLAYER_ID = 1;
+    private static final float BUTTON_W = 250f;
+    private static final float BUTTON_H = 38f;
+    private static final String LEADERBOARD_FILE = "leaderboard.txt";
+
     private ShapeRenderer shapeRenderer;
     private SpriteBatch batch;
     private BitmapFont font;
+    private StartMenuScene foodMenuScene;
+    private AvatarSetupFlowScreen avatarSetupScreen;
+    private OrthographicCamera camera;
+    private Vector3 touchPos = new Vector3();
 
     private InputOutputManager ioManager;
     private EntityManager entityManager;
     private MovementManager movementManager;
     private CollisionManager collisionManager;
     private SceneManager sceneManager;
+    private GameSession gameSession;
+    private PlayerImageInputService playerImageInputService;
+
+    private GameState gameState;
+    private DifficultyPreset difficultyPreset;
+    private boolean paused;
+
+    private Texture[] presetAvatars;
+    private String[] presetAvatarLabels;
+    private Map<FoodCategory, Texture> foodCategoryTextures;
+    private Texture uploadedAvatarTexture;
+    private String uploadedAvatarPath;
+    private Texture selectedAvatarTexture;
+    private boolean selectedAvatarIsUploaded;
+    private int selectedPresetIndex;
+
+    private final List<LeaderboardEntry> leaderboardEntries = new ArrayList<>();
+    private String playerNameInput = "";
+    private String statusMessage = "";
+    private float statusSecondsLeft = 0f;
+    private boolean leaderboardOpenedFromMenu;
+
+    private boolean clickPending;
+    private float clickX;
+    private float clickY;
+    private boolean leaderboardNameEditing;
+    private int referenceViewportWidth;
+    private int referenceViewportHeight;
+    private double currentGameplayScale = 1.0;
+    private int lastViewportWidth;
+    private int lastViewportHeight;
     
-    // --- Game State Variables ---
-    private boolean paused = false;
-    private String playerName = "";
-    private boolean isTypingName = false;
-    private float gameTimer = 60f;
-    private int score = 0;
-
-    // Food Counts
-    public int vegCount = 0, proteinCount = 0, carbCount = 0, oilCount = 0;
-
-    // Leaderboard Data
-    private String[] topNames = new String[3];
-    private int[] topScores = new int[3];
+    private static final int foodId = 100;
+    private int nextFoodId = foodId;
+    private FoodFactory foodFactory;
 
     @Override
     public void create() {
         shapeRenderer = new ShapeRenderer();
         batch = new SpriteBatch();
         font = new BitmapFont();
+        
+        camera = new OrthographicCamera();
+        camera.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
         ioManager = new InputOutputManager();
         entityManager = new EntityManager();
         movementManager = new MovementManager();
         collisionManager = new CollisionManager(entityManager, ioManager);
-        sceneManager = new SceneManager(); 
+        sceneManager = new SceneManager(entityManager, movementManager);
+        difficultyPreset = DifficultyPreset.NORMAL;
+        gameSession = new GameSession(
+                difficultyPreset.startingTimer,
+                difficultyPreset.healthyScoreBonus,
+                difficultyPreset.healthyTimerBonus,
+                difficultyPreset.unhealthyTimerPenalty);
+        paused = false;
 
         ioManager.registerInputHandler(new KeyboardInputHandler(ioManager));
         ioManager.registerInputHandler(new LibGdxMouseInputHandler(ioManager));
-        new PlayerImageInputService(ioManager);
-        ioManager.registerOutputHandler(new SoundOutputHandler()); 
+        playerImageInputService = new PlayerImageInputService(ioManager);
+        ioManager.registerOutputHandler(new SoundOutputHandler());
 
-        loadHighScores();
-        sceneManager.push(new Scene("Start", Color.BLACK));
+        presetAvatarLabels = new String[] { "Droplet", "Bucket", "LibGDX" };
+        presetAvatars = new Texture[] {
+                new Texture(Gdx.files.internal("droplet.png")),
+                new Texture(Gdx.files.internal("bucket.png")),
+                new Texture(Gdx.files.internal("libgdx.png"))
+        };
+        foodCategoryTextures = createFoodCategoryTextures();
+        selectedPresetIndex = 0;
+        selectedAvatarTexture = presetAvatars[selectedPresetIndex];
+        selectedAvatarIsUploaded = false;
+        loadLeaderboardEntries();
+
+        foodMenuScene = new StartMenuScene(ioManager, new StartMenuScene.ActionListener() {
+            @Override
+            public void onStart() {
+                gameState = GameState.AVATAR_SETUP;
+            }
+
+            @Override
+            public void onDifficulty() {
+                gameState = GameState.DIFFICULTY_SETTINGS;
+            }
+
+            @Override
+            public void onHowToPlay() {
+                gameState = GameState.HOW_TO_PLAY;
+            }
+
+            @Override
+            public void onHighScores() {
+                leaderboardOpenedFromMenu = true;
+                gameState = GameState.LEADERBOARD_VIEW;
+            }
+        });
+        foodMenuScene.create();
+        foodMenuScene.resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+
+        avatarSetupScreen = new AvatarSetupFlowScreen(ioManager, presetAvatars, presetAvatarLabels, new AvatarSetupFlowScreen.ActionListener() {
+            @Override
+            public void onBackToMainMenu() {
+                gameState = GameState.FOOD_MENU;
+            }
+
+            @Override
+            public void onStartGame(AvatarSetupFlowScreen.SelectionResult result) {
+                applyAvatarSelection(result);
+                startNewGame();
+            }
+        });
+        avatarSetupScreen.create();
+        avatarSetupScreen.resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+
+        wirePlayerImageSelectionEvents();
+        lastViewportWidth = Math.max(1, Gdx.graphics.getWidth());
+        lastViewportHeight = Math.max(1, Gdx.graphics.getHeight());
+        referenceViewportWidth = lastViewportWidth;
+        referenceViewportHeight = lastViewportHeight;
+        currentGameplayScale = 1.0;
+        gameState = GameState.FOOD_MENU;
     }
 
     @Override
     public void render() {
-        String state = sceneManager.getCurrentSceneName();
+        ScreenUtils.clear(0.08f, 0.08f, 0.1f, 1f);
+
         float dt = Gdx.graphics.getDeltaTime();
-
-        handleMenuInput(state);
-
-        if (state.equals("Game") && !paused) {
-            updateGameLogic(dt);
+        if (statusSecondsLeft > 0f) {
+            statusSecondsLeft -= dt;
         }
 
-        ScreenUtils.clear(0, 0, 0, 1);
-        sceneManager.render(null); 
+        captureClick();
 
-        if (state.equals("Game")) {
-            drawEntities();
-        }
-
-        drawUI(state);
-    }
-
-    private void handleMenuInput(String state) {
-        float mx = Gdx.input.getX();
-        float my = Gdx.graphics.getHeight() - Gdx.input.getY(); // Invert Y
-        boolean clicked = Gdx.input.justTouched();
-
-        if (state.equals("Start")) {
-            // Button area for "CLICK TO START"
-            if (clicked && isInside(mx, my, 300, 280, 200, 50)) {
-                isTypingName = true;
-                playerName = ""; // Reset name for new entry
-            }
-            if (isTypingName) handleNameTyping();
-        }
-
-        else if (state.equals("Difficulty")) {
-            // Easy Button
-            if (clicked && isInside(mx, my, 300, 300, 200, 40)) setDifficulty(60f, 1.0f, Color.GREEN);
-            // Hard Button
-            if (clicked && isInside(mx, my, 300, 250, 200, 40)) setDifficulty(20f, 2.0f, Color.RED);
-        }
-
-        else if (state.equals("Instructions")) {
-            if (clicked) startGame();
-        }
-
-        else if (state.equals("HighScore")) {
-            if (clicked) sceneManager.push(new Scene("Start", Color.BLACK));
-        }
-
-        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) paused = !paused;
-    }
-
-    private void handleNameTyping() {
-        // Listen for keys A-Z (LibGDX constants 29-54)
-        for (int i = Input.Keys.A; i <= Input.Keys.Z; i++) {
-            if (Gdx.input.isKeyJustPressed(i)) {
-                playerName += Input.Keys.toString(i);
-            }
-        }
-        // Handle Backspace
-        if (Gdx.input.isKeyJustPressed(Input.Keys.BACKSPACE) && playerName.length() > 0) {
-            playerName = playerName.substring(0, playerName.length() - 1);
-        }
-        // Finish typing
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER) && !playerName.isEmpty()) {
-            isTypingName = false;
-            sceneManager.push(new Scene("Difficulty", Color.DARK_GRAY));
+        switch (gameState) {
+            case FOOD_MENU:
+                foodMenuScene.render(batch);
+                break;
+            case DIFFICULTY_SETTINGS:
+                renderDifficultySettings();
+                break;
+            case HOW_TO_PLAY:
+                renderHowToPlay();
+                break;
+            case AVATAR_SETUP:
+                avatarSetupScreen.render(batch);
+                break;
+            case PLAYING:
+                renderGameplay(dt);
+                break;
+            case LEADERBOARD_ENTRY:
+                renderLeaderboardEntry();
+                break;
+            case LEADERBOARD_VIEW:
+                renderLeaderboardView();
+                break;
+            default:
+                break;
         }
     }
 
-    private boolean isInside(float mx, float my, float x, float y, float w, float h) {
-        return mx >= x && mx <= x + w && my >= y && my <= y + h;
-    }
+    private void renderDifficultySettings() {
+        applyFullScreenProjection();
 
-    private void setDifficulty(float time, float speed, Color color) {
-        this.gameTimer = time;
-        // In the future, this speed variable can be used by teammates
-        sceneManager.push(new Scene("Instructions", color));
-    }
+        float width = Gdx.graphics.getWidth();
+        float height = Gdx.graphics.getHeight();
+        float centerX = width / 2f;
+        float panelW = Math.min(760f, width - 80f);
+        float panelH = Math.min(500f, height - 80f);
+        Rectangle panel = new Rectangle(centerX - panelW / 2f, (height - panelH) / 2f, panelW, panelH);
 
-    private void startGame() {
-        prepareNewScene();
-        score = 0;
-        vegCount = 0; proteinCount = 0; carbCount = 0; oilCount = 0;
-        sceneManager.push(new Scene("Game", Color.BLACK));
-        loadEntitiesForLevel(1); 
-    }
+        Rectangle easyButton = new Rectangle(panel.x + 40f, panel.y + panelH - 180f, panelW - 80f, 48f);
+        Rectangle normalButton = new Rectangle(panel.x + 40f, panel.y + panelH - 240f, panelW - 80f, 48f);
+        Rectangle hardButton = new Rectangle(panel.x + 40f, panel.y + panelH - 300f, panelW - 80f, 48f);
+        Rectangle backButton = new Rectangle(panel.x + 40f, panel.y + 30f, panelW - 80f, 44f);
 
-    private void updateGameLogic(float dt) {
-        gameTimer -= dt;
-        if (gameTimer <= 0) {
-            saveHighScore();
-            sceneManager.push(new Scene("HighScore", Color.GOLD));
-            return;
+        if (consumeClick(easyButton)) {
+            difficultyPreset = DifficultyPreset.EASY;
+            showStatus("Difficulty set: Easy", 2f);
+        }
+        if (consumeClick(normalButton)) {
+            difficultyPreset = DifficultyPreset.NORMAL;
+            showStatus("Difficulty set: Normal", 2f);
+        }
+        if (consumeClick(hardButton)) {
+            difficultyPreset = DifficultyPreset.HARD;
+            showStatus("Difficulty set: Hard", 2f);
+        }
+        if (consumeClick(backButton)) {
+            gameState = GameState.FOOD_MENU;
         }
 
-        // Keep debug keys for your testing
-        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_5)) vegCount++;
-        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_6)) proteinCount++;
-        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_7)) carbCount++;
-        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_8)) oilCount++;
+        drawScreenPanel(panel);
+        drawActionButton(easyButton, difficultyPreset == DifficultyPreset.EASY ? new Color(0.16f, 0.62f, 0.2f, 1f) : new Color(0.12f, 0.34f, 0.18f, 1f));
+        drawActionButton(normalButton, difficultyPreset == DifficultyPreset.NORMAL ? new Color(0.1f, 0.45f, 0.78f, 1f) : new Color(0.1f, 0.26f, 0.45f, 1f));
+        drawActionButton(hardButton, difficultyPreset == DifficultyPreset.HARD ? new Color(0.75f, 0.22f, 0.22f, 1f) : new Color(0.4f, 0.16f, 0.16f, 1f));
+        drawActionButton(backButton, new Color(0.2f, 0.2f, 0.25f, 1f));
+
+        batch.begin();
+        font.draw(batch, "GAME SETTINGS", panel.x + 40f, panel.y + panelH - 28f);
+        font.draw(batch, "Difficulty: " + difficultyPreset.label, panel.x + 40f, panel.y + panelH - 58f);
+        font.draw(batch, "Easy   - 75s, slower, +6s / -3s submit, 10 Food items", easyButton.x + 20f, easyButton.y + 30f);
+        font.draw(batch, "Normal - 60s, balanced, +5s / -5s submit, 15 Food items", normalButton.x + 20f, normalButton.y + 30f);
+        font.draw(batch, "Hard   - 45s, faster, +4s / -6s submit, 20 Food items", hardButton.x + 20f, hardButton.y + 30f);
+        font.draw(batch, "Back to Main Menu", backButton.x + 20f, backButton.y + 28f);
+        drawStatus(batch, 20f, 24f);
+        batch.end();
+    }
+
+    private void renderHowToPlay() {
+        applyFullScreenProjection();
+
+        float width = Gdx.graphics.getWidth();
+        float height = Gdx.graphics.getHeight();
+        float centerX = width / 2f;
+        float panelW = Math.min(840f, width - 80f);
+        float panelH = Math.min(520f, height - 80f);
+        Rectangle panel = new Rectangle(centerX - panelW / 2f, (height - panelH) / 2f, panelW, panelH);
+        Rectangle backButton = new Rectangle(panel.x + 40f, panel.y + 30f, panelW - 80f, 44f);
+
+        if (consumeClick(backButton)) {
+            gameState = GameState.FOOD_MENU;
+        }
+
+        drawScreenPanel(panel);
+        drawActionButton(backButton, new Color(0.2f, 0.2f, 0.25f, 1f));
+
+        batch.begin();
+        float textX = panel.x + 40f;
+        float topY = panel.y + panelH - 28f;
+        font.draw(batch, "HOW TO PLAY", textX, topY);
+        font.draw(batch, "1. Press START on the main menu.", textX, topY - 42f);
+        font.draw(batch, "2. Select a preset avatar or upload your own image.", textX, topY - 70f);
+        font.draw(batch, "3. Press Start Game to begin.", textX, topY - 98f);
+        font.draw(batch, "4. Move with WASD and catch food items.", textX, topY - 126f);
+        font.draw(batch, "5. Build a healthy plate target: V2-4 P1-3 C1-2 O0-1", textX, topY - 154f);
+        font.draw(batch, "6. Press Enter to submit plate (this resets plate).", textX, topY - 182f);
+        font.draw(batch, "7. Press R to clear plate, Space to pause/resume.", textX, topY - 210f);
+        font.draw(batch, "8. Timer end -> submit name/avatar to leaderboard.", textX, topY - 238f);
+        font.draw(batch, "Back to Main Menu", backButton.x + 20f, backButton.y + 28f);
+        drawStatus(batch, 20f, 24f);
+        batch.end();
+    }
+
+    private void renderGameplay(float dt) {
+        applyFullScreenProjection();
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+            paused = !paused;
+        }
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
             submitPlate();
         }
-
-        movementManager.updateAll(dt);
-        sceneManager.update(dt, entityManager.getEntities());
-        collisionManager.update();
-        entityManager.flushRemovals();
-    }
-
-    private void submitPlate() {
-        if (vegCount >= 2 && vegCount <= 4 && proteinCount >= 1 && proteinCount <= 3 
-            && carbCount >= 1 && carbCount <= 2 && oilCount <= 1) {
-            score += 150;
-            gameTimer += 10;
-        } else {
-            gameTimer -= 10;
+        if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
+            resetPlate();
+            showStatus("Plate reset", 2f);
         }
-        vegCount = 0; proteinCount = 0; carbCount = 0; oilCount = 0;
-    }
 
-    private void drawEntities() {
+        if (isSceneKeyJustPressed(Input.Keys.NUM_3, Input.Keys.NUMPAD_3)) {
+            sceneManager.push(new Scene("Level 3", Color.TEAL));
+            loadEntitiesForLevel(3);
+        }
+        if (isSceneKeyJustPressed(Input.Keys.NUM_2, Input.Keys.NUMPAD_2)) {
+            sceneManager.push(new Scene("Level 2", Color.MAROON));
+            loadEntitiesForLevel(2);
+        }
+        if (isSceneKeyJustPressed(Input.Keys.NUM_1, Input.Keys.NUMPAD_1)) {
+            sceneManager.push(new Scene("Level 1", new Color(0.1f, 0.2f, 0.3f, 1f)));
+            loadEntitiesForLevel(1);
+        }
+
+        if (!paused) {
+            movementManager.updateAll(dt);
+            sceneManager.update(dt);
+            collisionManager.update();
+            entityManager.flushRemovals();
+            ensureFoodDiversityAndCount();
+
+            float nextTimer = Math.max(0f, gameSession.getTimer() - dt);
+            gameSession.setTimer(nextTimer);
+            if (nextTimer <= 0f) {
+                paused = false;
+                gameState = GameState.LEADERBOARD_ENTRY;
+                leaderboardNameEditing = true;
+                showStatus("Time up! Enter name and submit to leaderboard", 4f);
+            }
+        }
+
+        sceneManager.render(null);
+
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         for (Entity e : entityManager.getEntities()) {
+            if (e.getTexture() != null) continue;
             CollidableComponent c = e.getCollidable();
             float r = (c != null) ? (float) c.getCollisionRadius() : 6f;
+            shapeRenderer.setColor(getEntityRenderColor(e));
             shapeRenderer.circle((float) e.getXPosition(), (float) e.getYPosition(), r);
         }
         shapeRenderer.end();
-    }
 
-    private void drawUI(String state) {
         batch.begin();
-        float w = Gdx.graphics.getWidth();
-        float h = Gdx.graphics.getHeight();
+        for (Entity e : entityManager.getEntities()) {
+            Texture texture = e.getTexture();
+            if (texture == null) continue;
 
-        if (state.equals("Start")) {
-            font.draw(batch, "HEALTHY PLATE COLLECTOR", w/2 - 80, h/2 + 100);
-            if (isTypingName) {
-                font.draw(batch, "ENTER NAME: " + playerName + "_", w/2 - 80, h/2 + 20);
-                font.draw(batch, "(Press ENTER to confirm)", w/2 - 70, h/2 - 20);
-            } else {
-                font.draw(batch, "[ CLICK HERE TO START ]", 300, 300);
-            }
-        } else if (state.equals("Difficulty")) {
-            font.draw(batch, "Welcome " + playerName, 300, 400);
-            font.draw(batch, "[ CLICK EASY MODE ]", 300, 320);
-            font.draw(batch, "[ CLICK HARD MODE ]", 300, 270);
-        } else if (state.equals("Instructions")) {
-            font.draw(batch, "GOAL: Veg(2-4), Prot(1-3), Carb(1-2), Oil(0-1)", w/2 - 150, h/2 + 40);
-            font.draw(batch, "CLICK ANYWHERE TO BEGIN", w/2 - 80, h/2 - 20);
-        } else if (state.equals("Game")) {
-            font.draw(batch, "Time: " + (int)gameTimer + "s | Score: " + score, 20, h - 20);
-            font.draw(batch, "Veg: " + vegCount + " | Prot: " + proteinCount + " | Carb: " + carbCount + " | Oil: " + oilCount, 20, h - 40);
-            font.draw(batch, "Press ENTER to submit", 20, 30);
-        } else if (state.equals("HighScore")) {
-            font.draw(batch, "LEADERBOARD", w/2 - 40, h/2 + 80);
-            for (int i = 0; i < 3; i++) {
-                font.draw(batch, (i+1) + ". " + topNames[i] + ": " + topScores[i], w/2 - 50, h/2 + 40 - (i*20));
-            }
-            font.draw(batch, "CLICK ANYWHERE TO RESTART", w/2 - 80, h/2 - 60);
+            CollidableComponent c = e.getCollidable();
+            float size = (c != null) ? (float) c.getCollisionRadius() * 2f : 32f;
+            float x = (float) e.getXPosition() - (size / 2f);
+            float y = (float) e.getYPosition() - (size / 2f);
+            batch.draw(texture, x, y, size, size);
         }
+
+        font.draw(batch, "Move with WASD", 20f, Gdx.graphics.getHeight() - 20f);
+        font.draw(batch, "Space: Pause/Resume", 20f, Gdx.graphics.getHeight() - 38f);
+        font.draw(batch, "Enter: Submit plate (resets plate) | R: Reset plate", 20f, Gdx.graphics.getHeight() - 56f);
+        font.draw(batch, "Timer: " + (int) Math.ceil(gameSession.getTimer()), 20f, Gdx.graphics.getHeight() - 74f);
+        font.draw(batch, "Score: " + gameSession.getScore(), 20f, Gdx.graphics.getHeight() - 92f);
+        font.draw(batch, "Difficulty: " + difficultyPreset.label, 20f, Gdx.graphics.getHeight() - 110f);
+        font.draw(batch, "Plate V/P/C/O: " + gameSession.getVegetableCount() + "/"
+                + gameSession.getProteinCount() + "/" + gameSession.getCarbCount() + "/"
+                + gameSession.getOilCount(), 20f, Gdx.graphics.getHeight() - 128f);
+        font.draw(batch, "Target ranges: V 2-4 | P 1-3 | C 1-2 | O 0-1", 20f, Gdx.graphics.getHeight() - 146f);
+        font.draw(batch, "Food legend: Green=Veg Red=Protein Yellow=Carb Purple=Oil", 20f, Gdx.graphics.getHeight() - 164f);
+
+        if (paused) {
+            font.draw(batch, "PAUSED", Gdx.graphics.getWidth() / 2f - 24f, Gdx.graphics.getHeight() / 2f);
+        }
+        drawStatus(batch, 20f, 24f);
         batch.end();
     }
 
-    private void saveHighScore() {
-        Preferences prefs = Gdx.app.getPreferences("HealthyPlateScores");
-        if (score > topScores[2]) {
-            topScores[2] = score; topNames[2] = playerName;
-            for (int i = 1; i >= 0; i--) {
-                if (topScores[i+1] > topScores[i]) {
-                    int ts = topScores[i]; topScores[i] = topScores[i+1]; topScores[i+1] = ts;
-                    String tn = topNames[i]; topNames[i] = topNames[i+1]; topNames[i+1] = tn;
-                }
-            }
+    private void renderLeaderboardEntry() {
+        applyFullScreenProjection();
+        handleLeaderboardNameTyping();
+
+        float width = Gdx.graphics.getWidth();
+        float height = Gdx.graphics.getHeight();
+        float centerX = width / 2f;
+        float panelW = Math.min(760f, width - 80f);
+        float panelH = Math.min(520f, height - 80f);
+        Rectangle panel = new Rectangle(centerX - panelW / 2f, (height - panelH) / 2f, panelW, panelH);
+
+        Rectangle nameField = new Rectangle(panel.x + 40f, panel.y + panelH - 170f, panelW - 80f, 48f);
+        Rectangle uploadButton = new Rectangle(panel.x + 40f, panel.y + panelH - 235f, panelW - 80f, 48f);
+        Rectangle submitButton = new Rectangle(panel.x + 40f, panel.y + panelH - 300f, panelW - 80f, 48f);
+        Rectangle backButton = new Rectangle(panel.x + 40f, panel.y + 30f, panelW - 80f, 44f);
+
+        if (consumeClick(nameField)) {
+            leaderboardNameEditing = true;
+            showStatus("Typing enabled. Press Enter to confirm name.", 2.5f);
         }
-        for (int i = 0; i < 3; i++) {
-            prefs.putInteger("s"+i, topScores[i]);
-            prefs.putString("n"+i, topNames[i]);
+        if (consumeClick(uploadButton)) {
+            leaderboardNameEditing = false;
+            requestImageUpload("leaderboard-entry");
         }
-        prefs.flush();
+        if (consumeClick(submitButton)) {
+            leaderboardNameEditing = false;
+            submitLeaderboardEntry();
+        }
+        if (consumeClick(backButton)) {
+            leaderboardNameEditing = false;
+            gameState = GameState.FOOD_MENU;
+        }
+
+        drawScreenPanel(panel);
+        drawTextInputField(nameField, leaderboardNameEditing);
+        drawActionButton(uploadButton, new Color(0.12f, 0.34f, 0.5f, 1f));
+        drawActionButton(submitButton, new Color(0.13f, 0.47f, 0.2f, 1f));
+        drawActionButton(backButton, new Color(0.2f, 0.2f, 0.25f, 1f));
+
+        batch.begin();
+        float headerY = panel.y + panelH - 28f;
+        font.draw(batch, "RUN COMPLETE", panel.x + 40f, headerY);
+        font.draw(batch, "Final Score: " + gameSession.getScore(), panel.x + 40f, headerY - 30f);
+        font.draw(batch, "Enter your name and submit to leaderboard", panel.x + 40f, headerY - 58f);
+
+        if (selectedAvatarTexture != null) {
+            font.draw(batch, "Avatar:", panel.x + 40f, headerY - 86f);
+            batch.draw(selectedAvatarTexture, panel.x + 90f, headerY - 104f, 28f, 28f);
+        } else {
+            font.draw(batch, "Avatar: <none>", panel.x + 40f, headerY - 86f);
+        }
+
+        String shownName = playerNameInput.isBlank() ? "Type your name..." : playerNameInput;
+        if (leaderboardNameEditing && ((System.currentTimeMillis() / 350L) % 2L == 0L)) {
+            shownName += "_";
+        }
+        font.draw(batch, shownName, nameField.x + 16f, nameField.y + 30f);
+        font.draw(batch, "Upload / Change Image", uploadButton.x + 16f, uploadButton.y + 30f);
+        font.draw(batch, "Submit to Leaderboard", submitButton.x + 16f, submitButton.y + 30f);
+        font.draw(batch, "Back to Main Menu", backButton.x + 16f, backButton.y + 28f);
+        drawStatus(batch, 20f, 24f);
+        batch.end();
     }
 
-    private void loadHighScores() {
-        Preferences prefs = Gdx.app.getPreferences("HealthyPlateScores");
-        for (int i = 0; i < 3; i++) {
-            topScores[i] = prefs.getInteger("s"+i, 0);
-            topNames[i] = prefs.getString("n"+i, "-");
+    private void renderLeaderboardView() {
+        applyFullScreenProjection();
+
+        float width = Gdx.graphics.getWidth();
+        float height = Gdx.graphics.getHeight();
+        float centerX = width / 2f;
+        float panelW = Math.min(800f, width - 80f);
+        float panelH = Math.min(540f, height - 80f);
+        Rectangle panel = new Rectangle(centerX - panelW / 2f, (height - panelH) / 2f, panelW, panelH);
+        String footerLabel = leaderboardOpenedFromMenu ? "Back to Main Menu" : "Play Again";
+        Rectangle footerButton = new Rectangle(panel.x + 40f, panel.y + 30f, panelW - 80f, 44f);
+        if (consumeClick(footerButton)) {
+            gameState = GameState.FOOD_MENU;
+            playerNameInput = "";
+            leaderboardNameEditing = false;
+            leaderboardOpenedFromMenu = false;
+            showStatus("Setup ready for next run", 2f);
         }
+
+        drawScreenPanel(panel);
+        drawActionButton(footerButton, new Color(0.2f, 0.2f, 0.25f, 1f));
+
+        batch.begin();
+        float topY = panel.y + panelH - 28f;
+        font.draw(batch, "LEADERBOARD", panel.x + 40f, topY);
+
+        int maxRows = Math.min(10, leaderboardEntries.size());
+        float rowY = topY - 42f;
+        for (int i = 0; i < maxRows; i++) {
+            LeaderboardEntry entry = leaderboardEntries.get(i);
+            float rowX = panel.x + 40f;
+            font.draw(batch, String.format("%2d.", i + 1), rowX, rowY);
+            if (entry.avatarTexture != null) {
+                batch.draw(entry.avatarTexture, rowX + 34f, rowY - 18f, 24f, 24f);
+            }
+            font.draw(batch, entry.name, rowX + 70f, rowY);
+            font.draw(batch, "Score: " + entry.score, panel.x + panelW - 170f, rowY);
+            rowY -= 30f;
+        }
+
+        if (leaderboardEntries.isEmpty()) {
+            font.draw(batch, "No entries yet.", panel.x + 40f, topY - 42f);
+        }
+
+        font.draw(batch, footerLabel, footerButton.x + 16f, footerButton.y + 28f);
+        drawStatus(batch, 20f, 24f);
+        batch.end();
+    }
+
+    private void startNewGame() {
+        gameSession = new GameSession(
+                difficultyPreset.startingTimer,
+                difficultyPreset.healthyScoreBonus,
+                difficultyPreset.healthyTimerBonus,
+                difficultyPreset.unhealthyTimerPenalty);
+        paused = false;
+        leaderboardNameEditing = false;
+        playerNameInput = "";
+        sceneManager.push(new Scene("Level 1", new Color(0.1f, 0.2f, 0.3f, 1f)));
+        loadEntitiesForLevel(1);
+        gameState = GameState.PLAYING;
+        showStatus("Game started (" + difficultyPreset.label + ")", 2f);
     }
 
     private void loadEntitiesForLevel(int levelNum) {
-        Entity player = new Entity(1);
-        player.setXPosition(400); player.setYPosition(50);
-        player.setMovement(new PlayerMovement(ioManager, 300f));
-        player.setCollidable(new CollidableComponent(20, true));
-        entityManager.addEntity(player);
-        movementManager.addMovable(player);
+        double playerRadius = 15d * currentGameplayScale;
+        double foodRadius = 8d * currentGameplayScale;
+        double playerSpeed = 250d * currentGameplayScale;
+        double npcSpeed = difficultyPreset.npcSpeed * currentGameplayScale;
+        int worldW = Math.max(1, Gdx.graphics.getWidth());
+        int worldH = Math.max(1, Gdx.graphics.getHeight());
+
+        Entity player = new Entity(PLAYER_ID);
+        player.setXPosition(worldW * 0.3);
+        player.setYPosition(worldH * 0.35);
+        player.setMovement(new PlayerMovement(ioManager, playerSpeed));
+        player.setCollidable(new PlayerCollidableComponent(playerRadius));
+        if (selectedAvatarTexture != null) {
+            player.setTexture(selectedAvatarTexture);
+        }
+        sceneManager.spawnEntity(player);
+
+        java.util.Random rng = new java.util.Random();
+        int npcCount = (levelNum == 1) ? difficultyPreset.npcCount : Math.max(4, difficultyPreset.npcCount / 2);
+        int minX = (int) Math.max(40, foodRadius * 2);
+        int maxX = Math.max(minX + 1, worldW - minX);
+        int minY = (int) Math.max(60, foodRadius * 2);
+        int maxY = Math.max(minY + 1, worldH - minY);
+        this.foodFactory = new FoodFactory(
+                rng,
+                foodRadius,
+                npcSpeed,
+                minX, maxX,
+                minY, maxY,
+                gameSession,
+                foodCategoryTextures
+        );
+
+        nextFoodId = foodId;
+        spawnStartingFoods(this.foodFactory, nextFoodId, difficultyPreset.foodEntityCount);
+        nextFoodId += difficultyPreset.foodEntityCount;
     }
 
-    private void prepareNewScene() {
-        entityManager.clear();
-        movementManager.clear();
+    private Map<FoodCategory, Texture> createFoodCategoryTextures() {
+        Map<FoodCategory, Texture> textures = new EnumMap<>(FoodCategory.class);
+        textures.put(FoodCategory.VEGETABLE, createFoodTexture(new Color(0.2f, 0.85f, 0.2f, 1f), new Color(0.08f, 0.45f, 0.08f, 1f)));
+        textures.put(FoodCategory.PROTEIN, createFoodTexture(new Color(0.9f, 0.25f, 0.25f, 1f), new Color(0.5f, 0.12f, 0.12f, 1f)));
+        textures.put(FoodCategory.CARBOHYDRATE, createFoodTexture(new Color(0.95f, 0.8f, 0.2f, 1f), new Color(0.65f, 0.5f, 0.05f, 1f)));
+        textures.put(FoodCategory.OIL, createFoodTexture(new Color(0.72f, 0.42f, 0.9f, 1f), new Color(0.35f, 0.22f, 0.5f, 1f)));
+        return textures;
+    }
+
+    private Texture createFoodTexture(Color fill, Color accent) {
+        Pixmap pixmap = new Pixmap(64, 64, Pixmap.Format.RGBA8888);
+        pixmap.setColor(0f, 0f, 0f, 0f);
+        pixmap.fill();
+
+        pixmap.setColor(fill);
+        pixmap.fillCircle(32, 32, 28);
+
+        pixmap.setColor(accent);
+        pixmap.fillCircle(24, 24, 9);
+        pixmap.fillCircle(40, 40, 7);
+
+        pixmap.setColor(1f, 1f, 1f, 0.55f);
+        pixmap.fillCircle(20, 43, 5);
+
+        Texture texture = new Texture(pixmap);
+        pixmap.dispose();
+        return texture;
+    }
+
+    private void applyAvatarSelection(AvatarSetupFlowScreen.SelectionResult result) {
+        if (result == null) return;
+
+        if (result.isUploaded()) {
+            try {
+                Texture newTexture = new Texture(Gdx.files.absolute(result.getUploadedPath()));
+                if (uploadedAvatarTexture != null) {
+                    uploadedAvatarTexture.dispose();
+                }
+                uploadedAvatarTexture = newTexture;
+                uploadedAvatarPath = result.getUploadedPath();
+                selectedAvatarTexture = uploadedAvatarTexture;
+                selectedAvatarIsUploaded = true;
+                selectedPresetIndex = -1;
+            } catch (Exception e) {
+                showStatus("Image load failed", 3f);
+            }
+            return;
+        }
+
+        selectPresetAvatar(result.getPresetIndex());
+    }
+
+    private void selectPresetAvatar(int index) {
+        if (index < 0 || index >= presetAvatars.length) return;
+        selectedAvatarIsUploaded = false;
+        selectedAvatarTexture = presetAvatars[index];
+        selectedPresetIndex = index;
+        applyAvatarToPlayer();
+        showStatus("Preset selected: " + presetAvatarLabels[index], 2f);
+    }
+
+    private void requestImageUpload(String sourceTag) {
+        ioManager.handleEvent(new IOEvent(IOEvent.Type.PLAYER_IMAGE_UPLOAD_REQUEST, sourceTag));
+    }
+
+    private void requestNameInput() {
+        Gdx.input.getTextInput(new TextInputListener() {
+            @Override
+            public void input(String text) {
+                if (text == null) return;
+                playerNameInput = text.trim();
+                if (playerNameInput.length() > 24) {
+                    playerNameInput = playerNameInput.substring(0, 24);
+                }
+                showStatus(playerNameInput.isBlank() ? "Name cleared" : "Name set: " + playerNameInput, 2f);
+            }
+
+            @Override
+            public void canceled() {
+                showStatus("Name input cancelled", 2f);
+            }
+        }, "Enter Name", playerNameInput, "Player name");
+    }
+
+    private void handleLeaderboardNameTyping() {
+        if (gameState != GameState.LEADERBOARD_ENTRY || !leaderboardNameEditing) {
+            return;
+        }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+            leaderboardNameEditing = false;
+            showStatus("Name confirmed", 2f);
+            return;
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+            leaderboardNameEditing = false;
+            showStatus("Name edit cancelled", 2f);
+            return;
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.BACKSPACE)) {
+            if (!playerNameInput.isEmpty()) {
+                playerNameInput = playerNameInput.substring(0, playerNameInput.length() - 1);
+            }
+            return;
+        }
+
+        boolean shift = Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) || Gdx.input.isKeyPressed(Input.Keys.SHIFT_RIGHT);
+
+        appendNameCharIfPressed(Input.Keys.SPACE, ' ');
+        appendNameCharIfPressed(Input.Keys.MINUS, shift ? '_' : '-');
+        appendNameCharIfPressed(Input.Keys.PERIOD, '.');
+
+        appendNameCharIfPressed(Input.Keys.NUM_0, '0');
+        appendNameCharIfPressed(Input.Keys.NUM_1, '1');
+        appendNameCharIfPressed(Input.Keys.NUM_2, '2');
+        appendNameCharIfPressed(Input.Keys.NUM_3, '3');
+        appendNameCharIfPressed(Input.Keys.NUM_4, '4');
+        appendNameCharIfPressed(Input.Keys.NUM_5, '5');
+        appendNameCharIfPressed(Input.Keys.NUM_6, '6');
+        appendNameCharIfPressed(Input.Keys.NUM_7, '7');
+        appendNameCharIfPressed(Input.Keys.NUM_8, '8');
+        appendNameCharIfPressed(Input.Keys.NUM_9, '9');
+
+        appendNameCharIfPressed(Input.Keys.NUMPAD_0, '0');
+        appendNameCharIfPressed(Input.Keys.NUMPAD_1, '1');
+        appendNameCharIfPressed(Input.Keys.NUMPAD_2, '2');
+        appendNameCharIfPressed(Input.Keys.NUMPAD_3, '3');
+        appendNameCharIfPressed(Input.Keys.NUMPAD_4, '4');
+        appendNameCharIfPressed(Input.Keys.NUMPAD_5, '5');
+        appendNameCharIfPressed(Input.Keys.NUMPAD_6, '6');
+        appendNameCharIfPressed(Input.Keys.NUMPAD_7, '7');
+        appendNameCharIfPressed(Input.Keys.NUMPAD_8, '8');
+        appendNameCharIfPressed(Input.Keys.NUMPAD_9, '9');
+
+        appendNameCharIfPressed(Input.Keys.A, shift ? 'A' : 'a');
+        appendNameCharIfPressed(Input.Keys.B, shift ? 'B' : 'b');
+        appendNameCharIfPressed(Input.Keys.C, shift ? 'C' : 'c');
+        appendNameCharIfPressed(Input.Keys.D, shift ? 'D' : 'd');
+        appendNameCharIfPressed(Input.Keys.E, shift ? 'E' : 'e');
+        appendNameCharIfPressed(Input.Keys.F, shift ? 'F' : 'f');
+        appendNameCharIfPressed(Input.Keys.G, shift ? 'G' : 'g');
+        appendNameCharIfPressed(Input.Keys.H, shift ? 'H' : 'h');
+        appendNameCharIfPressed(Input.Keys.I, shift ? 'I' : 'i');
+        appendNameCharIfPressed(Input.Keys.J, shift ? 'J' : 'j');
+        appendNameCharIfPressed(Input.Keys.K, shift ? 'K' : 'k');
+        appendNameCharIfPressed(Input.Keys.L, shift ? 'L' : 'l');
+        appendNameCharIfPressed(Input.Keys.M, shift ? 'M' : 'm');
+        appendNameCharIfPressed(Input.Keys.N, shift ? 'N' : 'n');
+        appendNameCharIfPressed(Input.Keys.O, shift ? 'O' : 'o');
+        appendNameCharIfPressed(Input.Keys.P, shift ? 'P' : 'p');
+        appendNameCharIfPressed(Input.Keys.Q, shift ? 'Q' : 'q');
+        appendNameCharIfPressed(Input.Keys.R, shift ? 'R' : 'r');
+        appendNameCharIfPressed(Input.Keys.S, shift ? 'S' : 's');
+        appendNameCharIfPressed(Input.Keys.T, shift ? 'T' : 't');
+        appendNameCharIfPressed(Input.Keys.U, shift ? 'U' : 'u');
+        appendNameCharIfPressed(Input.Keys.V, shift ? 'V' : 'v');
+        appendNameCharIfPressed(Input.Keys.W, shift ? 'W' : 'w');
+        appendNameCharIfPressed(Input.Keys.X, shift ? 'X' : 'x');
+        appendNameCharIfPressed(Input.Keys.Y, shift ? 'Y' : 'y');
+        appendNameCharIfPressed(Input.Keys.Z, shift ? 'Z' : 'z');
+    }
+
+    private void appendNameCharIfPressed(int keycode, char value) {
+        if (!Gdx.input.isKeyJustPressed(keycode)) {
+            return;
+        }
+        if (playerNameInput.length() >= 24) {
+            return;
+        }
+        playerNameInput += value;
+    }
+
+    private void submitLeaderboardEntry() {
+        if (playerNameInput == null || playerNameInput.isBlank()) {
+            showStatus("Please enter your name", 3f);
+            return;
+        }
+        if (selectedAvatarTexture == null) {
+            showStatus("Please choose/upload an avatar image", 3f);
+            return;
+        }
+
+        Texture entryTexture = selectedAvatarTexture;
+        boolean ownsTexture = false;
+        int entryPresetIndex = selectedAvatarIsUploaded ? -1 : selectedPresetIndex;
+        String entryUploadedPath = selectedAvatarIsUploaded ? uploadedAvatarPath : null;
+        if (selectedAvatarIsUploaded) {
+            if (uploadedAvatarPath == null || uploadedAvatarPath.isBlank()) {
+                showStatus("Uploaded avatar path missing", 3f);
+                return;
+            }
+            try {
+                entryTexture = new Texture(Gdx.files.absolute(uploadedAvatarPath));
+                ownsTexture = true;
+            } catch (Exception e) {
+                showStatus("Failed to store uploaded avatar for leaderboard", 3f);
+                return;
+            }
+        }
+
+        leaderboardEntries.add(new LeaderboardEntry(
+                sanitizeName(playerNameInput),
+                gameSession.getScore(),
+                entryTexture,
+                ownsTexture,
+                entryPresetIndex,
+                entryUploadedPath));
+        leaderboardEntries.sort(Comparator.comparingInt((LeaderboardEntry e) -> e.score).reversed());
+        saveLeaderboardEntries();
+        leaderboardOpenedFromMenu = false;
+        gameState = GameState.LEADERBOARD_VIEW;
+        showStatus("Leaderboard entry submitted", 2f);
+    }
+
+    private void loadLeaderboardEntries() {
+        leaderboardEntries.clear();
+
+        FileHandle file = Gdx.files.local(LEADERBOARD_FILE);
+        if (!file.exists()) {
+            return;
+        }
+
+        String content = file.readString("UTF-8");
+        String[] lines = content.split("\\r?\\n");
+        for (String rawLine : lines) {
+            if (rawLine == null || rawLine.isBlank()) {
+                continue;
+            }
+
+            String[] parts = rawLine.split("\\t", -1);
+            if (parts.length < 4) {
+                continue;
+            }
+
+            String name = parts[0].trim();
+            int score;
+            int presetIndex;
+            try {
+                score = Integer.parseInt(parts[1].trim());
+                presetIndex = Integer.parseInt(parts[2].trim());
+            } catch (NumberFormatException e) {
+                continue;
+            }
+
+            String uploadedPath = parts[3].trim();
+            if (uploadedPath.isBlank()) {
+                uploadedPath = null;
+            }
+
+            Texture texture = null;
+            boolean ownsTexture = false;
+            if (uploadedPath != null) {
+                try {
+                    texture = new Texture(Gdx.files.absolute(uploadedPath));
+                    ownsTexture = true;
+                } catch (Exception ignored) {
+                    texture = null;
+                    ownsTexture = false;
+                }
+            }
+
+            if (texture == null && presetIndex >= 0 && presetIndex < presetAvatars.length) {
+                texture = presetAvatars[presetIndex];
+            }
+
+            leaderboardEntries.add(new LeaderboardEntry(name, score, texture, ownsTexture, presetIndex, uploadedPath));
+        }
+
+        leaderboardEntries.sort(Comparator.comparingInt((LeaderboardEntry e) -> e.score).reversed());
+    }
+
+    private void saveLeaderboardEntries() {
+        StringBuilder sb = new StringBuilder();
+        for (LeaderboardEntry entry : leaderboardEntries) {
+            String safeName = sanitizeName(entry.name);
+            int safePreset = entry.presetIndex;
+            String safePath = entry.uploadedPath == null ? "" : entry.uploadedPath.replace('\t', ' ').replace('\n', ' ');
+            sb.append(safeName)
+                    .append('\t')
+                    .append(entry.score)
+                    .append('\t')
+                    .append(safePreset)
+                    .append('\t')
+                    .append(safePath)
+                    .append('\n');
+        }
+
+        Gdx.files.local(LEADERBOARD_FILE).writeString(sb.toString(), false, "UTF-8");
+    }
+
+    private String sanitizeName(String input) {
+        if (input == null) {
+            return "Player";
+        }
+        String safe = input.replace('\t', ' ').replace('\n', ' ').trim();
+        return safe.isBlank() ? "Player" : safe;
+    }
+
+    private void wirePlayerImageSelectionEvents() {
+        ioManager.addListener(IOEvent.Type.PLAYER_IMAGE_SELECTED, event -> {
+            if (gameState != GameState.LEADERBOARD_ENTRY) {
+                return;
+            }
+            String path = event.requirePayload(String.class);
+            try {
+                Texture newTexture = new Texture(Gdx.files.absolute(path));
+                if (uploadedAvatarTexture != null) {
+                    uploadedAvatarTexture.dispose();
+                }
+                uploadedAvatarTexture = newTexture;
+                uploadedAvatarPath = path;
+                selectedAvatarTexture = uploadedAvatarTexture;
+                selectedAvatarIsUploaded = true;
+                selectedPresetIndex = -1;
+                applyAvatarToPlayer();
+                showStatus("Uploaded: " + new File(path).getName(), 3f);
+            } catch (Exception e) {
+                showStatus("Image load failed", 3f);
+            }
+        });
+
+        ioManager.addListener(IOEvent.Type.PLAYER_IMAGE_SELECTION_FAILED, event -> {
+            if (gameState != GameState.LEADERBOARD_ENTRY) {
+                return;
+            }
+            String reason = event.getPayloadOrNull(String.class);
+            if (reason == null || reason.isBlank()) {
+                reason = "image selection failed";
+            }
+            showStatus("Upload failed: " + reason, 3f);
+        });
+    }
+
+    private void applyAvatarToPlayer() {
+        Entity player = getPlayerEntity();
+        if (player != null) {
+            player.setTexture(selectedAvatarTexture);
+        }
+    }
+
+    private Entity getPlayerEntity() {
+        for (Entity entity : entityManager.getEntities()) {
+            if (entity.getID() == PLAYER_ID) {
+                return entity;
+            }
+        }
+        return null;
+    }
+
+    private Color getEntityRenderColor(Entity entity) {
+        if (entity == null) {
+            return Color.WHITE;
+        }
+        if (entity.getID() == PLAYER_ID) {
+            return new Color(0.75f, 0.9f, 1f, 1f);
+        }
+        if (entity.getCollidable() instanceof FoodCollidableComponent food) {
+            switch (food.getFoodCategory()) {
+                case VEGETABLE:
+                    return new Color(0.2f, 0.85f, 0.2f, 1f);
+                case PROTEIN:
+                    return new Color(0.9f, 0.25f, 0.25f, 1f);
+                case CARBOHYDRATE:
+                    return new Color(0.95f, 0.8f, 0.2f, 1f);
+                case OIL:
+                    return new Color(0.72f, 0.42f, 0.9f, 1f);
+                default:
+                    return Color.WHITE;
+            }
+        }
+        return Color.WHITE;
+    }
+
+    private void captureClick() {
+        clickPending = Gdx.input.justTouched();
+        if (clickPending) {
+        	touchPos.set(Gdx.input.getX(), Gdx.input.getY(), 0);
+        	camera.unproject(touchPos);
+        	clickX = touchPos.x;
+            clickY = touchPos.y;
+//            clickX = Gdx.input.getX();
+//            clickY = Gdx.graphics.getHeight() - Gdx.input.getY();
+        }
+    }
+
+    private boolean consumeClick(Rectangle bounds) {
+        if (!clickPending) return false;
+        if (!bounds.contains(clickX, clickY)) return false;
+        clickPending = false;
+        return true;
+    }
+
+    private void drawButtonRect(Rectangle bounds) {
+        shapeRenderer.setColor(0f, 0f, 0f, 0.45f);
+        shapeRenderer.rect(bounds.x, bounds.y, bounds.width, bounds.height);
+        shapeRenderer.setColor(Color.WHITE);
+    }
+
+    private void drawScreenPanel(Rectangle panel) {
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        shapeRenderer.setColor(0.02f, 0.03f, 0.06f, 0.9f);
+        shapeRenderer.rect(panel.x, panel.y, panel.width, panel.height);
+        shapeRenderer.setColor(0.08f, 0.1f, 0.16f, 0.92f);
+        shapeRenderer.rect(panel.x + 6f, panel.y + 6f, panel.width - 12f, panel.height - 12f);
+        shapeRenderer.end();
+
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+        shapeRenderer.setColor(0.72f, 0.78f, 0.9f, 0.7f);
+        shapeRenderer.rect(panel.x + 2f, panel.y + 2f, panel.width - 4f, panel.height - 4f);
+        shapeRenderer.end();
+    }
+
+    private void drawActionButton(Rectangle bounds, Color fillColor) {
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        shapeRenderer.setColor(fillColor.r, fillColor.g, fillColor.b, 0.92f);
+        shapeRenderer.rect(bounds.x, bounds.y, bounds.width, bounds.height);
+        shapeRenderer.setColor(
+                Math.min(1f, fillColor.r + 0.12f),
+                Math.min(1f, fillColor.g + 0.12f),
+                Math.min(1f, fillColor.b + 0.12f),
+                0.32f);
+        shapeRenderer.rect(bounds.x + 2f, bounds.y + bounds.height * 0.52f, bounds.width - 4f, bounds.height * 0.42f);
+        shapeRenderer.end();
+
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+        shapeRenderer.setColor(0.9f, 0.92f, 1f, 0.85f);
+        shapeRenderer.rect(bounds.x, bounds.y, bounds.width, bounds.height);
+        shapeRenderer.end();
+    }
+
+    private void drawTextInputField(Rectangle bounds, boolean active) {
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        shapeRenderer.setColor(0.04f, 0.05f, 0.08f, 0.96f);
+        shapeRenderer.rect(bounds.x, bounds.y, bounds.width, bounds.height);
+        shapeRenderer.end();
+
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+        if (active) {
+            shapeRenderer.setColor(0.36f, 0.82f, 1f, 1f);
+        } else {
+            shapeRenderer.setColor(0.78f, 0.82f, 0.92f, 0.85f);
+        }
+        shapeRenderer.rect(bounds.x, bounds.y, bounds.width, bounds.height);
+        shapeRenderer.end();
+    }
+
+    private void applyFullScreenProjection() {
+        int logicalWidth = Gdx.graphics.getWidth();
+        int logicalHeight = Gdx.graphics.getHeight();
+        int pixelWidth = Gdx.graphics.getBackBufferWidth();
+        int pixelHeight = Gdx.graphics.getBackBufferHeight();
+        Gdx.gl.glViewport(0, 0, pixelWidth, pixelHeight);
+        batch.getProjectionMatrix().setToOrtho2D(0, 0, logicalWidth, logicalHeight);
+        shapeRenderer.setProjectionMatrix(batch.getProjectionMatrix());
+    }
+
+    private void drawStatus(SpriteBatch targetBatch, float x, float y) {
+        if (statusSecondsLeft <= 0f || statusMessage == null || statusMessage.isBlank()) return;
+        font.draw(targetBatch, statusMessage, x, y);
+    }
+
+    private void showStatus(String message, float seconds) {
+        statusMessage = message;
+        statusSecondsLeft = seconds;
+    }
+
+    public void addFood(FoodCategory category, int scoreValue) {
+        gameSession.addFood(category, scoreValue);
+    }
+
+    public boolean isPlateHealthy() {
+        return gameSession.isPlateHealthy();
+    }
+
+    public void submitPlate() {
+        boolean healthy = gameSession.isPlateHealthy();
+        gameSession.submitPlate();
+        if (healthy) {
+            showStatus("Healthy plate! +" + gameSession.getHealthyScoreBonus() + " score, +"
+                    + (int) gameSession.getHealthyTimerBonus() + "s. Plate reset.", 2.5f);
+        } else {
+            showStatus("Unhealthy plate. -" + (int) gameSession.getUnhealthyTimerPenalty()
+                    + "s. Plate reset.", 2.5f);
+        }
+    }
+
+    public void resetPlate() {
+        gameSession.resetPlate();
+    }
+
+    private boolean isSceneKeyJustPressed(int mainKey, int numpadKey) {
+        return Gdx.input.isKeyJustPressed(mainKey) || Gdx.input.isKeyJustPressed(numpadKey);
+    }
+
+    @Override
+    public void resize(int width, int height) {
+        int safeWidth = Math.max(1, width);
+        int safeHeight = Math.max(1, height);
+
+        if (safeWidth != lastViewportWidth || safeHeight != lastViewportHeight) {
+            rescaleEntitiesForViewportChange(lastViewportWidth, lastViewportHeight, safeWidth, safeHeight);
+            lastViewportWidth = safeWidth;
+            lastViewportHeight = safeHeight;
+        }
+
+        if (foodMenuScene != null) {
+            foodMenuScene.resize(width, height);
+        }
+        if (avatarSetupScreen != null) {
+            avatarSetupScreen.resize(width, height);
+        }
+    }
+
+    private void rescaleEntitiesForViewportChange(int oldWidth, int oldHeight, int newWidth, int newHeight) {
+        if (oldWidth <= 0 || oldHeight <= 0 || entityManager == null) {
+            return;
+        }
+
+        double sx = (double) newWidth / (double) oldWidth;
+        double sy = (double) newHeight / (double) oldHeight;
+
+        double targetGameplayScale = Math.min(
+                (double) newWidth / (double) Math.max(1, referenceViewportWidth),
+                (double) newHeight / (double) Math.max(1, referenceViewportHeight));
+        if (targetGameplayScale <= 0d) {
+            targetGameplayScale = 1d;
+        }
+        double scaleDelta = targetGameplayScale / Math.max(0.0001d, currentGameplayScale);
+        currentGameplayScale = targetGameplayScale;
+
+        for (Entity entity : entityManager.getEntities()) {
+            double newX = entity.getXPosition() * sx;
+            double newY = entity.getYPosition() * sy;
+            entity.setXPosition(newX);
+            entity.setYPosition(newY);
+
+            CollidableComponent collidable = entity.getCollidable();
+            if (collidable != null) {
+                collidable.setCollisionRadius(collidable.getCollisionRadius() * scaleDelta);
+            }
+
+            MovementComponent movement = entity.getMovement();
+            if (movement != null) {
+                movement.setSpeed(movement.getSpeed() * scaleDelta);
+            }
+        }
+    }
+    
+    private void spawnStartingFoods(FoodFactory factory, int startId, int totalFoods) {
+        int id = startId;
+
+        // 1) Guarantee at least one of each
+        FoodCategory[] required = new FoodCategory[] {
+                FoodCategory.VEGETABLE,
+                FoodCategory.PROTEIN,
+                FoodCategory.CARBOHYDRATE,
+                FoodCategory.OIL
+        };
+
+        for (FoodCategory c : required) {
+            Entity food = factory.createFoodEntity(id++, c);
+            if (food != null) sceneManager.spawnEntity(food);
+        }
+
+        // 2) Fill the rest up to exactly totalFoods with RANDOM
+        while (id < startId + totalFoods) {
+            Entity food = factory.createFoodEntity(id++, FoodCategory.RANDOM);
+            if (food != null) sceneManager.spawnEntity(food);
+        }
+    }
+
+    private void ensureFoodDiversityAndCount() {
+        if (foodFactory == null) return;
+
+        int veg = 0, protein = 0, carb = 0, oil = 0;
+        int total = 0;
+
+        for (Entity e : entityManager.getEntities()) {
+            if (!(e.getCollidable() instanceof FoodCollidableComponent fc)) continue;
+
+            total++;
+            FoodCategory cat = fc.getFoodCategory();
+            if (cat == null || cat == FoodCategory.RANDOM) continue; // safety
+
+            switch (cat) {
+                case VEGETABLE -> veg++;
+                case PROTEIN -> protein++;
+                case CARBOHYDRATE -> carb++;
+                case OIL -> oil++;
+                default -> {}
+            }
+        }
+
+        if (veg == 0) {
+            sceneManager.spawnEntity(foodFactory.createFoodEntity(nextFoodId++, FoodCategory.VEGETABLE));
+            total++;
+        }
+        if (protein == 0) {
+            sceneManager.spawnEntity(foodFactory.createFoodEntity(nextFoodId++, FoodCategory.PROTEIN));
+            total++;
+        }
+        if (carb == 0) {
+            sceneManager.spawnEntity(foodFactory.createFoodEntity(nextFoodId++, FoodCategory.CARBOHYDRATE));
+            total++;
+        }
+        if (oil == 0) {
+            sceneManager.spawnEntity(foodFactory.createFoodEntity(nextFoodId++, FoodCategory.OIL));
+            total++;
+        }
+
+        while (total < difficultyPreset.foodEntityCount) {
+            sceneManager.spawnEntity(foodFactory.createFoodEntity(nextFoodId++, FoodCategory.RANDOM));
+            total++;
+        }
     }
 
     @Override
     public void dispose() {
+        for (LeaderboardEntry entry : leaderboardEntries) {
+            if (entry.ownsTexture && entry.avatarTexture != null) {
+                entry.avatarTexture.dispose();
+            }
+        }
+        if (uploadedAvatarTexture != null) {
+            uploadedAvatarTexture.dispose();
+            uploadedAvatarTexture = null;
+        }
+        if (presetAvatars != null) {
+            for (Texture texture : presetAvatars) {
+                if (texture != null) {
+                    texture.dispose();
+                }
+            }
+        }
+        if (foodCategoryTextures != null) {
+            for (Texture texture : foodCategoryTextures.values()) {
+                if (texture != null) {
+                    texture.dispose();
+                }
+            }
+            foodCategoryTextures.clear();
+        }
+        if (foodMenuScene != null) {
+            foodMenuScene.dispose();
+        }
+        if (avatarSetupScreen != null) {
+            avatarSetupScreen.dispose();
+        }
+        playerImageInputService = null;
         shapeRenderer.dispose();
         batch.dispose();
         font.dispose();

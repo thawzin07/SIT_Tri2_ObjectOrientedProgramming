@@ -79,7 +79,6 @@ public class IOEvent {
         return clazz.cast(payload);
     }
 
-    @SuppressWarnings("unchecked")
     public <T> T getPayload(Class<T> clazz) {
         return clazz.cast(payload);
     }
