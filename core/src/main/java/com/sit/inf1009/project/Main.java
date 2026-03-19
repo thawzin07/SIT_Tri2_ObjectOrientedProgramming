@@ -1,6 +1,7 @@
 package com.sit.inf1009.project;
 
 import com.badlogic.gdx.ApplicationAdapter;
+
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Input.TextInputListener;
@@ -28,6 +29,7 @@ import com.sit.inf1009.project.engine.core.handlers.PlayerImageInputService;
 import com.sit.inf1009.project.engine.core.handlers.SoundOutputHandler;
 import com.sit.inf1009.project.engine.entities.Entity;
 import com.sit.inf1009.project.engine.interfaces.FoodCategory;
+import com.sit.inf1009.project.engine.entities.FoodFactory;
 import com.sit.inf1009.project.engine.managers.CollisionManager;
 import com.sit.inf1009.project.engine.managers.EntityManager;
 import com.sit.inf1009.project.engine.managers.IOEvent;
@@ -55,9 +57,9 @@ public class Main extends ApplicationAdapter {
     }
 
     private enum DifficultyPreset {
-        EASY("Easy", 75f, 6, 95f, 8, 6f, 3f),
-        NORMAL("Normal", 60f, 8, 120f, 10, 5f, 5f),
-        HARD("Hard", 45f, 10, 150f, 12, 4f, 6f);
+        EASY("Easy", 75f, 6, 95f, 8, 6f, 3f, 10),
+        NORMAL("Normal", 60f, 8, 120f, 10, 5f, 5f, 15),
+        HARD("Hard", 45f, 10, 150f, 12, 4f, 6f, 20);
 
         final String label;
         final float startingTimer;
@@ -66,6 +68,7 @@ public class Main extends ApplicationAdapter {
         final int healthyScoreBonus;
         final float healthyTimerBonus;
         final float unhealthyTimerPenalty;
+        final int foodEntityCount;
 
         DifficultyPreset(String label,
                          float startingTimer,
@@ -73,7 +76,8 @@ public class Main extends ApplicationAdapter {
                          float npcSpeed,
                          int healthyScoreBonus,
                          float healthyTimerBonus,
-                         float unhealthyTimerPenalty) {
+                         float unhealthyTimerPenalty, 
+                         int foodEntityCount) {
             this.label = label;
             this.startingTimer = startingTimer;
             this.npcCount = npcCount;
@@ -81,6 +85,7 @@ public class Main extends ApplicationAdapter {
             this.healthyScoreBonus = healthyScoreBonus;
             this.healthyTimerBonus = healthyTimerBonus;
             this.unhealthyTimerPenalty = unhealthyTimerPenalty;
+            this.foodEntityCount = foodEntityCount;
         }
     }
 
@@ -154,6 +159,10 @@ public class Main extends ApplicationAdapter {
     private double currentGameplayScale = 1.0;
     private int lastViewportWidth;
     private int lastViewportHeight;
+    
+    private static final int foodId = 100;
+    private int nextFoodId = foodId;
+    private FoodFactory foodFactory;
 
     @Override
     public void create() {
@@ -318,9 +327,9 @@ public class Main extends ApplicationAdapter {
         batch.begin();
         font.draw(batch, "GAME SETTINGS", panel.x + 40f, panel.y + panelH - 28f);
         font.draw(batch, "Difficulty: " + difficultyPreset.label, panel.x + 40f, panel.y + panelH - 58f);
-        font.draw(batch, "Easy   - 75s, slower, +6s / -3s submit", easyButton.x + 20f, easyButton.y + 30f);
-        font.draw(batch, "Normal - 60s, balanced, +5s / -5s submit", normalButton.x + 20f, normalButton.y + 30f);
-        font.draw(batch, "Hard   - 45s, faster, +4s / -6s submit", hardButton.x + 20f, hardButton.y + 30f);
+        font.draw(batch, "Easy   - 75s, slower, +6s / -3s submit, 10 Food items", easyButton.x + 20f, easyButton.y + 30f);
+        font.draw(batch, "Normal - 60s, balanced, +5s / -5s submit, 15 Food items", normalButton.x + 20f, normalButton.y + 30f);
+        font.draw(batch, "Hard   - 45s, faster, +4s / -6s submit, 20 Food items", hardButton.x + 20f, hardButton.y + 30f);
         font.draw(batch, "Back to Main Menu", backButton.x + 20f, backButton.y + 28f);
         drawStatus(batch, 20f, 24f);
         batch.end();
@@ -394,6 +403,7 @@ public class Main extends ApplicationAdapter {
             sceneManager.update(dt);
             collisionManager.update();
             entityManager.flushRemovals();
+            ensureFoodDiversityAndCount();
 
             float nextTimer = Math.max(0f, gameSession.getTimer() - dt);
             gameSession.setTimer(nextTimer);
@@ -600,26 +610,19 @@ public class Main extends ApplicationAdapter {
         int maxX = Math.max(minX + 1, worldW - minX);
         int minY = (int) Math.max(60, foodRadius * 2);
         int maxY = Math.max(minY + 1, worldH - minY);
-        for (int i = 0; i < npcCount; i++) {
-            Entity npc = new Entity(100 + i);
-            npc.setXPosition(minX + rng.nextInt(maxX - minX));
-            npc.setYPosition(minY + rng.nextInt(maxY - minY));
-            int dirX = rng.nextBoolean() ? 1 : -1;
-            int dirY = rng.nextBoolean() ? 1 : -1;
-            FoodCategory foodCategory = randomFoodCategory(rng);
-            npc.setMovement(new AIMovement(npcSpeed, dirX, dirY));
-            npc.setCollidable(new FoodCollidableComponent(foodRadius, foodCategory, 1, gameSession));
-            Texture foodTexture = (foodCategoryTextures != null) ? foodCategoryTextures.get(foodCategory) : null;
-            if (foodTexture != null) {
-                npc.setTexture(foodTexture);
-            }
-            sceneManager.spawnEntity(npc);
-        }
-    }
+        this.foodFactory = new FoodFactory(
+                rng,
+                foodRadius,
+                npcSpeed,
+                minX, maxX,
+                minY, maxY,
+                gameSession,
+                foodCategoryTextures
+        );
 
-    private FoodCategory randomFoodCategory(java.util.Random rng) {
-        FoodCategory[] categories = FoodCategory.values();
-        return categories[rng.nextInt(categories.length)];
+        nextFoodId = foodId;
+        spawnStartingFoods(this.foodFactory, nextFoodId, difficultyPreset.foodEntityCount);
+        nextFoodId += difficultyPreset.foodEntityCount;
     }
 
     private Map<FoodCategory, Texture> createFoodCategoryTextures() {
@@ -1161,6 +1164,74 @@ public class Main extends ApplicationAdapter {
             if (movement != null) {
                 movement.setSpeed(movement.getSpeed() * scaleDelta);
             }
+        }
+    }
+    
+    private void spawnStartingFoods(FoodFactory factory, int startId, int totalFoods) {
+        int id = startId;
+
+        // 1) Guarantee at least one of each
+        FoodCategory[] required = new FoodCategory[] {
+                FoodCategory.VEGETABLE,
+                FoodCategory.PROTEIN,
+                FoodCategory.CARBOHYDRATE,
+                FoodCategory.OIL
+        };
+
+        for (FoodCategory c : required) {
+            Entity food = factory.createFoodEntity(id++, c);
+            if (food != null) sceneManager.spawnEntity(food);
+        }
+
+        // 2) Fill the rest up to exactly totalFoods with RANDOM
+        while (id < startId + totalFoods) {
+            Entity food = factory.createFoodEntity(id++, FoodCategory.RANDOM);
+            if (food != null) sceneManager.spawnEntity(food);
+        }
+    }
+
+    private void ensureFoodDiversityAndCount() {
+        if (foodFactory == null) return;
+
+        int veg = 0, protein = 0, carb = 0, oil = 0;
+        int total = 0;
+
+        for (Entity e : entityManager.getEntities()) {
+            if (!(e.getCollidable() instanceof FoodCollidableComponent fc)) continue;
+
+            total++;
+            FoodCategory cat = fc.getFoodCategory();
+            if (cat == null || cat == FoodCategory.RANDOM) continue; // safety
+
+            switch (cat) {
+                case VEGETABLE -> veg++;
+                case PROTEIN -> protein++;
+                case CARBOHYDRATE -> carb++;
+                case OIL -> oil++;
+                default -> {}
+            }
+        }
+
+        if (veg == 0) {
+            sceneManager.spawnEntity(foodFactory.createFoodEntity(nextFoodId++, FoodCategory.VEGETABLE));
+            total++;
+        }
+        if (protein == 0) {
+            sceneManager.spawnEntity(foodFactory.createFoodEntity(nextFoodId++, FoodCategory.PROTEIN));
+            total++;
+        }
+        if (carb == 0) {
+            sceneManager.spawnEntity(foodFactory.createFoodEntity(nextFoodId++, FoodCategory.CARBOHYDRATE));
+            total++;
+        }
+        if (oil == 0) {
+            sceneManager.spawnEntity(foodFactory.createFoodEntity(nextFoodId++, FoodCategory.OIL));
+            total++;
+        }
+
+        while (total < difficultyPreset.foodEntityCount) {
+            sceneManager.spawnEntity(foodFactory.createFoodEntity(nextFoodId++, FoodCategory.RANDOM));
+            total++;
         }
     }
 
