@@ -327,9 +327,9 @@ public class Main extends ApplicationAdapter {
         batch.begin();
         font.draw(batch, "GAME SETTINGS", panel.x + 40f, panel.y + panelH - 28f);
         font.draw(batch, "Difficulty: " + difficultyPreset.label, panel.x + 40f, panel.y + panelH - 58f);
-        font.draw(batch, "Easy   - 75s, slower, +6s / -3s submit", easyButton.x + 20f, easyButton.y + 30f);
-        font.draw(batch, "Normal - 60s, balanced, +5s / -5s submit", normalButton.x + 20f, normalButton.y + 30f);
-        font.draw(batch, "Hard   - 45s, faster, +4s / -6s submit", hardButton.x + 20f, hardButton.y + 30f);
+        font.draw(batch, "Easy   - 75s, slower, +6s / -3s submit, 10 Food items", easyButton.x + 20f, easyButton.y + 30f);
+        font.draw(batch, "Normal - 60s, balanced, +5s / -5s submit, 15 Food items", normalButton.x + 20f, normalButton.y + 30f);
+        font.draw(batch, "Hard   - 45s, faster, +4s / -6s submit, 20 Food items", hardButton.x + 20f, hardButton.y + 30f);
         font.draw(batch, "Back to Main Menu", backButton.x + 20f, backButton.y + 28f);
         drawStatus(batch, 20f, 24f);
         batch.end();
