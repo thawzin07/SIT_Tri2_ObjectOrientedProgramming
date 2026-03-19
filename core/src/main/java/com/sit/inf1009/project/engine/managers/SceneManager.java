@@ -23,6 +23,10 @@ public class SceneManager {
             scenes.pop();
         }
     }
+    
+    public String getCurrentSceneName() {
+        return scenes.isEmpty() ? "None" : scenes.peek().getName();
+    }
 
     // Pass-through method: Receives the list from Main and gives it to the active Scene
     public void update(float dt, List<Entity> entities) {

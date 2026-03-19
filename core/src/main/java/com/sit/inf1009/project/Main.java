@@ -2,33 +2,24 @@ package com.sit.inf1009.project;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.Preferences;
 
-import com.sit.inf1009.project.engine.components.AIMovement;
 import com.sit.inf1009.project.engine.components.CollidableComponent;
 import com.sit.inf1009.project.engine.components.PlayerMovement;
-
-import com.sit.inf1009.project.engine.core.handlers.KeyboardInputHandler;
-import com.sit.inf1009.project.engine.core.handlers.LibGdxMouseInputHandler;
-import com.sit.inf1009.project.engine.core.handlers.PlayerImageInputService;
-import com.sit.inf1009.project.engine.core.handlers.SoundOutputHandler;
-
-import com.sit.inf1009.project.engine.interfaces.FoodCategory;
-
+import com.sit.inf1009.project.engine.core.handlers.*;
 import com.sit.inf1009.project.engine.core.Scene;
-import com.sit.inf1009.project.engine.managers.SceneManager;
 import com.sit.inf1009.project.engine.entities.Entity;
-import com.sit.inf1009.project.engine.managers.CollisionManager;
-import com.sit.inf1009.project.engine.managers.EntityManager;
-import com.sit.inf1009.project.engine.managers.InputOutputManager;
-import com.sit.inf1009.project.engine.managers.MovementManager;
+import com.sit.inf1009.project.engine.managers.*;
+
+import java.util.List;
 
 public class Main extends ApplicationAdapter {
-
     private ShapeRenderer shapeRenderer;
     private SpriteBatch batch;
     private BitmapFont font;
@@ -38,118 +29,167 @@ public class Main extends ApplicationAdapter {
     private MovementManager movementManager;
     private CollisionManager collisionManager;
     private SceneManager sceneManager;
-    private boolean paused;
-    private GameSession gameSession;
+    
+    // --- Game State Variables ---
+    private boolean paused = false;
+    private String playerName = "";
+    private boolean isTypingName = false;
+    private float gameTimer = 60f;
+    private int score = 0;
+
+    // Food Counts
+    public int vegCount = 0, proteinCount = 0, carbCount = 0, oilCount = 0;
+
+    // Leaderboard Data
+    private String[] topNames = new String[3];
+    private int[] topScores = new int[3];
 
     @Override
     public void create() {
         shapeRenderer = new ShapeRenderer();
+        batch = new SpriteBatch();
+        font = new BitmapFont();
 
-        // Managers
         ioManager = new InputOutputManager();
         entityManager = new EntityManager();
         movementManager = new MovementManager();
         collisionManager = new CollisionManager(entityManager, ioManager);
         sceneManager = new SceneManager(); 
-        
-        sceneManager.push(new Scene("Level 1", new Color(0.1f, 0.2f, 0.3f, 1f)));
-        batch = new SpriteBatch();
-        font = new BitmapFont();
-        paused = false;
 
-        // IO wiring
         ioManager.registerInputHandler(new KeyboardInputHandler(ioManager));
         ioManager.registerInputHandler(new LibGdxMouseInputHandler(ioManager));
         new PlayerImageInputService(ioManager);
         ioManager.registerOutputHandler(new SoundOutputHandler()); 
-        
-        // Populate initial scene
-        loadEntitiesForLevel(1);
 
-        gameSession = new GameSession(60f);
-    }
-    
-    private void loadEntitiesForLevel(int levelNum) {
-        // Create player entity
-        Entity player = new Entity(1);
-        player.setXPosition(200);
-        player.setYPosition(200);
-        player.setMovement(new PlayerMovement(ioManager, 250f));
-
-        CollidableComponent pc = new CollidableComponent(15, true);
-        pc.setRemoveOnCollision(false);
-        player.setCollidable(pc);
-
-        entityManager.addEntity(player);
-        movementManager.addMovable(player);
-
-        // Create NPC entities
-        java.util.Random rng = new java.util.Random();
-        int npcCount = (levelNum == 1) ? 8 : 4; 
-
-        for (int i = 0; i < npcCount; i++) {
-            Entity npc = new Entity(100 + i);
-            npc.setXPosition(100 + rng.nextInt(500));
-            npc.setYPosition(100 + rng.nextInt(300));
-            
-            int dirX = rng.nextBoolean() ? 1 : -1;
-            int dirY = rng.nextBoolean() ? 1 : -1;
-
-            npc.setMovement(new AIMovement(120, dirX, dirY));
-            npc.setCollidable(new CollidableComponent(8, true));
-            
-            entityManager.addEntity(npc);
-            movementManager.addMovable(npc);
-        }
+        loadHighScores();
+        sceneManager.push(new Scene("Start", Color.BLACK));
     }
 
     @Override
     public void render() {
+        String state = sceneManager.getCurrentSceneName();
+        float dt = Gdx.graphics.getDeltaTime();
+
+        handleMenuInput(state);
+
+        if (state.equals("Game") && !paused) {
+            updateGameLogic(dt);
+        }
+
         ScreenUtils.clear(0, 0, 0, 1);
-        double dt = Gdx.graphics.getDeltaTime();
+        sceneManager.render(null); 
 
-        if (Gdx.input.isKeyJustPressed(com.badlogic.gdx.Input.Keys.SPACE)) {
-            paused = !paused;
+        if (state.equals("Game")) {
+            drawEntities();
         }
 
-        // SCENE SWITCHING LOGIC
-        if (isSceneKeyJustPressed(com.badlogic.gdx.Input.Keys.NUM_3, com.badlogic.gdx.Input.Keys.NUMPAD_3)) {
-            prepareNewScene();
-            sceneManager.push(new Scene("Level 3", Color.TEAL));
-            loadEntitiesForLevel(3); 
+        drawUI(state);
+    }
+
+    private void handleMenuInput(String state) {
+        float mx = Gdx.input.getX();
+        float my = Gdx.graphics.getHeight() - Gdx.input.getY(); // Invert Y
+        boolean clicked = Gdx.input.justTouched();
+
+        if (state.equals("Start")) {
+            // Button area for "CLICK TO START"
+            if (clicked && isInside(mx, my, 300, 280, 200, 50)) {
+                isTypingName = true;
+                playerName = ""; // Reset name for new entry
+            }
+            if (isTypingName) handleNameTyping();
         }
 
-        if (isSceneKeyJustPressed(com.badlogic.gdx.Input.Keys.NUM_2, com.badlogic.gdx.Input.Keys.NUMPAD_2)) {
-            prepareNewScene();
-            sceneManager.push(new Scene("Level 2", Color.MAROON));
-            loadEntitiesForLevel(2); 
+        else if (state.equals("Difficulty")) {
+            // Easy Button
+            if (clicked && isInside(mx, my, 300, 300, 200, 40)) setDifficulty(60f, 1.0f, Color.GREEN);
+            // Hard Button
+            if (clicked && isInside(mx, my, 300, 250, 200, 40)) setDifficulty(20f, 2.0f, Color.RED);
         }
 
-        if (isSceneKeyJustPressed(com.badlogic.gdx.Input.Keys.NUM_1, com.badlogic.gdx.Input.Keys.NUMPAD_1)) {
-            prepareNewScene();
-            sceneManager.push(new Scene("Level 1", new Color(0.1f, 0.2f, 0.3f, 1f)));
-            loadEntitiesForLevel(1); 
+        else if (state.equals("Instructions")) {
+            if (clicked) startGame();
         }
-        
-        if (!paused) {
-            // 1) Move
-            movementManager.updateAll(dt);
 
-            // 2) Update Scene Boundaries
-            // Main hands the entity list to SceneManager to process clamping
-            sceneManager.update((float) dt, entityManager.getEntities());
-
-            // 3) Collisions
-            collisionManager.update();
-
-            // 4) Apply deletions
-            entityManager.flushRemovals();
+        else if (state.equals("HighScore")) {
+            if (clicked) sceneManager.push(new Scene("Start", Color.BLACK));
         }
-        
-        // 5) Apply current scene background
-        sceneManager.render(null);
 
-        // 6) Draw
+        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) paused = !paused;
+    }
+
+    private void handleNameTyping() {
+        // Listen for keys A-Z (LibGDX constants 29-54)
+        for (int i = Input.Keys.A; i <= Input.Keys.Z; i++) {
+            if (Gdx.input.isKeyJustPressed(i)) {
+                playerName += Input.Keys.toString(i);
+            }
+        }
+        // Handle Backspace
+        if (Gdx.input.isKeyJustPressed(Input.Keys.BACKSPACE) && playerName.length() > 0) {
+            playerName = playerName.substring(0, playerName.length() - 1);
+        }
+        // Finish typing
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER) && !playerName.isEmpty()) {
+            isTypingName = false;
+            sceneManager.push(new Scene("Difficulty", Color.DARK_GRAY));
+        }
+    }
+
+    private boolean isInside(float mx, float my, float x, float y, float w, float h) {
+        return mx >= x && mx <= x + w && my >= y && my <= y + h;
+    }
+
+    private void setDifficulty(float time, float speed, Color color) {
+        this.gameTimer = time;
+        // In the future, this speed variable can be used by teammates
+        sceneManager.push(new Scene("Instructions", color));
+    }
+
+    private void startGame() {
+        prepareNewScene();
+        score = 0;
+        vegCount = 0; proteinCount = 0; carbCount = 0; oilCount = 0;
+        sceneManager.push(new Scene("Game", Color.BLACK));
+        loadEntitiesForLevel(1); 
+    }
+
+    private void updateGameLogic(float dt) {
+        gameTimer -= dt;
+        if (gameTimer <= 0) {
+            saveHighScore();
+            sceneManager.push(new Scene("HighScore", Color.GOLD));
+            return;
+        }
+
+        // Keep debug keys for your testing
+        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_5)) vegCount++;
+        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_6)) proteinCount++;
+        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_7)) carbCount++;
+        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_8)) oilCount++;
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+            submitPlate();
+        }
+
+        movementManager.updateAll(dt);
+        sceneManager.update(dt, entityManager.getEntities());
+        collisionManager.update();
+        entityManager.flushRemovals();
+    }
+
+    private void submitPlate() {
+        if (vegCount >= 2 && vegCount <= 4 && proteinCount >= 1 && proteinCount <= 3 
+            && carbCount >= 1 && carbCount <= 2 && oilCount <= 1) {
+            score += 150;
+            gameTimer += 10;
+        } else {
+            gameTimer -= 10;
+        }
+        vegCount = 0; proteinCount = 0; carbCount = 0; oilCount = 0;
+    }
+
+    private void drawEntities() {
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         for (Entity e : entityManager.getEntities()) {
             CollidableComponent c = e.getCollidable();
@@ -157,25 +197,80 @@ public class Main extends ApplicationAdapter {
             shapeRenderer.circle((float) e.getXPosition(), (float) e.getYPosition(), r);
         }
         shapeRenderer.end();
-        
-        renderUI();
     }
 
-    // Helper to clear existing level data
+    private void drawUI(String state) {
+        batch.begin();
+        float w = Gdx.graphics.getWidth();
+        float h = Gdx.graphics.getHeight();
+
+        if (state.equals("Start")) {
+            font.draw(batch, "HEALTHY PLATE COLLECTOR", w/2 - 80, h/2 + 100);
+            if (isTypingName) {
+                font.draw(batch, "ENTER NAME: " + playerName + "_", w/2 - 80, h/2 + 20);
+                font.draw(batch, "(Press ENTER to confirm)", w/2 - 70, h/2 - 20);
+            } else {
+                font.draw(batch, "[ CLICK HERE TO START ]", 300, 300);
+            }
+        } else if (state.equals("Difficulty")) {
+            font.draw(batch, "Welcome " + playerName, 300, 400);
+            font.draw(batch, "[ CLICK EASY MODE ]", 300, 320);
+            font.draw(batch, "[ CLICK HARD MODE ]", 300, 270);
+        } else if (state.equals("Instructions")) {
+            font.draw(batch, "GOAL: Veg(2-4), Prot(1-3), Carb(1-2), Oil(0-1)", w/2 - 150, h/2 + 40);
+            font.draw(batch, "CLICK ANYWHERE TO BEGIN", w/2 - 80, h/2 - 20);
+        } else if (state.equals("Game")) {
+            font.draw(batch, "Time: " + (int)gameTimer + "s | Score: " + score, 20, h - 20);
+            font.draw(batch, "Veg: " + vegCount + " | Prot: " + proteinCount + " | Carb: " + carbCount + " | Oil: " + oilCount, 20, h - 40);
+            font.draw(batch, "Press ENTER to submit", 20, 30);
+        } else if (state.equals("HighScore")) {
+            font.draw(batch, "LEADERBOARD", w/2 - 40, h/2 + 80);
+            for (int i = 0; i < 3; i++) {
+                font.draw(batch, (i+1) + ". " + topNames[i] + ": " + topScores[i], w/2 - 50, h/2 + 40 - (i*20));
+            }
+            font.draw(batch, "CLICK ANYWHERE TO RESTART", w/2 - 80, h/2 - 60);
+        }
+        batch.end();
+    }
+
+    private void saveHighScore() {
+        Preferences prefs = Gdx.app.getPreferences("HealthyPlateScores");
+        if (score > topScores[2]) {
+            topScores[2] = score; topNames[2] = playerName;
+            for (int i = 1; i >= 0; i--) {
+                if (topScores[i+1] > topScores[i]) {
+                    int ts = topScores[i]; topScores[i] = topScores[i+1]; topScores[i+1] = ts;
+                    String tn = topNames[i]; topNames[i] = topNames[i+1]; topNames[i+1] = tn;
+                }
+            }
+        }
+        for (int i = 0; i < 3; i++) {
+            prefs.putInteger("s"+i, topScores[i]);
+            prefs.putString("n"+i, topNames[i]);
+        }
+        prefs.flush();
+    }
+
+    private void loadHighScores() {
+        Preferences prefs = Gdx.app.getPreferences("HealthyPlateScores");
+        for (int i = 0; i < 3; i++) {
+            topScores[i] = prefs.getInteger("s"+i, 0);
+            topNames[i] = prefs.getString("n"+i, "-");
+        }
+    }
+
+    private void loadEntitiesForLevel(int levelNum) {
+        Entity player = new Entity(1);
+        player.setXPosition(400); player.setYPosition(50);
+        player.setMovement(new PlayerMovement(ioManager, 300f));
+        player.setCollidable(new CollidableComponent(20, true));
+        entityManager.addEntity(player);
+        movementManager.addMovable(player);
+    }
+
     private void prepareNewScene() {
         entityManager.clear();
         movementManager.clear();
-    }
-
-    private void renderUI() {
-        batch.begin();
-        font.draw(batch, "Move with WASD", 20, Gdx.graphics.getHeight() - 20);
-        font.draw(batch, "Switch between scenes with num 1, 2 & 3", 20, Gdx.graphics.getHeight() - 5);
-        font.draw(batch, "Space: Pause/Resume", 20, Gdx.graphics.getHeight() - 35);
-        if (paused) {
-            font.draw(batch, "PAUSED", Gdx.graphics.getWidth() / 2f - 25f, Gdx.graphics.getHeight() / 2f);
-        }
-        batch.end();
     }
 
     @Override
@@ -184,9 +279,5 @@ public class Main extends ApplicationAdapter {
         batch.dispose();
         font.dispose();
         ioManager.shutdown();
-    }
-
-    private boolean isSceneKeyJustPressed(int mainKey, int numpadKey) {
-        return Gdx.input.isKeyJustPressed(mainKey) || Gdx.input.isKeyJustPressed(numpadKey);
     }
 }
