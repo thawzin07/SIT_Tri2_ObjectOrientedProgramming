@@ -182,7 +182,7 @@ public class Main extends ApplicationAdapter {
         entityManager = new EntityManager();
         movementManager = new MovementManager();
         collisionManager = new CollisionManager(entityManager, ioManager);
-        sceneManager = new SceneManager(entityManager, movementManager);
+        sceneManager = new SceneManager();
         difficultyPreset = DifficultyPreset.NORMAL;
         gameSession = new GameSession(
                 difficultyPreset.startingTimer,
@@ -414,7 +414,7 @@ public class Main extends ApplicationAdapter {
 
         if (!paused) {
             movementManager.updateAll(dt);
-            sceneManager.update(dt);
+            sceneManager.update(dt, entityManager.getEntities());
             collisionManager.update();
             entityManager.flushRemovals();
             ensureFoodDiversityAndCount();
@@ -496,7 +496,7 @@ public class Main extends ApplicationAdapter {
             batch.begin();
             font.draw(batch, "GAME PAUSED", panel.x + panelW / 2f - 45f, panel.y + panelH - 30f);
             font.draw(batch, "Resume Game", resumeBtn.x + 20f, resumeBtn.y + 28f);
-            font.draw(batch, "Restart Run", restartBtn.x + 20f, restartBtn.y + 28f);
+            font.draw(batch, "Restart Game", restartBtn.x + 20f, restartBtn.y + 28f);
             font.draw(batch, "How to Play", rulesBtn.x + 20f, rulesBtn.y + 28f);
             font.draw(batch, "Quit to Main Menu", quitBtn.x + 20f, quitBtn.y + 28f);
             batch.end();
@@ -647,7 +647,8 @@ public class Main extends ApplicationAdapter {
         if (selectedAvatarTexture != null) {
             player.setTexture(selectedAvatarTexture);
         }
-        sceneManager.spawnEntity(player);
+        entityManager.addEntity(player);
+        movementManager.addMovable(player);
 
         java.util.Random rng = new java.util.Random();
         int npcCount = (levelNum == 1) ? difficultyPreset.npcCount : Math.max(4, difficultyPreset.npcCount / 2);
@@ -1231,13 +1232,19 @@ public class Main extends ApplicationAdapter {
 
         for (FoodCategory c : required) {
             Entity food = factory.createFoodEntity(id++, c);
-            if (food != null) sceneManager.spawnEntity(food);
+            if (food != null) {
+            	entityManager.addEntity(food);
+            	movementManager.addMovable(food);
+            }
         }
 
         // 2) Fill the rest up to exactly totalFoods with RANDOM
         while (id < startId + totalFoods) {
             Entity food = factory.createFoodEntity(id++, FoodCategory.RANDOM);
-            if (food != null) sceneManager.spawnEntity(food);
+            if (food != null) {
+            	entityManager.addEntity(food);
+            	movementManager.addMovable(food);
+            }
         }
     }
 
@@ -1264,25 +1271,32 @@ public class Main extends ApplicationAdapter {
         }
 
         if (veg == 0) {
-            sceneManager.spawnEntity(foodFactory.createFoodEntity(nextFoodId++, FoodCategory.VEGETABLE));
+            spawnGameEntity(foodFactory.createFoodEntity(nextFoodId++, FoodCategory.VEGETABLE));
             total++;
         }
         if (protein == 0) {
-            sceneManager.spawnEntity(foodFactory.createFoodEntity(nextFoodId++, FoodCategory.PROTEIN));
+            spawnGameEntity(foodFactory.createFoodEntity(nextFoodId++, FoodCategory.PROTEIN));
             total++;
         }
         if (carb == 0) {
-            sceneManager.spawnEntity(foodFactory.createFoodEntity(nextFoodId++, FoodCategory.CARBOHYDRATE));
+            spawnGameEntity(foodFactory.createFoodEntity(nextFoodId++, FoodCategory.CARBOHYDRATE));
             total++;
         }
         if (oil == 0) {
-            sceneManager.spawnEntity(foodFactory.createFoodEntity(nextFoodId++, FoodCategory.OIL));
+            spawnGameEntity(foodFactory.createFoodEntity(nextFoodId++, FoodCategory.OIL));
             total++;
         }
 
         while (total < difficultyPreset.foodEntityCount) {
-            sceneManager.spawnEntity(foodFactory.createFoodEntity(nextFoodId++, FoodCategory.RANDOM));
+            spawnGameEntity(foodFactory.createFoodEntity(nextFoodId++, FoodCategory.RANDOM));
             total++;
+        }
+    }
+    
+    private void spawnGameEntity(Entity entity) {
+        if (entity != null) {
+            entityManager.addEntity(entity);
+            movementManager.addMovable(entity);
         }
     }
 
