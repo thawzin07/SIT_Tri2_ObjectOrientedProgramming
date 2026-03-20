@@ -1,48 +1,26 @@
 package com.sit.inf1009.project.engine.managers;
 
 import java.util.Stack;
+import java.util.List;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.sit.inf1009.project.engine.core.Scene;
 import com.sit.inf1009.project.engine.entities.Entity;
 
 public class SceneManager {
-    private static SceneManager instance;
     private Stack<Scene> scenes;
-    
-    private EntityManager em;
-    private MovementManager movementManager;
 
-    public SceneManager(EntityManager em, MovementManager mm) {
-        instance = this;
+    public SceneManager() {
         this.scenes = new Stack<>();
-        this.em = em;
-        this.movementManager = mm;
-    }
-
-    public static SceneManager getInstance() {
-        return instance;
     }
 
     public void push(Scene scene) {
-        if (em != null) {
-            em.clear(); // clears entities from the master database
-        }
-        if (movementManager != null) {
-            movementManager.clear(); // clears physics calculations
-        }
         scenes.push(scene);
     }
 
     public void pop() {
         if (!scenes.isEmpty()) {
             scenes.pop();
-        }
-        if (em != null) {
-            em.clear(); 
-        }
-        if (movementManager != null) {
-            movementManager.clear(); 
         }
     }
 
@@ -51,23 +29,13 @@ public class SceneManager {
         push(scene);
     }
 
-    public void spawnEntity(Entity entity) {
-        // 1. Add to the master database
-        em.addEntity(entity);
-        
-        // 2. Pass it directly to MovementManager
-        movementManager.addMovable(entity);
+    public String getCurrentSceneName() {
+        return scenes.isEmpty() ? "None" : scenes.peek().getName();
     }
 
-    public void removeEntity(Entity entity) {
-        em.removeEntity(entity);
-        movementManager.removeMovable(entity);
-    }
-
-    public void update(float dt) 
-    {
+    public void update(float dt, List<Entity> entities) {
         if (!scenes.isEmpty()) {
-            scenes.peek().update(dt, em.getEntities());
+            scenes.peek().update(dt, entities);
         }
     }
 
