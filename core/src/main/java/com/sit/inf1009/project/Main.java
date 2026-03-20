@@ -625,6 +625,8 @@ public class Main extends ApplicationAdapter {
         paused = false;
         leaderboardNameEditing = false;
         playerNameInput = "";
+        entityManager.clear();
+        movementManager.clear();
         sceneManager.push(new Scene("Level 1", new Color(0.1f, 0.2f, 0.3f, 1f)));
         loadEntitiesForLevel(1);
         gameState = GameState.PLAYING;
