@@ -35,7 +35,7 @@ public class PlayerCollidableComponent extends CollidableComponent
         // Food component should handle scoring/removal.
         // Player side can be used for sound/effects/animation.
         if (ioManager != null && player.getID() <= food.getID()) {
-            ioManager.sendOutput(new IOEvent(IOEvent.Type.SOUND_PLAY, "Droplet"));
+            ioManager.sendOutput(new IOEvent(IOEvent.Type.SOUND_PLAY, "collisionmusic"));
         }
     }
 

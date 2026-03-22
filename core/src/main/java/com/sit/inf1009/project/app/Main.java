@@ -49,6 +49,7 @@ import java.util.EnumMap;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class Main extends ApplicationAdapter {
 
@@ -134,6 +135,7 @@ public class Main extends ApplicationAdapter {
     private final List<LeaderboardEntry> leaderboardEntries = new ArrayList<>();
     private String playerNameInput = "";
     private boolean leaderboardOpenedFromMenu;
+    private String activeBackgroundTrack;
 
     private boolean leaderboardNameEditing;
     private int lastViewportWidth;
@@ -244,6 +246,7 @@ public class Main extends ApplicationAdapter {
 
         float dt = Gdx.graphics.getDeltaTime();
         flowController.tickStatus(dt);
+        syncBackgroundMusicForState();
 
         appUiRenderer.captureClick(touchPos);
 
@@ -712,6 +715,35 @@ public class Main extends ApplicationAdapter {
         flowController.showStatus(message, seconds);
     }
 
+    private void syncBackgroundMusicForState() {
+        String nextTrack = backgroundTrackForState(gameState);
+        if (Objects.equals(nextTrack, activeBackgroundTrack)) {
+            return;
+        }
+
+        if (activeBackgroundTrack != null) {
+            ioManager.sendOutput(new IOEvent(IOEvent.Type.SOUND_STOP, activeBackgroundTrack));
+        }
+        if (nextTrack != null) {
+            ioManager.sendOutput(new IOEvent(IOEvent.Type.SOUND_PLAY, nextTrack));
+        }
+        activeBackgroundTrack = nextTrack;
+    }
+
+    private String backgroundTrackForState(GameState state) {
+        if (state == null) {
+            return null;
+        }
+
+        return switch (state) {
+            case FOOD_MENU -> "foodmenumusic";
+            case DIFFICULTY_SETTINGS -> "settingmusic";
+            case HOW_TO_PLAY -> "howtoplaymusic";
+            case LEADERBOARD_ENTRY, LEADERBOARD_VIEW -> "leaderboardmusic";
+            default -> null;
+        };
+    }
+
     public void addFood(FoodCategory category, int scoreValue) {
         gameplayController.addFood(gameSession, category, scoreValue);
     }
@@ -760,6 +792,7 @@ public class Main extends ApplicationAdapter {
 
     @Override
     public void dispose() {
+        ioManager.sendOutput(new IOEvent(IOEvent.Type.SOUND_STOP_ALL, null));
         for (LeaderboardEntry entry : leaderboardEntries) {
             if (entry.ownsTexture && entry.avatarTexture != null) {
                 entry.avatarTexture.dispose();
