@@ -6,7 +6,7 @@ import com.badlogic.gdx.files.FileHandle;
 import java.util.ArrayList;
 import java.util.List;
 
-public class LeaderboardFileStore {
+public class LeaderboardFileStore implements LeaderboardStore {
 
     public List<LeaderboardRecord> load(String fileName) {
         List<LeaderboardRecord> records = new ArrayList<>();

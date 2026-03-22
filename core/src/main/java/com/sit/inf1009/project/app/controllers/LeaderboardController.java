@@ -1,15 +1,15 @@
 package com.sit.inf1009.project.app.controllers;
 
-import com.sit.inf1009.project.game.persistence.LeaderboardFileStore;
 import com.sit.inf1009.project.game.persistence.LeaderboardRecord;
+import com.sit.inf1009.project.game.persistence.LeaderboardStore;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public final class LeaderboardController {
-    private final LeaderboardFileStore fileStore;
+    private final LeaderboardStore fileStore;
 
-    public LeaderboardController(LeaderboardFileStore fileStore) {
+    public LeaderboardController(LeaderboardStore fileStore) {
         this.fileStore = fileStore;
     }
 
