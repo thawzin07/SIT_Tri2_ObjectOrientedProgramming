@@ -747,87 +747,18 @@ public class Main extends ApplicationAdapter {
             return;
         }
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+        LeaderboardNameEditor.Result result = LeaderboardNameEditor.update(playerNameInput, 24);
+        playerNameInput = result.getUpdatedName();
+
+        if (result.isConfirmed()) {
             leaderboardNameEditing = false;
             showStatus("Name confirmed", 2f);
             return;
         }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+        if (result.isCanceled()) {
             leaderboardNameEditing = false;
             showStatus("Name edit cancelled", 2f);
-            return;
         }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.BACKSPACE)) {
-            if (!playerNameInput.isEmpty()) {
-                playerNameInput = playerNameInput.substring(0, playerNameInput.length() - 1);
-            }
-            return;
-        }
-
-        boolean shift = Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) || Gdx.input.isKeyPressed(Input.Keys.SHIFT_RIGHT);
-
-        appendNameCharIfPressed(Input.Keys.SPACE, ' ');
-        appendNameCharIfPressed(Input.Keys.MINUS, shift ? '_' : '-');
-        appendNameCharIfPressed(Input.Keys.PERIOD, '.');
-
-        appendNameCharIfPressed(Input.Keys.NUM_0, '0');
-        appendNameCharIfPressed(Input.Keys.NUM_1, '1');
-        appendNameCharIfPressed(Input.Keys.NUM_2, '2');
-        appendNameCharIfPressed(Input.Keys.NUM_3, '3');
-        appendNameCharIfPressed(Input.Keys.NUM_4, '4');
-        appendNameCharIfPressed(Input.Keys.NUM_5, '5');
-        appendNameCharIfPressed(Input.Keys.NUM_6, '6');
-        appendNameCharIfPressed(Input.Keys.NUM_7, '7');
-        appendNameCharIfPressed(Input.Keys.NUM_8, '8');
-        appendNameCharIfPressed(Input.Keys.NUM_9, '9');
-
-        appendNameCharIfPressed(Input.Keys.NUMPAD_0, '0');
-        appendNameCharIfPressed(Input.Keys.NUMPAD_1, '1');
-        appendNameCharIfPressed(Input.Keys.NUMPAD_2, '2');
-        appendNameCharIfPressed(Input.Keys.NUMPAD_3, '3');
-        appendNameCharIfPressed(Input.Keys.NUMPAD_4, '4');
-        appendNameCharIfPressed(Input.Keys.NUMPAD_5, '5');
-        appendNameCharIfPressed(Input.Keys.NUMPAD_6, '6');
-        appendNameCharIfPressed(Input.Keys.NUMPAD_7, '7');
-        appendNameCharIfPressed(Input.Keys.NUMPAD_8, '8');
-        appendNameCharIfPressed(Input.Keys.NUMPAD_9, '9');
-
-        appendNameCharIfPressed(Input.Keys.A, shift ? 'A' : 'a');
-        appendNameCharIfPressed(Input.Keys.B, shift ? 'B' : 'b');
-        appendNameCharIfPressed(Input.Keys.C, shift ? 'C' : 'c');
-        appendNameCharIfPressed(Input.Keys.D, shift ? 'D' : 'd');
-        appendNameCharIfPressed(Input.Keys.E, shift ? 'E' : 'e');
-        appendNameCharIfPressed(Input.Keys.F, shift ? 'F' : 'f');
-        appendNameCharIfPressed(Input.Keys.G, shift ? 'G' : 'g');
-        appendNameCharIfPressed(Input.Keys.H, shift ? 'H' : 'h');
-        appendNameCharIfPressed(Input.Keys.I, shift ? 'I' : 'i');
-        appendNameCharIfPressed(Input.Keys.J, shift ? 'J' : 'j');
-        appendNameCharIfPressed(Input.Keys.K, shift ? 'K' : 'k');
-        appendNameCharIfPressed(Input.Keys.L, shift ? 'L' : 'l');
-        appendNameCharIfPressed(Input.Keys.M, shift ? 'M' : 'm');
-        appendNameCharIfPressed(Input.Keys.N, shift ? 'N' : 'n');
-        appendNameCharIfPressed(Input.Keys.O, shift ? 'O' : 'o');
-        appendNameCharIfPressed(Input.Keys.P, shift ? 'P' : 'p');
-        appendNameCharIfPressed(Input.Keys.Q, shift ? 'Q' : 'q');
-        appendNameCharIfPressed(Input.Keys.R, shift ? 'R' : 'r');
-        appendNameCharIfPressed(Input.Keys.S, shift ? 'S' : 's');
-        appendNameCharIfPressed(Input.Keys.T, shift ? 'T' : 't');
-        appendNameCharIfPressed(Input.Keys.U, shift ? 'U' : 'u');
-        appendNameCharIfPressed(Input.Keys.V, shift ? 'V' : 'v');
-        appendNameCharIfPressed(Input.Keys.W, shift ? 'W' : 'w');
-        appendNameCharIfPressed(Input.Keys.X, shift ? 'X' : 'x');
-        appendNameCharIfPressed(Input.Keys.Y, shift ? 'Y' : 'y');
-        appendNameCharIfPressed(Input.Keys.Z, shift ? 'Z' : 'z');
-    }
-
-    private void appendNameCharIfPressed(int keycode, char value) {
-        if (!Gdx.input.isKeyJustPressed(keycode)) {
-            return;
-        }
-        if (playerNameInput.length() >= 24) {
-            return;
-        }
-        playerNameInput += value;
     }
 
     private void submitLeaderboardEntry() {
