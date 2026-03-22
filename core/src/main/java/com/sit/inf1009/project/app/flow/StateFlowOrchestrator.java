@@ -41,6 +41,7 @@ public final class StateFlowOrchestrator {
             case FOOD_MENU -> "foodmenumusic";
             case DIFFICULTY_SETTINGS -> "settingmusic";
             case HOW_TO_PLAY -> "howtoplaymusic";
+            case AVATAR_SETUP -> "playersetupmusic";
             case LEADERBOARD_ENTRY, LEADERBOARD_VIEW -> "leaderboardmusic";
             default -> null;
         };

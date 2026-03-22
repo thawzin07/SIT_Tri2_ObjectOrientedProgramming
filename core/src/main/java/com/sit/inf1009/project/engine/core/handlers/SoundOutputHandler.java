@@ -29,6 +29,7 @@ public class SoundOutputHandler extends AbstractOutputHandler {
         BACKGROUND_TRACKS.add("foodmenumusic");
         BACKGROUND_TRACKS.add("settingmusic");
         BACKGROUND_TRACKS.add("howtoplaymusic");
+        BACKGROUND_TRACKS.add("playersetupmusic");
         BACKGROUND_TRACKS.add("leaderboardmusic");
     }
 
