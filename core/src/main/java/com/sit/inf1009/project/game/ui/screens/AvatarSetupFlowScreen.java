@@ -194,6 +194,7 @@ public class AvatarSetupFlowScreen implements IOListener {
 
         for (int i = 0; i < avatarRects.length; i++) {
             if (avatarRects[i].contains(world.x, world.y)) {
+                playButtonClick();
                 selectedPresetIndex = i;
                 selectedUploadedPath = null;
                 disposeUploadedPreview();
@@ -203,11 +204,13 @@ public class AvatarSetupFlowScreen implements IOListener {
         }
 
         if (uploadButton.contains(world.x, world.y)) {
+            playButtonClick();
             ioManager.handleEvent(new IOEvent(IOEvent.Type.PLAYER_IMAGE_UPLOAD_REQUEST, "setup-screen"));
             return;
         }
 
         if (startButton.contains(world.x, world.y)) {
+            playButtonClick();
             boolean hasPreset = selectedPresetIndex >= 0 && selectedPresetIndex < avatarRects.length;
             boolean hasUpload = selectedUploadedPath != null && !selectedUploadedPath.isBlank();
             if (!hasPreset && !hasUpload) {
@@ -221,6 +224,7 @@ public class AvatarSetupFlowScreen implements IOListener {
         }
 
         if (backButton.contains(world.x, world.y)) {
+            playButtonClick();
             if (actionListener != null) {
                 actionListener.onBackToMainMenu();
             }
@@ -277,5 +281,9 @@ public class AvatarSetupFlowScreen implements IOListener {
             uploadedPreviewTexture.dispose();
             uploadedPreviewTexture = null;
         }
+    }
+
+    private void playButtonClick() {
+        ioManager.sendOutput(new IOEvent(IOEvent.Type.SOUND_PLAY, "btn_click"));
     }
 }

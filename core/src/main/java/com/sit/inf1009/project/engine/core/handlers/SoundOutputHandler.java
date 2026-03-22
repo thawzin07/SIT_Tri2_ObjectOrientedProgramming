@@ -6,8 +6,10 @@ import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.files.FileHandle;
 import com.sit.inf1009.project.engine.managers.IOEvent;
 
+import java.util.HashSet;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Output handler responsible for audio playback.
@@ -21,6 +23,14 @@ import java.util.Map;
  * Usage: ioManager.sendOutput(new IOEvent(IOEvent.Type.SOUND_PLAY, "hit"));
  */
 public class SoundOutputHandler extends AbstractOutputHandler {
+
+    private static final Set<String> BACKGROUND_TRACKS = new HashSet<>();
+    static {
+        BACKGROUND_TRACKS.add("foodmenumusic");
+        BACKGROUND_TRACKS.add("settingmusic");
+        BACKGROUND_TRACKS.add("howtoplaymusic");
+        BACKGROUND_TRACKS.add("leaderboardmusic");
+    }
 
     private final Map<String, Sound> effectPool = new HashMap<>();
     private final Map<String, Music> musicPool = new HashMap<>();
@@ -179,7 +189,8 @@ public class SoundOutputHandler extends AbstractOutputHandler {
     }
 
     private boolean isMusicTrack(String clipName) {
-        return clipName != null && clipName.toLowerCase().endsWith("music");
+        if (clipName == null) return false;
+        return BACKGROUND_TRACKS.contains(clipName.toLowerCase());
     }
 
     private String resolveAlias(String clipName) {

@@ -279,6 +279,9 @@ public class Main extends ApplicationAdapter {
 
     private void renderDifficultySettings() {
         AppUiRenderer.DifficultyAction action = appUiRenderer.renderDifficultySettings(difficultyPreset);
+        if (action != AppUiRenderer.DifficultyAction.NONE) {
+            playButtonClick();
+        }
         switch (action) {
             case SET_EASY:
                 difficultyPreset = DifficultyPreset.EASY;
@@ -308,6 +311,9 @@ public class Main extends ApplicationAdapter {
 
     private void renderHowToPlay() {
         AppUiRenderer.HowToPlayAction action = appUiRenderer.renderHowToPlay(rulesOpenedFromPause);
+        if (action != AppUiRenderer.HowToPlayAction.NONE) {
+            playButtonClick();
+        }
         switch (action) {
             case BACK_TO_PAUSE:
                 gameState = GameState.PLAYING;
@@ -413,13 +419,21 @@ public class Main extends ApplicationAdapter {
             Rectangle rulesBtn = new Rectangle(panel.x + 40f, panel.y + panelH - 240f, panelW - 80f, 44f);
             Rectangle quitBtn = new Rectangle(panel.x + 40f, panel.y + 40f, panelW - 80f, 44f);
 
-            if (appUiRenderer.consumeClick(resumeBtn)) paused = false;
-            if (appUiRenderer.consumeClick(restartBtn)) startNewGame();
+            if (appUiRenderer.consumeClick(resumeBtn)) {
+                playButtonClick();
+                paused = false;
+            }
+            if (appUiRenderer.consumeClick(restartBtn)) {
+                playButtonClick();
+                startNewGame();
+            }
             if (appUiRenderer.consumeClick(rulesBtn)) {
+                playButtonClick();
                 rulesOpenedFromPause = true;
                 gameState = GameState.HOW_TO_PLAY;
             }
             if (appUiRenderer.consumeClick(quitBtn)) {
+                playButtonClick();
                 gameState = GameState.FOOD_MENU;
                 paused = false;
             }
@@ -447,6 +461,9 @@ public class Main extends ApplicationAdapter {
                 selectedAvatarTexture,
                 playerNameInput,
                 leaderboardNameEditing);
+        if (action != AppUiRenderer.LeaderboardEntryAction.NONE) {
+            playButtonClick();
+        }
         switch (action) {
             case ENABLE_NAME_EDIT:
                 leaderboardNameEditing = true;
@@ -473,6 +490,7 @@ public class Main extends ApplicationAdapter {
         AppUiRenderer.LeaderboardViewAction action =
                 appUiRenderer.renderLeaderboardView(leaderboardEntries, leaderboardOpenedFromMenu);
         if (action == AppUiRenderer.LeaderboardViewAction.FOOTER_CLICKED) {
+            playButtonClick();
             gameState = GameState.FOOD_MENU;
             playerNameInput = "";
             leaderboardNameEditing = false;
@@ -713,6 +731,10 @@ public class Main extends ApplicationAdapter {
 
     private void showStatus(String message, float seconds) {
         flowController.showStatus(message, seconds);
+    }
+
+    private void playButtonClick() {
+        ioManager.sendOutput(new IOEvent(IOEvent.Type.SOUND_PLAY, "btn_click"));
     }
 
     private void syncBackgroundMusicForState() {

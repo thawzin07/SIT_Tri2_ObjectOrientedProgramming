@@ -149,17 +149,19 @@ public class StartMenuScene extends Scene implements IOListener {
         if (actionListener != null) {
             switch (btnIndex) {
                 case 0:
-                    if (ioManager != null)
-                        ioManager.sendOutput(new IOEvent(IOEvent.Type.SOUND_PLAY, "btn_click"));
+                    playButtonClick();
                     actionListener.onStart();
                     break;
                 case 1:
+                    playButtonClick();
                     actionListener.onDifficulty();
                     break;
                 case 2:
+                    playButtonClick();
                     actionListener.onHowToPlay();
                     break;
                 case 3:
+                    playButtonClick();
                     actionListener.onHighScores();
                     break;
                 default:
@@ -170,23 +172,31 @@ public class StartMenuScene extends Scene implements IOListener {
 
         switch (btnIndex) {
             case 0:
-                if (ioManager != null)
-                    ioManager.sendOutput(new IOEvent(IOEvent.Type.SOUND_PLAY, "btn_click"));
+                playButtonClick();
                 break;
             case 1:
+                playButtonClick();
                 if (ioManager != null)
                     ioManager.sendOutput(new IOEvent(IOEvent.Type.DISPLAY_SHOW_HUD, "Difficulty - coming soon!"));
                 break;
             case 2:
+                playButtonClick();
                 if (ioManager != null)
                     ioManager.sendOutput(new IOEvent(IOEvent.Type.DISPLAY_SHOW_HUD, "How To Play - coming soon!"));
                 break;
             case 3:
+                playButtonClick();
                 if (ioManager != null)
                     ioManager.sendOutput(new IOEvent(IOEvent.Type.DISPLAY_SHOW_HUD, "High Scores - coming soon!"));
                 break;
             default:
                 break;
+        }
+    }
+
+    private void playButtonClick() {
+        if (ioManager != null) {
+            ioManager.sendOutput(new IOEvent(IOEvent.Type.SOUND_PLAY, "btn_click"));
         }
     }
 
