@@ -137,6 +137,7 @@ public class Main extends ApplicationAdapter {
 
     private GameState gameState;
     private DifficultyPreset difficultyPreset;
+    private DifficultyConfig difficultyConfig;
     private boolean paused;
     private boolean rulesOpenedFromPause = false;
 
@@ -184,11 +185,12 @@ public class Main extends ApplicationAdapter {
         collisionManager = new CollisionManager(entityManager, ioManager);
         sceneManager = new SceneManager();
         difficultyPreset = DifficultyPreset.NORMAL;
+        difficultyConfig = toDifficultyConfig(difficultyPreset);
         gameSession = new GameSession(
-                difficultyPreset.startingTimer,
-                difficultyPreset.healthyScoreBonus,
-                difficultyPreset.healthyTimerBonus,
-                difficultyPreset.unhealthyTimerPenalty);
+                difficultyConfig.getStartingTimer(),
+                difficultyConfig.getHealthyScoreBonus(),
+                difficultyConfig.getHealthyTimerBonus(),
+                difficultyConfig.getUnhealthyTimerPenalty());
         paused = false;
 
         ioManager.registerInputHandler(new KeyboardInputHandler(ioManager));
@@ -312,14 +314,17 @@ public class Main extends ApplicationAdapter {
 
         if (consumeClick(easyButton)) {
             difficultyPreset = DifficultyPreset.EASY;
+            difficultyConfig = toDifficultyConfig(difficultyPreset);
             showStatus("Difficulty set: Easy", 2f);
         }
         if (consumeClick(normalButton)) {
             difficultyPreset = DifficultyPreset.NORMAL;
+            difficultyConfig = toDifficultyConfig(difficultyPreset);
             showStatus("Difficulty set: Normal", 2f);
         }
         if (consumeClick(hardButton)) {
             difficultyPreset = DifficultyPreset.HARD;
+            difficultyConfig = toDifficultyConfig(difficultyPreset);
             showStatus("Difficulty set: Hard", 2f);
         }
         if (consumeClick(backButton)) {
@@ -618,10 +623,10 @@ public class Main extends ApplicationAdapter {
 
     private void startNewGame() {
         gameSession = new GameSession(
-                difficultyPreset.startingTimer,
-                difficultyPreset.healthyScoreBonus,
-                difficultyPreset.healthyTimerBonus,
-                difficultyPreset.unhealthyTimerPenalty);
+                difficultyConfig.getStartingTimer(),
+                difficultyConfig.getHealthyScoreBonus(),
+                difficultyConfig.getHealthyTimerBonus(),
+                difficultyConfig.getUnhealthyTimerPenalty());
         paused = false;
         leaderboardNameEditing = false;
         playerNameInput = "";
@@ -637,7 +642,7 @@ public class Main extends ApplicationAdapter {
         double playerRadius = 15d * currentGameplayScale;
         double foodRadius = 8d * currentGameplayScale;
         double playerSpeed = 250d * currentGameplayScale;
-        double npcSpeed = difficultyPreset.npcSpeed * currentGameplayScale;
+        double npcSpeed = difficultyConfig.getNpcSpeed() * currentGameplayScale;
         int worldW = Math.max(1, Gdx.graphics.getWidth());
         int worldH = Math.max(1, Gdx.graphics.getHeight());
 
@@ -653,7 +658,7 @@ public class Main extends ApplicationAdapter {
         movementManager.addMovable(player);
 
         java.util.Random rng = new java.util.Random();
-        int npcCount = (levelNum == 1) ? difficultyPreset.npcCount : Math.max(4, difficultyPreset.npcCount / 2);
+        int npcCount = (levelNum == 1) ? difficultyConfig.getNpcCount() : Math.max(4, difficultyConfig.getNpcCount() / 2);
         int minX = (int) Math.max(40, foodRadius * 2);
         int maxX = Math.max(minX + 1, worldW - minX);
         int minY = (int) Math.max(60, foodRadius * 2);
@@ -669,8 +674,8 @@ public class Main extends ApplicationAdapter {
         );
 
         nextFoodId = foodId;
-        spawnStartingFoods(this.foodFactory, nextFoodId, difficultyPreset.foodEntityCount);
-        nextFoodId += difficultyPreset.foodEntityCount;
+        spawnStartingFoods(this.foodFactory, nextFoodId, difficultyConfig.getFoodEntityCount());
+        nextFoodId += difficultyConfig.getFoodEntityCount();
     }
 
     private Map<FoodCategory, Texture> createFoodCategoryTextures() {
@@ -1289,10 +1294,21 @@ public class Main extends ApplicationAdapter {
             total++;
         }
 
-        while (total < difficultyPreset.foodEntityCount) {
+        while (total < difficultyConfig.getFoodEntityCount()) {
             spawnGameEntity(foodFactory.createFoodEntity(nextFoodId++, FoodCategory.RANDOM));
             total++;
         }
+    }
+
+    private DifficultyConfig toDifficultyConfig(DifficultyPreset preset) {
+        return new DifficultyConfig(
+                preset.startingTimer,
+                preset.npcCount,
+                preset.npcSpeed,
+                preset.healthyScoreBonus,
+                preset.healthyTimerBonus,
+                preset.unhealthyTimerPenalty,
+                preset.foodEntityCount);
     }
     
     private void spawnGameEntity(Entity entity) {
