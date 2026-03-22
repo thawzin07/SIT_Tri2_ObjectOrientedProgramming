@@ -1,4 +1,4 @@
-package com.sit.inf1009.project.engine.core;
+package com.sit.inf1009.project.game.ui.screens;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
+import com.sit.inf1009.project.engine.core.Scene;
 import com.sit.inf1009.project.engine.interfaces.IOListener;
 import com.sit.inf1009.project.engine.managers.IOEvent;
 import com.sit.inf1009.project.engine.managers.InputOutputManager;

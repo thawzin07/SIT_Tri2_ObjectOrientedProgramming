@@ -22,9 +22,7 @@ import com.sit.inf1009.project.engine.components.AIMovement;
 import com.sit.inf1009.project.engine.components.CollidableComponent;
 import com.sit.inf1009.project.engine.components.MovementComponent;
 import com.sit.inf1009.project.engine.components.PlayerMovement;
-import com.sit.inf1009.project.engine.core.AvatarSetupFlowScreen;
 import com.sit.inf1009.project.engine.core.Scene;
-import com.sit.inf1009.project.engine.core.StartMenuScene;
 import com.sit.inf1009.project.engine.core.handlers.KeyboardInputHandler;
 import com.sit.inf1009.project.engine.core.handlers.LibGdxMouseInputHandler;
 import com.sit.inf1009.project.engine.core.handlers.PlayerImageInputService;
@@ -47,6 +45,8 @@ import com.sit.inf1009.project.game.persistence.LeaderboardRecord;
 import com.sit.inf1009.project.game.services.FoodSpawnCoordinator;
 import com.sit.inf1009.project.game.ui.LeaderboardNameEditor;
 import com.sit.inf1009.project.game.ui.UiPanelRenderer;
+import com.sit.inf1009.project.game.ui.screens.AvatarSetupFlowScreen;
+import com.sit.inf1009.project.game.ui.screens.StartMenuScene;
 
 import java.io.File;
 import java.util.ArrayList;
