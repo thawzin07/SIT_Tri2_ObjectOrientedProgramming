@@ -5,7 +5,6 @@ import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Input.TextInputListener;
-import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
@@ -118,6 +117,7 @@ public class Main extends ApplicationAdapter {
     private static final float BUTTON_W = 250f;
     private static final float BUTTON_H = 38f;
     private static final String LEADERBOARD_FILE = "leaderboard.txt";
+    private final LeaderboardFileStore leaderboardFileStore = new LeaderboardFileStore();
 
     private ShapeRenderer shapeRenderer;
     private SpriteBatch batch;
@@ -894,38 +894,12 @@ public class Main extends ApplicationAdapter {
 
     private void loadLeaderboardEntries() {
         leaderboardEntries.clear();
-
-        FileHandle file = Gdx.files.local(LEADERBOARD_FILE);
-        if (!file.exists()) {
-            return;
-        }
-
-        String content = file.readString("UTF-8");
-        String[] lines = content.split("\\r?\\n");
-        for (String rawLine : lines) {
-            if (rawLine == null || rawLine.isBlank()) {
-                continue;
-            }
-
-            String[] parts = rawLine.split("\\t", -1);
-            if (parts.length < 4) {
-                continue;
-            }
-
-            String name = parts[0].trim();
-            int score;
-            int presetIndex;
-            try {
-                score = Integer.parseInt(parts[1].trim());
-                presetIndex = Integer.parseInt(parts[2].trim());
-            } catch (NumberFormatException e) {
-                continue;
-            }
-
-            String uploadedPath = parts[3].trim();
-            if (uploadedPath.isBlank()) {
-                uploadedPath = null;
-            }
+        List<LeaderboardRecord> records = leaderboardFileStore.load(LEADERBOARD_FILE);
+        for (LeaderboardRecord record : records) {
+            String name = record.getName();
+            int score = record.getScore();
+            int presetIndex = record.getPresetIndex();
+            String uploadedPath = record.getUploadedPath();
 
             Texture texture = null;
             boolean ownsTexture = false;
@@ -950,22 +924,15 @@ public class Main extends ApplicationAdapter {
     }
 
     private void saveLeaderboardEntries() {
-        StringBuilder sb = new StringBuilder();
+        List<LeaderboardRecord> records = new ArrayList<>();
         for (LeaderboardEntry entry : leaderboardEntries) {
-            String safeName = sanitizeName(entry.name);
-            int safePreset = entry.presetIndex;
-            String safePath = entry.uploadedPath == null ? "" : entry.uploadedPath.replace('\t', ' ').replace('\n', ' ');
-            sb.append(safeName)
-                    .append('\t')
-                    .append(entry.score)
-                    .append('\t')
-                    .append(safePreset)
-                    .append('\t')
-                    .append(safePath)
-                    .append('\n');
+            records.add(new LeaderboardRecord(
+                    sanitizeName(entry.name),
+                    entry.score,
+                    entry.presetIndex,
+                    entry.uploadedPath));
         }
-
-        Gdx.files.local(LEADERBOARD_FILE).writeString(sb.toString(), false, "UTF-8");
+        leaderboardFileStore.save(LEADERBOARD_FILE, records);
     }
 
     private String sanitizeName(String input) {
