@@ -18,6 +18,10 @@ import com.sit.inf1009.project.app.controllers.GameFlowController;
 import com.sit.inf1009.project.app.controllers.GameplayController;
 import com.sit.inf1009.project.app.controllers.LeaderboardController;
 import com.sit.inf1009.project.app.controllers.SettingsController;
+import com.sit.inf1009.project.app.flow.AvatarFlowOrchestrator;
+import com.sit.inf1009.project.app.flow.GameplayLoopOrchestrator;
+import com.sit.inf1009.project.app.flow.LeaderboardFlowOrchestrator;
+import com.sit.inf1009.project.app.flow.StateFlowOrchestrator;
 import com.sit.inf1009.project.app.runtime.GameplayRuntime;
 import com.sit.inf1009.project.app.ui.AppUiRenderer;
 import com.sit.inf1009.project.engine.components.CollidableComponent;
@@ -30,66 +34,24 @@ import com.sit.inf1009.project.engine.entities.Entity;
 import com.sit.inf1009.project.game.domain.DifficultyConfig;
 import com.sit.inf1009.project.game.domain.FoodCategory;
 import com.sit.inf1009.project.game.domain.GameSession;
-import com.sit.inf1009.project.engine.managers.CollisionManager;
 import com.sit.inf1009.project.engine.managers.EntityManager;
 import com.sit.inf1009.project.engine.managers.IOEvent;
 import com.sit.inf1009.project.engine.managers.InputOutputManager;
 import com.sit.inf1009.project.engine.managers.MovementManager;
 import com.sit.inf1009.project.engine.managers.SceneManager;
+import com.sit.inf1009.project.engine.managers.CollisionManager;
 import com.sit.inf1009.project.game.persistence.LeaderboardFileStore;
-import com.sit.inf1009.project.game.persistence.LeaderboardRecord;
 import com.sit.inf1009.project.game.services.FoodSpawnCoordinator;
-import com.sit.inf1009.project.game.ui.LeaderboardNameEditor;
 import com.sit.inf1009.project.game.ui.screens.AvatarSetupFlowScreen;
 import com.sit.inf1009.project.game.ui.screens.StartMenuScene;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.EnumMap;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 public class Main extends ApplicationAdapter {
-
-    private static class LeaderboardEntry implements AppUiRenderer.LeaderboardRow {
-        final String name;
-        final int score;
-        final Texture avatarTexture;
-        final boolean ownsTexture;
-        final int presetIndex;
-        final String uploadedPath;
-
-        LeaderboardEntry(String name,
-                         int score,
-                         Texture avatarTexture,
-                         boolean ownsTexture,
-                         int presetIndex,
-                         String uploadedPath) {
-            this.name = name;
-            this.score = score;
-            this.avatarTexture = avatarTexture;
-            this.ownsTexture = ownsTexture;
-            this.presetIndex = presetIndex;
-            this.uploadedPath = uploadedPath;
-        }
-
-        @Override
-        public String getName() {
-            return name;
-        }
-
-        @Override
-        public int getScore() {
-            return score;
-        }
-
-        @Override
-        public Texture getAvatarTexture() {
-            return avatarTexture;
-        }
-    }
 
     private static final int PLAYER_ID = 1;
     private static final float BUTTON_W = 250f;
@@ -132,7 +94,7 @@ public class Main extends ApplicationAdapter {
     private boolean selectedAvatarIsUploaded;
     private int selectedPresetIndex;
 
-    private final List<LeaderboardEntry> leaderboardEntries = new ArrayList<>();
+    private final List<LeaderboardFlowOrchestrator.LeaderboardEntry> leaderboardEntries = new ArrayList<>();
     private String playerNameInput = "";
     private boolean leaderboardOpenedFromMenu;
     private String activeBackgroundTrack;
@@ -330,9 +292,7 @@ public class Main extends ApplicationAdapter {
     private void renderGameplay(float dt) {
         appUiRenderer.applyFullScreenProjection();
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
-            paused = !paused;
-        }
+        paused = GameplayLoopOrchestrator.togglePauseOnSpace(paused);
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
             submitPlate();
@@ -342,120 +302,83 @@ public class Main extends ApplicationAdapter {
             showStatus("Plate reset", 2f);
         }
 
-        if (isSceneKeyJustPressed(Input.Keys.NUM_3, Input.Keys.NUMPAD_3)) {
-            sceneManager.push(new Scene("Level 3", Color.TEAL));
-            gameplayRuntime.loadEntitiesForLevel(3, gameSession, difficultyConfig, selectedAvatarTexture);
-        }
-        if (isSceneKeyJustPressed(Input.Keys.NUM_2, Input.Keys.NUMPAD_2)) {
-            sceneManager.push(new Scene("Level 2", Color.MAROON));
-            gameplayRuntime.loadEntitiesForLevel(2, gameSession, difficultyConfig, selectedAvatarTexture);
-        }
-        if (isSceneKeyJustPressed(Input.Keys.NUM_1, Input.Keys.NUMPAD_1)) {
-            sceneManager.push(new Scene("Level 1", new Color(0.1f, 0.2f, 0.3f, 1f)));
-            gameplayRuntime.loadEntitiesForLevel(1, gameSession, difficultyConfig, selectedAvatarTexture);
+        int levelHotkey = GameplayLoopOrchestrator.detectLevelHotkey();
+        if (levelHotkey > 0) {
+            GameplayLoopOrchestrator.applyLevelHotkey(
+                    levelHotkey,
+                    sceneManager,
+                    gameplayRuntime,
+                    gameSession,
+                    difficultyConfig,
+                    selectedAvatarTexture);
         }
 
-        if (!paused) {
-            movementManager.updateAll(dt);
-            sceneManager.update(dt, entityManager.getEntities());
-            collisionManager.update();
-            entityManager.flushRemovals();
-            gameplayRuntime.ensureFoodDiversityAndCount(difficultyConfig);
-
-            float nextTimer = Math.max(0f, gameSession.getTimer() - dt);
-            gameSession.setTimer(nextTimer);
-            if (nextTimer <= 0f) {
-                paused = false;
-                gameState = GameState.LEADERBOARD_ENTRY;
-                leaderboardNameEditing = true;
-                showStatus("Time up! Enter name and submit to leaderboard", 4f);
-            }
+        boolean timerExpired = GameplayLoopOrchestrator.tickSimulation(
+                dt,
+                paused,
+                movementManager,
+                sceneManager,
+                entityManager,
+                collisionManager,
+                gameplayRuntime,
+                difficultyConfig,
+                gameSession);
+        if (timerExpired) {
+            paused = false;
+            gameState = GameState.LEADERBOARD_ENTRY;
+            leaderboardNameEditing = true;
+            showStatus("Time up! Enter name and submit to leaderboard", 4f);
         }
 
-        sceneManager.render(null);
-
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-        for (Entity e : entityManager.getEntities()) {
-            if (e.getTexture() != null) continue;
-            CollidableComponent c = e.getCollidable();
-            float r = (c != null) ? (float) c.getCollisionRadius() : 6f;
-            shapeRenderer.setColor(gameplayRuntime.getEntityRenderColor(e));
-            shapeRenderer.circle((float) e.getXPosition(), (float) e.getYPosition(), r);
-        }
-        shapeRenderer.end();
-
-        batch.begin();
-        for (Entity e : entityManager.getEntities()) {
-            Texture texture = e.getTexture();
-            if (texture == null) continue;
-
-            CollidableComponent c = e.getCollidable();
-            float size = (c != null) ? (float) c.getCollisionRadius() * 2f : 32f;
-            float x = (float) e.getXPosition() - (size / 2f);
-            float y = (float) e.getYPosition() - (size / 2f);
-            batch.draw(texture, x, y, size, size);
-        }
-
-        font.draw(batch, "Timer: " + (int) Math.ceil(gameSession.getTimer()), 20f, Gdx.graphics.getHeight() - 20f);
-        font.draw(batch, "Score: " + gameSession.getScore(), 20f, Gdx.graphics.getHeight() - 38f);
-        font.draw(batch, "Difficulty: " + difficultyPreset.getLabel(), 20f, Gdx.graphics.getHeight() - 56f);
-        font.draw(batch, "Plate V/P/C/O: " + gameSession.getVegetableCount() + "/"
-                + gameSession.getProteinCount() + "/" + gameSession.getCarbCount() + "/"
-                + gameSession.getOilCount(), 20f, Gdx.graphics.getHeight() - 74f);
-
-        appUiRenderer.drawStatus(20f, 24f);
-        batch.end();
+        GameplayLoopOrchestrator.renderWorldAndHud(
+                shapeRenderer,
+                batch,
+                font,
+                entityManager,
+                sceneManager,
+                gameplayRuntime,
+                gameSession,
+                difficultyPreset,
+                appUiRenderer);
 
         if (paused) {
-            float width = Gdx.graphics.getWidth();
-            float height = Gdx.graphics.getHeight();
-            float panelW = 350f;
-            float panelH = 340f;
-            float centerX = width / 2f;
-            Rectangle panel = new Rectangle(centerX - panelW / 2f, (height - panelH) / 2f, panelW, panelH);
-
-            Rectangle resumeBtn = new Rectangle(panel.x + 40f, panel.y + panelH - 120f, panelW - 80f, 44f);
-            Rectangle restartBtn = new Rectangle(panel.x + 40f, panel.y + panelH - 180f, panelW - 80f, 44f);
-            Rectangle rulesBtn = new Rectangle(panel.x + 40f, panel.y + panelH - 240f, panelW - 80f, 44f);
-            Rectangle quitBtn = new Rectangle(panel.x + 40f, panel.y + 40f, panelW - 80f, 44f);
-
-            if (appUiRenderer.consumeClick(resumeBtn)) {
-                playButtonClick();
-                paused = false;
+            GameplayLoopOrchestrator.PauseAction action =
+                    GameplayLoopOrchestrator.renderPauseMenu(appUiRenderer, batch, font);
+            switch (action) {
+                case RESUME -> {
+                    playButtonClick();
+                    paused = false;
+                }
+                case RESTART -> {
+                    playButtonClick();
+                    startNewGame();
+                }
+                case OPEN_RULES -> {
+                    playButtonClick();
+                    rulesOpenedFromPause = true;
+                    gameState = GameState.HOW_TO_PLAY;
+                }
+                case QUIT_TO_MENU -> {
+                    playButtonClick();
+                    gameState = GameState.FOOD_MENU;
+                    paused = false;
+                }
+                default -> {
+                }
             }
-            if (appUiRenderer.consumeClick(restartBtn)) {
-                playButtonClick();
-                startNewGame();
-            }
-            if (appUiRenderer.consumeClick(rulesBtn)) {
-                playButtonClick();
-                rulesOpenedFromPause = true;
-                gameState = GameState.HOW_TO_PLAY;
-            }
-            if (appUiRenderer.consumeClick(quitBtn)) {
-                playButtonClick();
-                gameState = GameState.FOOD_MENU;
-                paused = false;
-            }
-
-            appUiRenderer.drawScreenPanel(panel);
-            appUiRenderer.drawActionButton(resumeBtn, new Color(0.16f, 0.62f, 0.2f, 1f));  // Green
-            appUiRenderer.drawActionButton(restartBtn, new Color(0.1f, 0.45f, 0.78f, 1f)); // Blue
-            appUiRenderer.drawActionButton(rulesBtn, new Color(0.6f, 0.4f, 0.1f, 1f));     // Orange
-            appUiRenderer.drawActionButton(quitBtn, new Color(0.75f, 0.22f, 0.22f, 1f));   // Red
-
-            batch.begin();
-            font.draw(batch, "GAME PAUSED", panel.x + panelW / 2f - 45f, panel.y + panelH - 30f);
-            font.draw(batch, "Resume Game", resumeBtn.x + 20f, resumeBtn.y + 28f);
-            font.draw(batch, "Restart Game", restartBtn.x + 20f, restartBtn.y + 28f);
-            font.draw(batch, "How to Play", rulesBtn.x + 20f, rulesBtn.y + 28f);
-            font.draw(batch, "Quit to Main Menu", quitBtn.x + 20f, quitBtn.y + 28f);
-            batch.end();
         }
     }
 
     private void renderLeaderboardEntry() {
-        handleLeaderboardNameTyping();
+        LeaderboardFlowOrchestrator.NameEditState updated =
+                LeaderboardFlowOrchestrator.updateNameTyping(gameState, leaderboardNameEditing, playerNameInput);
+        playerNameInput = updated.playerNameInput();
+        leaderboardNameEditing = updated.leaderboardNameEditing();
+        if (updated.confirmed()) {
+            showStatus("Name confirmed", 2f);
+        } else if (updated.canceled()) {
+            showStatus("Name edit cancelled", 2f);
+        }
         AppUiRenderer.LeaderboardEntryAction action = appUiRenderer.renderLeaderboardEntry(
                 gameSession.getScore(),
                 selectedAvatarTexture,
@@ -539,96 +462,70 @@ public class Main extends ApplicationAdapter {
     }
 
     private void applyAvatarSelection(AvatarSetupFlowScreen.SelectionResult result) {
-        if (result == null) return;
+        AvatarFlowOrchestrator.AvatarSelectionState state = AvatarFlowOrchestrator.applyAvatarSelection(
+                result,
+                new AvatarFlowOrchestrator.AvatarSelectionState(
+                        uploadedAvatarTexture,
+                        uploadedAvatarPath,
+                        selectedAvatarTexture,
+                        selectedAvatarIsUploaded,
+                        selectedPresetIndex),
+                presetAvatars,
+                PLAYER_ID,
+                entityManager);
+        uploadedAvatarTexture = state.uploadedAvatarTexture();
+        uploadedAvatarPath = state.uploadedAvatarPath();
+        selectedAvatarTexture = state.selectedAvatarTexture();
+        selectedAvatarIsUploaded = state.selectedAvatarIsUploaded();
+        selectedPresetIndex = state.selectedPresetIndex();
 
-        if (result.isUploaded()) {
-            try {
-                Texture newTexture = new Texture(Gdx.files.absolute(result.getUploadedPath()));
-                if (uploadedAvatarTexture != null) {
-                    uploadedAvatarTexture.dispose();
-                }
-                uploadedAvatarTexture = newTexture;
-                uploadedAvatarPath = result.getUploadedPath();
-                selectedAvatarTexture = uploadedAvatarTexture;
-                selectedAvatarIsUploaded = true;
-                selectedPresetIndex = -1;
-            } catch (Exception e) {
-                showStatus("Image load failed", 3f);
-            }
-            return;
+        if (result != null && !result.isUploaded() && selectedPresetIndex >= 0 && selectedPresetIndex < presetAvatarLabels.length) {
+            showStatus("Preset selected: " + presetAvatarLabels[selectedPresetIndex], 2f);
         }
-
-        selectPresetAvatar(result.getPresetIndex());
     }
 
     private void selectPresetAvatar(int index) {
-        if (index < 0 || index >= presetAvatars.length) return;
-        selectedAvatarIsUploaded = false;
-        selectedAvatarTexture = presetAvatars[index];
-        selectedPresetIndex = index;
-        applyAvatarToPlayer();
-        showStatus("Preset selected: " + presetAvatarLabels[index], 2f);
+        AvatarFlowOrchestrator.AvatarSelectionState state = AvatarFlowOrchestrator.selectPresetAvatar(
+                index,
+                new AvatarFlowOrchestrator.AvatarSelectionState(
+                        uploadedAvatarTexture,
+                        uploadedAvatarPath,
+                        selectedAvatarTexture,
+                        selectedAvatarIsUploaded,
+                        selectedPresetIndex),
+                presetAvatars,
+                PLAYER_ID,
+                entityManager);
+        uploadedAvatarTexture = state.uploadedAvatarTexture();
+        uploadedAvatarPath = state.uploadedAvatarPath();
+        selectedAvatarTexture = state.selectedAvatarTexture();
+        selectedAvatarIsUploaded = state.selectedAvatarIsUploaded();
+        selectedPresetIndex = state.selectedPresetIndex();
+        if (selectedPresetIndex >= 0 && selectedPresetIndex < presetAvatarLabels.length) {
+            showStatus("Preset selected: " + presetAvatarLabels[selectedPresetIndex], 2f);
+        }
     }
 
     private void requestImageUpload(String sourceTag) {
         ioManager.handleEvent(new IOEvent(IOEvent.Type.PLAYER_IMAGE_UPLOAD_REQUEST, sourceTag));
     }
 
-    private void handleLeaderboardNameTyping() {
-        if (gameState != GameState.LEADERBOARD_ENTRY || !leaderboardNameEditing) {
-            return;
-        }
-
-        LeaderboardNameEditor.Result result = LeaderboardNameEditor.update(playerNameInput, 24);
-        playerNameInput = result.getUpdatedName();
-
-        if (result.isConfirmed()) {
-            leaderboardNameEditing = false;
-            showStatus("Name confirmed", 2f);
-            return;
-        }
-        if (result.isCanceled()) {
-            leaderboardNameEditing = false;
-            showStatus("Name edit cancelled", 2f);
-        }
-    }
-
     private void submitLeaderboardEntry() {
-        if (playerNameInput == null || playerNameInput.isBlank()) {
-            showStatus("Please enter your name", 3f);
-            return;
-        }
-        if (selectedAvatarTexture == null) {
-            showStatus("Please choose/upload an avatar image", 3f);
-            return;
-        }
-
-        Texture entryTexture = selectedAvatarTexture;
-        boolean ownsTexture = false;
-        int entryPresetIndex = selectedAvatarIsUploaded ? -1 : selectedPresetIndex;
-        String entryUploadedPath = selectedAvatarIsUploaded ? uploadedAvatarPath : null;
-        if (selectedAvatarIsUploaded) {
-            if (uploadedAvatarPath == null || uploadedAvatarPath.isBlank()) {
-                showStatus("Uploaded avatar path missing", 3f);
-                return;
-            }
-            try {
-                entryTexture = new Texture(Gdx.files.absolute(uploadedAvatarPath));
-                ownsTexture = true;
-            } catch (Exception e) {
-                showStatus("Failed to store uploaded avatar for leaderboard", 3f);
-                return;
-            }
-        }
-
-        leaderboardEntries.add(new LeaderboardEntry(
-                leaderboardController.sanitizeName(playerNameInput),
+        LeaderboardFlowOrchestrator.SubmitResult result = LeaderboardFlowOrchestrator.submitEntry(
+                leaderboardController,
+                leaderboardEntries,
+                playerNameInput,
                 gameSession.getScore(),
-                entryTexture,
-                ownsTexture,
-                entryPresetIndex,
-                entryUploadedPath));
-        leaderboardEntries.sort(Comparator.comparingInt((LeaderboardEntry e) -> e.score).reversed());
+                selectedAvatarTexture,
+                selectedAvatarIsUploaded,
+                selectedPresetIndex,
+                uploadedAvatarPath);
+        if (!result.submitted()) {
+            showStatus(result.failureReason(), 3f);
+            return;
+        }
+        leaderboardEntries.clear();
+        leaderboardEntries.addAll(result.entries());
         saveLeaderboardEntries();
         leaderboardOpenedFromMenu = false;
         gameState = GameState.LEADERBOARD_VIEW;
@@ -637,45 +534,11 @@ public class Main extends ApplicationAdapter {
 
     private void loadLeaderboardEntries() {
         leaderboardEntries.clear();
-        List<LeaderboardRecord> records = leaderboardController.load(LEADERBOARD_FILE);
-        for (LeaderboardRecord record : records) {
-            String name = record.getName();
-            int score = record.getScore();
-            int presetIndex = record.getPresetIndex();
-            String uploadedPath = record.getUploadedPath();
-
-            Texture texture = null;
-            boolean ownsTexture = false;
-            if (uploadedPath != null) {
-                try {
-                    texture = new Texture(Gdx.files.absolute(uploadedPath));
-                    ownsTexture = true;
-                } catch (Exception ignored) {
-                    texture = null;
-                    ownsTexture = false;
-                }
-            }
-
-            if (texture == null && presetIndex >= 0 && presetIndex < presetAvatars.length) {
-                texture = presetAvatars[presetIndex];
-            }
-
-            leaderboardEntries.add(new LeaderboardEntry(name, score, texture, ownsTexture, presetIndex, uploadedPath));
-        }
-
-        leaderboardEntries.sort(Comparator.comparingInt((LeaderboardEntry e) -> e.score).reversed());
+        leaderboardEntries.addAll(LeaderboardFlowOrchestrator.loadEntries(leaderboardController, LEADERBOARD_FILE, presetAvatars));
     }
 
     private void saveLeaderboardEntries() {
-        List<LeaderboardRecord> records = new ArrayList<>();
-        for (LeaderboardEntry entry : leaderboardEntries) {
-            records.add(new LeaderboardRecord(
-                    leaderboardController.sanitizeName(entry.name),
-                    entry.score,
-                    entry.presetIndex,
-                    entry.uploadedPath));
-        }
-        leaderboardController.save(LEADERBOARD_FILE, records);
+        LeaderboardFlowOrchestrator.saveEntries(leaderboardController, LEADERBOARD_FILE, leaderboardEntries);
     }
 
     private void wirePlayerImageSelectionEvents() {
@@ -684,19 +547,24 @@ public class Main extends ApplicationAdapter {
                 return;
             }
             String path = event.requirePayload(String.class);
-            try {
-                Texture newTexture = new Texture(Gdx.files.absolute(path));
-                if (uploadedAvatarTexture != null) {
-                    uploadedAvatarTexture.dispose();
-                }
-                uploadedAvatarTexture = newTexture;
-                uploadedAvatarPath = path;
-                selectedAvatarTexture = uploadedAvatarTexture;
-                selectedAvatarIsUploaded = true;
-                selectedPresetIndex = -1;
-                applyAvatarToPlayer();
+            AvatarFlowOrchestrator.AvatarSelectionState state = AvatarFlowOrchestrator.applyUploadedImagePath(
+                    path,
+                    new AvatarFlowOrchestrator.AvatarSelectionState(
+                            uploadedAvatarTexture,
+                            uploadedAvatarPath,
+                            selectedAvatarTexture,
+                            selectedAvatarIsUploaded,
+                            selectedPresetIndex),
+                    PLAYER_ID,
+                    entityManager);
+            if (state.selectedAvatarTexture() != selectedAvatarTexture || state.selectedAvatarIsUploaded()) {
+                uploadedAvatarTexture = state.uploadedAvatarTexture();
+                uploadedAvatarPath = state.uploadedAvatarPath();
+                selectedAvatarTexture = state.selectedAvatarTexture();
+                selectedAvatarIsUploaded = state.selectedAvatarIsUploaded();
+                selectedPresetIndex = state.selectedPresetIndex();
                 showStatus("Uploaded: " + new File(path).getName(), 3f);
-            } catch (Exception e) {
+            } else {
                 showStatus("Image load failed", 3f);
             }
         });
@@ -714,19 +582,12 @@ public class Main extends ApplicationAdapter {
     }
 
     private void applyAvatarToPlayer() {
-        Entity player = getPlayerEntity();
-        if (player != null) {
-            player.setTexture(selectedAvatarTexture);
-        }
-    }
-
-    private Entity getPlayerEntity() {
         for (Entity entity : entityManager.getEntities()) {
             if (entity.getID() == PLAYER_ID) {
-                return entity;
+                entity.setTexture(selectedAvatarTexture);
+                return;
             }
         }
-        return null;
     }
 
     private void showStatus(String message, float seconds) {
@@ -734,36 +595,11 @@ public class Main extends ApplicationAdapter {
     }
 
     private void playButtonClick() {
-        ioManager.sendOutput(new IOEvent(IOEvent.Type.SOUND_PLAY, "btn_click"));
+        StateFlowOrchestrator.playButtonClick(ioManager);
     }
 
     private void syncBackgroundMusicForState() {
-        String nextTrack = backgroundTrackForState(gameState);
-        if (Objects.equals(nextTrack, activeBackgroundTrack)) {
-            return;
-        }
-
-        if (activeBackgroundTrack != null) {
-            ioManager.sendOutput(new IOEvent(IOEvent.Type.SOUND_STOP, activeBackgroundTrack));
-        }
-        if (nextTrack != null) {
-            ioManager.sendOutput(new IOEvent(IOEvent.Type.SOUND_PLAY, nextTrack));
-        }
-        activeBackgroundTrack = nextTrack;
-    }
-
-    private String backgroundTrackForState(GameState state) {
-        if (state == null) {
-            return null;
-        }
-
-        return switch (state) {
-            case FOOD_MENU -> "foodmenumusic";
-            case DIFFICULTY_SETTINGS -> "settingmusic";
-            case HOW_TO_PLAY -> "howtoplaymusic";
-            case LEADERBOARD_ENTRY, LEADERBOARD_VIEW -> "leaderboardmusic";
-            default -> null;
-        };
+        activeBackgroundTrack = StateFlowOrchestrator.syncBackgroundMusicForState(ioManager, gameState, activeBackgroundTrack);
     }
 
     public void addFood(FoodCategory category, int scoreValue) {
@@ -789,10 +625,6 @@ public class Main extends ApplicationAdapter {
         gameplayController.resetPlate(gameSession);
     }
 
-    private boolean isSceneKeyJustPressed(int mainKey, int numpadKey) {
-        return Gdx.input.isKeyJustPressed(mainKey) || Gdx.input.isKeyJustPressed(numpadKey);
-    }
-
     @Override
     public void resize(int width, int height) {
         int safeWidth = Math.max(1, width);
@@ -815,9 +647,9 @@ public class Main extends ApplicationAdapter {
     @Override
     public void dispose() {
         ioManager.sendOutput(new IOEvent(IOEvent.Type.SOUND_STOP_ALL, null));
-        for (LeaderboardEntry entry : leaderboardEntries) {
-            if (entry.ownsTexture && entry.avatarTexture != null) {
-                entry.avatarTexture.dispose();
+        for (LeaderboardFlowOrchestrator.LeaderboardEntry entry : leaderboardEntries) {
+            if (entry.ownsTexture() && entry.getAvatarTexture() != null) {
+                entry.getAvatarTexture().dispose();
             }
         }
         if (uploadedAvatarTexture != null) {
