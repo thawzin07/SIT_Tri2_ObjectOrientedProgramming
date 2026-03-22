@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class InputOutputManagerTest {
@@ -103,6 +104,54 @@ class InputOutputManagerTest {
         assertTrue(input.detached);
         assertTrue(output.closed);
         assertEquals(0, listenerCount.get());
+    }
+
+    @Test
+    void removeTypedAndGlobalListenersStopsFutureCallbacks() {
+        InputOutputManager io = new InputOutputManager();
+        AtomicInteger typedCount = new AtomicInteger();
+        AtomicInteger globalCount = new AtomicInteger();
+
+        IOListener typed = e -> typedCount.incrementAndGet();
+        IOListener global = e -> globalCount.incrementAndGet();
+
+        io.addListener(IOEvent.Type.KEY_PRESSED, typed);
+        io.addGlobalListener(global);
+        io.removeListener(IOEvent.Type.KEY_PRESSED, typed);
+        io.removeGlobalListener(global);
+
+        io.handleEvent(new IOEvent(IOEvent.Type.KEY_PRESSED, 123));
+
+        assertEquals(0, typedCount.get());
+        assertEquals(0, globalCount.get());
+    }
+
+    @Test
+    void enableAllAndDisableAllPropagateToInputHandlers() {
+        InputOutputManager io = new InputOutputManager();
+        TestInputHandler inputA = new TestInputHandler();
+        TestInputHandler inputB = new TestInputHandler();
+        io.registerInputHandler(inputA);
+        io.registerInputHandler(inputB);
+
+        io.disableAll();
+        assertFalse(inputA.isEnabled());
+        assertFalse(inputB.isEnabled());
+
+        io.enableAll();
+        assertTrue(inputA.isEnabled());
+        assertTrue(inputB.isEnabled());
+    }
+
+    @Test
+    void loggerCountsInputAndOutputEvents() {
+        InputOutputManager io = new InputOutputManager();
+        io.handleEvent(new IOEvent(IOEvent.Type.KEY_PRESSED, 1));
+        io.handleEvent(new IOEvent(IOEvent.Type.KEY_PRESSED, 2));
+        io.sendOutput(new IOEvent(IOEvent.Type.SOUND_PLAY, "btn_click"));
+
+        assertEquals(2, io.getLoggedEventCount(IOEvent.Type.KEY_PRESSED));
+        assertEquals(1, io.getLoggedEventCount(IOEvent.Type.SOUND_PLAY));
     }
 
     private static class TestInputHandler implements InputHandler {
