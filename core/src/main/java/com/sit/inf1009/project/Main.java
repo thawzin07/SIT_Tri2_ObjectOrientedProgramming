@@ -1,6 +1,7 @@
 package com.sit.inf1009.project;
 
 import com.badlogic.gdx.ApplicationAdapter;
+
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Input.TextInputListener;
@@ -13,6 +14,8 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.ScreenUtils;
+import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.math.Vector3;
 import com.sit.inf1009.project.engine.components.AIMovement;
 import com.sit.inf1009.project.engine.components.CollidableComponent;
 import com.sit.inf1009.project.engine.components.FoodCollidableComponent;
@@ -28,6 +31,7 @@ import com.sit.inf1009.project.engine.core.handlers.PlayerImageInputService;
 import com.sit.inf1009.project.engine.core.handlers.SoundOutputHandler;
 import com.sit.inf1009.project.engine.entities.Entity;
 import com.sit.inf1009.project.engine.interfaces.FoodCategory;
+import com.sit.inf1009.project.engine.entities.FoodFactory;
 import com.sit.inf1009.project.engine.managers.CollisionManager;
 import com.sit.inf1009.project.engine.managers.EntityManager;
 import com.sit.inf1009.project.engine.managers.IOEvent;
@@ -55,9 +59,9 @@ public class Main extends ApplicationAdapter {
     }
 
     private enum DifficultyPreset {
-        EASY("Easy", 75f, 6, 95f, 8, 6f, 3f),
-        NORMAL("Normal", 60f, 8, 120f, 10, 5f, 5f),
-        HARD("Hard", 45f, 10, 150f, 12, 4f, 6f);
+        EASY("Easy", 75f, 6, 95f, 8, 6f, 3f, 10),
+        NORMAL("Normal", 60f, 8, 120f, 10, 5f, 5f, 15),
+        HARD("Hard", 45f, 10, 150f, 12, 4f, 6f, 20);
 
         final String label;
         final float startingTimer;
@@ -66,6 +70,7 @@ public class Main extends ApplicationAdapter {
         final int healthyScoreBonus;
         final float healthyTimerBonus;
         final float unhealthyTimerPenalty;
+        final int foodEntityCount;
 
         DifficultyPreset(String label,
                          float startingTimer,
@@ -73,7 +78,8 @@ public class Main extends ApplicationAdapter {
                          float npcSpeed,
                          int healthyScoreBonus,
                          float healthyTimerBonus,
-                         float unhealthyTimerPenalty) {
+                         float unhealthyTimerPenalty, 
+                         int foodEntityCount) {
             this.label = label;
             this.startingTimer = startingTimer;
             this.npcCount = npcCount;
@@ -81,6 +87,7 @@ public class Main extends ApplicationAdapter {
             this.healthyScoreBonus = healthyScoreBonus;
             this.healthyTimerBonus = healthyTimerBonus;
             this.unhealthyTimerPenalty = unhealthyTimerPenalty;
+            this.foodEntityCount = foodEntityCount;
         }
     }
 
@@ -117,6 +124,8 @@ public class Main extends ApplicationAdapter {
     private BitmapFont font;
     private StartMenuScene foodMenuScene;
     private AvatarSetupFlowScreen avatarSetupScreen;
+    private OrthographicCamera camera;
+    private Vector3 touchPos = new Vector3();
 
     private InputOutputManager ioManager;
     private EntityManager entityManager;
@@ -129,6 +138,7 @@ public class Main extends ApplicationAdapter {
     private GameState gameState;
     private DifficultyPreset difficultyPreset;
     private boolean paused;
+    private boolean rulesOpenedFromPause = false;
 
     private Texture[] presetAvatars;
     private String[] presetAvatarLabels;
@@ -154,18 +164,25 @@ public class Main extends ApplicationAdapter {
     private double currentGameplayScale = 1.0;
     private int lastViewportWidth;
     private int lastViewportHeight;
+    
+    private static final int foodId = 100;
+    private int nextFoodId = foodId;
+    private FoodFactory foodFactory;
 
     @Override
     public void create() {
         shapeRenderer = new ShapeRenderer();
         batch = new SpriteBatch();
         font = new BitmapFont();
+        
+        camera = new OrthographicCamera();
+        camera.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
         ioManager = new InputOutputManager();
         entityManager = new EntityManager();
         movementManager = new MovementManager();
         collisionManager = new CollisionManager(entityManager, ioManager);
-        sceneManager = new SceneManager(entityManager, movementManager);
+        sceneManager = new SceneManager();
         difficultyPreset = DifficultyPreset.NORMAL;
         gameSession = new GameSession(
                 difficultyPreset.startingTimer,
@@ -318,9 +335,9 @@ public class Main extends ApplicationAdapter {
         batch.begin();
         font.draw(batch, "GAME SETTINGS", panel.x + 40f, panel.y + panelH - 28f);
         font.draw(batch, "Difficulty: " + difficultyPreset.label, panel.x + 40f, panel.y + panelH - 58f);
-        font.draw(batch, "Easy   - 75s, slower, +6s / -3s submit", easyButton.x + 20f, easyButton.y + 30f);
-        font.draw(batch, "Normal - 60s, balanced, +5s / -5s submit", normalButton.x + 20f, normalButton.y + 30f);
-        font.draw(batch, "Hard   - 45s, faster, +4s / -6s submit", hardButton.x + 20f, hardButton.y + 30f);
+        font.draw(batch, "Easy   - 75s, slower, +6s / -3s submit, 10 Food items", easyButton.x + 20f, easyButton.y + 30f);
+        font.draw(batch, "Normal - 60s, balanced, +5s / -5s submit, 15 Food items", normalButton.x + 20f, normalButton.y + 30f);
+        font.draw(batch, "Hard   - 45s, faster, +4s / -6s submit, 20 Food items", hardButton.x + 20f, hardButton.y + 30f);
         font.draw(batch, "Back to Main Menu", backButton.x + 20f, backButton.y + 28f);
         drawStatus(batch, 20f, 24f);
         batch.end();
@@ -338,7 +355,12 @@ public class Main extends ApplicationAdapter {
         Rectangle backButton = new Rectangle(panel.x + 40f, panel.y + 30f, panelW - 80f, 44f);
 
         if (consumeClick(backButton)) {
-            gameState = GameState.FOOD_MENU;
+            if (rulesOpenedFromPause) {
+                gameState = GameState.PLAYING;
+                rulesOpenedFromPause = false; // Reset it
+            } else {
+                gameState = GameState.FOOD_MENU;
+            }
         }
 
         drawScreenPanel(panel);
@@ -352,11 +374,12 @@ public class Main extends ApplicationAdapter {
         font.draw(batch, "2. Select a preset avatar or upload your own image.", textX, topY - 70f);
         font.draw(batch, "3. Press Start Game to begin.", textX, topY - 98f);
         font.draw(batch, "4. Move with WASD and catch food items.", textX, topY - 126f);
-        font.draw(batch, "5. Build a healthy plate target: V2-4 P1-3 C1-2 O0-1", textX, topY - 154f);
+        font.draw(batch, "5. Build a healthy plate target: Veg: 2-4 Protein: 1-3 Carbs: 1-2 Oil: 0-1", textX, topY - 154f);
         font.draw(batch, "6. Press Enter to submit plate (this resets plate).", textX, topY - 182f);
         font.draw(batch, "7. Press R to clear plate, Space to pause/resume.", textX, topY - 210f);
         font.draw(batch, "8. Timer end -> submit name/avatar to leaderboard.", textX, topY - 238f);
-        font.draw(batch, "Back to Main Menu", backButton.x + 20f, backButton.y + 28f);
+        String backText = rulesOpenedFromPause ? "Back to Pause Menu" : "Back to Main Menu";
+        font.draw(batch, backText, backButton.x + 20f, backButton.y + 28f);
         drawStatus(batch, 20f, 24f);
         batch.end();
     }
@@ -391,9 +414,10 @@ public class Main extends ApplicationAdapter {
 
         if (!paused) {
             movementManager.updateAll(dt);
-            sceneManager.update(dt);
+            sceneManager.update(dt, entityManager.getEntities());
             collisionManager.update();
             entityManager.flushRemovals();
+            ensureFoodDiversityAndCount();
 
             float nextTimer = Math.max(0f, gameSession.getTimer() - dt);
             gameSession.setTimer(nextTimer);
@@ -429,23 +453,54 @@ public class Main extends ApplicationAdapter {
             batch.draw(texture, x, y, size, size);
         }
 
-        font.draw(batch, "Move with WASD", 20f, Gdx.graphics.getHeight() - 20f);
-        font.draw(batch, "Space: Pause/Resume", 20f, Gdx.graphics.getHeight() - 38f);
-        font.draw(batch, "Enter: Submit plate (resets plate) | R: Reset plate", 20f, Gdx.graphics.getHeight() - 56f);
-        font.draw(batch, "Timer: " + (int) Math.ceil(gameSession.getTimer()), 20f, Gdx.graphics.getHeight() - 74f);
-        font.draw(batch, "Score: " + gameSession.getScore(), 20f, Gdx.graphics.getHeight() - 92f);
-        font.draw(batch, "Difficulty: " + difficultyPreset.label, 20f, Gdx.graphics.getHeight() - 110f);
+        font.draw(batch, "Timer: " + (int) Math.ceil(gameSession.getTimer()), 20f, Gdx.graphics.getHeight() - 20f);
+        font.draw(batch, "Score: " + gameSession.getScore(), 20f, Gdx.graphics.getHeight() - 38f);
+        font.draw(batch, "Difficulty: " + difficultyPreset.label, 20f, Gdx.graphics.getHeight() - 56f);
         font.draw(batch, "Plate V/P/C/O: " + gameSession.getVegetableCount() + "/"
                 + gameSession.getProteinCount() + "/" + gameSession.getCarbCount() + "/"
-                + gameSession.getOilCount(), 20f, Gdx.graphics.getHeight() - 128f);
-        font.draw(batch, "Target ranges: V 2-4 | P 1-3 | C 1-2 | O 0-1", 20f, Gdx.graphics.getHeight() - 146f);
-        font.draw(batch, "Food legend: Green=Veg Red=Protein Yellow=Carb Purple=Oil", 20f, Gdx.graphics.getHeight() - 164f);
+                + gameSession.getOilCount(), 20f, Gdx.graphics.getHeight() - 74f);
 
-        if (paused) {
-            font.draw(batch, "PAUSED", Gdx.graphics.getWidth() / 2f - 24f, Gdx.graphics.getHeight() / 2f);
-        }
         drawStatus(batch, 20f, 24f);
         batch.end();
+
+        if (paused) {
+            float width = Gdx.graphics.getWidth();
+            float height = Gdx.graphics.getHeight();
+            float panelW = 350f;
+            float panelH = 340f;
+            float centerX = width / 2f;
+            Rectangle panel = new Rectangle(centerX - panelW / 2f, (height - panelH) / 2f, panelW, panelH);
+
+            Rectangle resumeBtn = new Rectangle(panel.x + 40f, panel.y + panelH - 120f, panelW - 80f, 44f);
+            Rectangle restartBtn = new Rectangle(panel.x + 40f, panel.y + panelH - 180f, panelW - 80f, 44f);
+            Rectangle rulesBtn = new Rectangle(panel.x + 40f, panel.y + panelH - 240f, panelW - 80f, 44f);
+            Rectangle quitBtn = new Rectangle(panel.x + 40f, panel.y + 40f, panelW - 80f, 44f);
+
+            if (consumeClick(resumeBtn)) paused = false;
+            if (consumeClick(restartBtn)) startNewGame();
+            if (consumeClick(rulesBtn)) {
+                rulesOpenedFromPause = true;
+                gameState = GameState.HOW_TO_PLAY;
+            }
+            if (consumeClick(quitBtn)) {
+                gameState = GameState.FOOD_MENU;
+                paused = false;
+            }
+
+            drawScreenPanel(panel);
+            drawActionButton(resumeBtn, new Color(0.16f, 0.62f, 0.2f, 1f));  // Green
+            drawActionButton(restartBtn, new Color(0.1f, 0.45f, 0.78f, 1f)); // Blue
+            drawActionButton(rulesBtn, new Color(0.6f, 0.4f, 0.1f, 1f));     // Orange
+            drawActionButton(quitBtn, new Color(0.75f, 0.22f, 0.22f, 1f));   // Red
+
+            batch.begin();
+            font.draw(batch, "GAME PAUSED", panel.x + panelW / 2f - 45f, panel.y + panelH - 30f);
+            font.draw(batch, "Resume Game", resumeBtn.x + 20f, resumeBtn.y + 28f);
+            font.draw(batch, "Restart Game", restartBtn.x + 20f, restartBtn.y + 28f);
+            font.draw(batch, "How to Play", rulesBtn.x + 20f, rulesBtn.y + 28f);
+            font.draw(batch, "Quit to Main Menu", quitBtn.x + 20f, quitBtn.y + 28f);
+            batch.end();
+        }
     }
 
     private void renderLeaderboardEntry() {
@@ -570,6 +625,8 @@ public class Main extends ApplicationAdapter {
         paused = false;
         leaderboardNameEditing = false;
         playerNameInput = "";
+        entityManager.clear();
+        movementManager.clear();
         sceneManager.push(new Scene("Level 1", new Color(0.1f, 0.2f, 0.3f, 1f)));
         loadEntitiesForLevel(1);
         gameState = GameState.PLAYING;
@@ -592,7 +649,8 @@ public class Main extends ApplicationAdapter {
         if (selectedAvatarTexture != null) {
             player.setTexture(selectedAvatarTexture);
         }
-        sceneManager.spawnEntity(player);
+        entityManager.addEntity(player);
+        movementManager.addMovable(player);
 
         java.util.Random rng = new java.util.Random();
         int npcCount = (levelNum == 1) ? difficultyPreset.npcCount : Math.max(4, difficultyPreset.npcCount / 2);
@@ -600,26 +658,19 @@ public class Main extends ApplicationAdapter {
         int maxX = Math.max(minX + 1, worldW - minX);
         int minY = (int) Math.max(60, foodRadius * 2);
         int maxY = Math.max(minY + 1, worldH - minY);
-        for (int i = 0; i < npcCount; i++) {
-            Entity npc = new Entity(100 + i);
-            npc.setXPosition(minX + rng.nextInt(maxX - minX));
-            npc.setYPosition(minY + rng.nextInt(maxY - minY));
-            int dirX = rng.nextBoolean() ? 1 : -1;
-            int dirY = rng.nextBoolean() ? 1 : -1;
-            FoodCategory foodCategory = randomFoodCategory(rng);
-            npc.setMovement(new AIMovement(npcSpeed, dirX, dirY));
-            npc.setCollidable(new FoodCollidableComponent(foodRadius, foodCategory, 1, gameSession));
-            Texture foodTexture = (foodCategoryTextures != null) ? foodCategoryTextures.get(foodCategory) : null;
-            if (foodTexture != null) {
-                npc.setTexture(foodTexture);
-            }
-            sceneManager.spawnEntity(npc);
-        }
-    }
+        this.foodFactory = new FoodFactory(
+                rng,
+                foodRadius,
+                npcSpeed,
+                minX, maxX,
+                minY, maxY,
+                gameSession,
+                foodCategoryTextures
+        );
 
-    private FoodCategory randomFoodCategory(java.util.Random rng) {
-        FoodCategory[] categories = FoodCategory.values();
-        return categories[rng.nextInt(categories.length)];
+        nextFoodId = foodId;
+        spawnStartingFoods(this.foodFactory, nextFoodId, difficultyPreset.foodEntityCount);
+        nextFoodId += difficultyPreset.foodEntityCount;
     }
 
     private Map<FoodCategory, Texture> createFoodCategoryTextures() {
@@ -998,8 +1049,12 @@ public class Main extends ApplicationAdapter {
     private void captureClick() {
         clickPending = Gdx.input.justTouched();
         if (clickPending) {
-            clickX = Gdx.input.getX();
-            clickY = Gdx.graphics.getHeight() - Gdx.input.getY();
+        	touchPos.set(Gdx.input.getX(), Gdx.input.getY(), 0);
+        	camera.unproject(touchPos);
+        	clickX = touchPos.x;
+            clickY = touchPos.y;
+//            clickX = Gdx.input.getX();
+//            clickY = Gdx.graphics.getHeight() - Gdx.input.getY();
         }
     }
 
@@ -1065,10 +1120,12 @@ public class Main extends ApplicationAdapter {
     }
 
     private void applyFullScreenProjection() {
-        int width = Gdx.graphics.getWidth();
-        int height = Gdx.graphics.getHeight();
-        Gdx.gl.glViewport(0, 0, width, height);
-        batch.getProjectionMatrix().setToOrtho2D(0, 0, width, height);
+        int logicalWidth = Gdx.graphics.getWidth();
+        int logicalHeight = Gdx.graphics.getHeight();
+        int pixelWidth = Gdx.graphics.getBackBufferWidth();
+        int pixelHeight = Gdx.graphics.getBackBufferHeight();
+        Gdx.gl.glViewport(0, 0, pixelWidth, pixelHeight);
+        batch.getProjectionMatrix().setToOrtho2D(0, 0, logicalWidth, logicalHeight);
         shapeRenderer.setProjectionMatrix(batch.getProjectionMatrix());
     }
 
@@ -1161,6 +1218,87 @@ public class Main extends ApplicationAdapter {
             if (movement != null) {
                 movement.setSpeed(movement.getSpeed() * scaleDelta);
             }
+        }
+    }
+    
+    private void spawnStartingFoods(FoodFactory factory, int startId, int totalFoods) {
+        int id = startId;
+
+        // 1) Guarantee at least one of each
+        FoodCategory[] required = new FoodCategory[] {
+                FoodCategory.VEGETABLE,
+                FoodCategory.PROTEIN,
+                FoodCategory.CARBOHYDRATE,
+                FoodCategory.OIL
+        };
+
+        for (FoodCategory c : required) {
+            Entity food = factory.createFoodEntity(id++, c);
+            if (food != null) {
+            	entityManager.addEntity(food);
+            	movementManager.addMovable(food);
+            }
+        }
+
+        // 2) Fill the rest up to exactly totalFoods with RANDOM
+        while (id < startId + totalFoods) {
+            Entity food = factory.createFoodEntity(id++, FoodCategory.RANDOM);
+            if (food != null) {
+            	entityManager.addEntity(food);
+            	movementManager.addMovable(food);
+            }
+        }
+    }
+
+    private void ensureFoodDiversityAndCount() {
+        if (foodFactory == null) return;
+
+        int veg = 0, protein = 0, carb = 0, oil = 0;
+        int total = 0;
+
+        for (Entity e : entityManager.getEntities()) {
+            if (!(e.getCollidable() instanceof FoodCollidableComponent fc)) continue;
+
+            total++;
+            FoodCategory cat = fc.getFoodCategory();
+            if (cat == null || cat == FoodCategory.RANDOM) continue; // safety
+
+            switch (cat) {
+                case VEGETABLE -> veg++;
+                case PROTEIN -> protein++;
+                case CARBOHYDRATE -> carb++;
+                case OIL -> oil++;
+                default -> {}
+            }
+        }
+
+        if (veg == 0) {
+            spawnGameEntity(foodFactory.createFoodEntity(nextFoodId++, FoodCategory.VEGETABLE));
+            total++;
+        }
+        if (protein == 0) {
+            spawnGameEntity(foodFactory.createFoodEntity(nextFoodId++, FoodCategory.PROTEIN));
+            total++;
+        }
+        if (carb == 0) {
+            spawnGameEntity(foodFactory.createFoodEntity(nextFoodId++, FoodCategory.CARBOHYDRATE));
+            total++;
+        }
+        if (oil == 0) {
+            spawnGameEntity(foodFactory.createFoodEntity(nextFoodId++, FoodCategory.OIL));
+            total++;
+        }
+
+        while (total < difficultyPreset.foodEntityCount) {
+            spawnGameEntity(foodFactory.createFoodEntity(nextFoodId++, FoodCategory.RANDOM));
+            total++;
+        }
+    }
+    
+    private void spawnGameEntity(Entity entity) {
+        if (entity != null) {
+            entityManager.addEntity(entity);
+            movementManager.addMovable(entity);
         }
     }
 
