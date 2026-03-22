@@ -44,7 +44,7 @@ public class CollidableComponent implements CollidableInterface {
         // 2) Sound rule (avoid double-playing by only letting one side play it)
         if (io != null && self != null && other != null) {
             if (self.getID() <= other.getID()) {
-                io.sendOutput(new IOEvent(IOEvent.Type.SOUND_PLAY, "Droplet"));
+                io.sendOutput(new IOEvent(IOEvent.Type.SOUND_PLAY, "collisionmusic"));
             }
         }
     }
