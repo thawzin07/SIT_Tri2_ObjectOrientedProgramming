@@ -1,7 +1,7 @@
 package com.sit.inf1009.project.game.interfaces;
 
 import com.sit.inf1009.project.engine.entities.Entity;
-import com.sit.inf1009.project.game.FoodCategory;
+import com.sit.inf1009.project.game.domain.FoodCategory;
 import com.sit.inf1009.project.engine.interfaces.CollidableInterface;
 import com.sit.inf1009.project.engine.managers.EntityManager;
 import com.sit.inf1009.project.engine.managers.InputOutputManager;

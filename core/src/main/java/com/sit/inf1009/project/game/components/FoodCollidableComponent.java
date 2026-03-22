@@ -1,11 +1,11 @@
 package com.sit.inf1009.project.game.components;
 
-import com.sit.inf1009.project.GameSession;
 import com.sit.inf1009.project.engine.components.CollidableComponent;
 import com.sit.inf1009.project.engine.entities.Entity;
 import com.sit.inf1009.project.engine.managers.EntityManager;
 import com.sit.inf1009.project.engine.managers.InputOutputManager;
-import com.sit.inf1009.project.game.FoodCategory;
+import com.sit.inf1009.project.game.domain.FoodCategory;
+import com.sit.inf1009.project.game.domain.GameSession;
 import com.sit.inf1009.project.game.interfaces.FoodCollidableInterface;
 import com.sit.inf1009.project.game.interfaces.PlayerCollidableInterface;
 

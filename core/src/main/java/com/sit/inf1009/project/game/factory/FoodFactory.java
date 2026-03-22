@@ -1,9 +1,10 @@
-package com.sit.inf1009.project.game;
+package com.sit.inf1009.project.game.factory;
 
 import com.badlogic.gdx.graphics.Texture;
-import com.sit.inf1009.project.GameSession;
 import com.sit.inf1009.project.engine.components.AIMovement;
 import com.sit.inf1009.project.game.components.FoodCollidableComponent;
+import com.sit.inf1009.project.game.domain.FoodCategory;
+import com.sit.inf1009.project.game.domain.GameSession;
 import com.sit.inf1009.project.engine.entities.Entity;
 
 import java.util.Map;

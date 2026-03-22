@@ -1,4 +1,4 @@
-package com.sit.inf1009.project;
+package com.sit.inf1009.project.game.persistence;
 
 public class LeaderboardRecord {
     private final String name;

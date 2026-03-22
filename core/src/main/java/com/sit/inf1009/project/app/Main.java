@@ -1,4 +1,4 @@
-package com.sit.inf1009.project;
+package com.sit.inf1009.project.app;
 
 import com.badlogic.gdx.ApplicationAdapter;
 
@@ -14,6 +14,10 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.math.Vector3;
+import com.sit.inf1009.project.app.controllers.GameFlowController;
+import com.sit.inf1009.project.app.controllers.GameplayController;
+import com.sit.inf1009.project.app.controllers.LeaderboardController;
+import com.sit.inf1009.project.app.controllers.SettingsController;
 import com.sit.inf1009.project.engine.components.AIMovement;
 import com.sit.inf1009.project.engine.components.CollidableComponent;
 import com.sit.inf1009.project.engine.components.MovementComponent;
@@ -26,16 +30,23 @@ import com.sit.inf1009.project.engine.core.handlers.LibGdxMouseInputHandler;
 import com.sit.inf1009.project.engine.core.handlers.PlayerImageInputService;
 import com.sit.inf1009.project.engine.core.handlers.SoundOutputHandler;
 import com.sit.inf1009.project.engine.entities.Entity;
-import com.sit.inf1009.project.game.FoodCategory;
-import com.sit.inf1009.project.game.FoodFactory;
 import com.sit.inf1009.project.game.components.FoodCollidableComponent;
 import com.sit.inf1009.project.game.components.PlayerCollidableComponent;
+import com.sit.inf1009.project.game.domain.DifficultyConfig;
+import com.sit.inf1009.project.game.domain.FoodCategory;
+import com.sit.inf1009.project.game.domain.GameSession;
+import com.sit.inf1009.project.game.factory.FoodFactory;
 import com.sit.inf1009.project.engine.managers.CollisionManager;
 import com.sit.inf1009.project.engine.managers.EntityManager;
 import com.sit.inf1009.project.engine.managers.IOEvent;
 import com.sit.inf1009.project.engine.managers.InputOutputManager;
 import com.sit.inf1009.project.engine.managers.MovementManager;
 import com.sit.inf1009.project.engine.managers.SceneManager;
+import com.sit.inf1009.project.game.persistence.LeaderboardFileStore;
+import com.sit.inf1009.project.game.persistence.LeaderboardRecord;
+import com.sit.inf1009.project.game.services.FoodSpawnCoordinator;
+import com.sit.inf1009.project.game.ui.LeaderboardNameEditor;
+import com.sit.inf1009.project.game.ui.UiPanelRenderer;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -45,49 +56,6 @@ import java.util.List;
 import java.util.Map;
 
 public class Main extends ApplicationAdapter {
-
-    private enum GameState {
-        FOOD_MENU,
-        DIFFICULTY_SETTINGS,
-        HOW_TO_PLAY,
-        AVATAR_SETUP,
-        PLAYING,
-        LEADERBOARD_ENTRY,
-        LEADERBOARD_VIEW
-    }
-
-    private enum DifficultyPreset {
-        EASY("Easy", 75f, 6, 95f, 8, 6f, 3f, 10),
-        NORMAL("Normal", 60f, 8, 120f, 10, 5f, 5f, 15),
-        HARD("Hard", 45f, 10, 150f, 12, 4f, 6f, 20);
-
-        final String label;
-        final float startingTimer;
-        final int npcCount;
-        final float npcSpeed;
-        final int healthyScoreBonus;
-        final float healthyTimerBonus;
-        final float unhealthyTimerPenalty;
-        final int foodEntityCount;
-
-        DifficultyPreset(String label,
-                         float startingTimer,
-                         int npcCount,
-                         float npcSpeed,
-                         int healthyScoreBonus,
-                         float healthyTimerBonus,
-                         float unhealthyTimerPenalty, 
-                         int foodEntityCount) {
-            this.label = label;
-            this.startingTimer = startingTimer;
-            this.npcCount = npcCount;
-            this.npcSpeed = npcSpeed;
-            this.healthyScoreBonus = healthyScoreBonus;
-            this.healthyTimerBonus = healthyTimerBonus;
-            this.unhealthyTimerPenalty = unhealthyTimerPenalty;
-            this.foodEntityCount = foodEntityCount;
-        }
-    }
 
     private static class LeaderboardEntry {
         final String name;
@@ -116,7 +84,10 @@ public class Main extends ApplicationAdapter {
     private static final float BUTTON_W = 250f;
     private static final float BUTTON_H = 38f;
     private static final String LEADERBOARD_FILE = "leaderboard.txt";
-    private final LeaderboardFileStore leaderboardFileStore = new LeaderboardFileStore();
+    private final GameFlowController flowController = new GameFlowController(GameState.FOOD_MENU);
+    private final SettingsController settingsController = new SettingsController(DifficultyPreset.NORMAL);
+    private final GameplayController gameplayController = new GameplayController();
+    private final LeaderboardController leaderboardController = new LeaderboardController(new LeaderboardFileStore());
 
     private ShapeRenderer shapeRenderer;
     private SpriteBatch batch;
@@ -151,8 +122,6 @@ public class Main extends ApplicationAdapter {
 
     private final List<LeaderboardEntry> leaderboardEntries = new ArrayList<>();
     private String playerNameInput = "";
-    private String statusMessage = "";
-    private float statusSecondsLeft = 0f;
     private boolean leaderboardOpenedFromMenu;
 
     private boolean clickPending;
@@ -185,13 +154,10 @@ public class Main extends ApplicationAdapter {
         collisionManager = new CollisionManager(entityManager, ioManager);
         sceneManager = new SceneManager();
         foodSpawnCoordinator = new FoodSpawnCoordinator(entityManager, movementManager);
-        difficultyPreset = DifficultyPreset.NORMAL;
-        difficultyConfig = toDifficultyConfig(difficultyPreset);
-        gameSession = new GameSession(
-                difficultyConfig.getStartingTimer(),
-                difficultyConfig.getHealthyScoreBonus(),
-                difficultyConfig.getHealthyTimerBonus(),
-                difficultyConfig.getUnhealthyTimerPenalty());
+        difficultyPreset = settingsController.getPreset();
+        difficultyConfig = settingsController.getConfig();
+        gameState = flowController.getState();
+        gameSession = gameplayController.createSession(settingsController.getConfig());
         paused = false;
 
         ioManager.registerInputHandler(new KeyboardInputHandler(ioManager));
@@ -265,9 +231,7 @@ public class Main extends ApplicationAdapter {
         ScreenUtils.clear(0.08f, 0.08f, 0.1f, 1f);
 
         float dt = Gdx.graphics.getDeltaTime();
-        if (statusSecondsLeft > 0f) {
-            statusSecondsLeft -= dt;
-        }
+        flowController.tickStatus(dt);
 
         captureClick();
 
@@ -315,17 +279,20 @@ public class Main extends ApplicationAdapter {
 
         if (consumeClick(easyButton)) {
             difficultyPreset = DifficultyPreset.EASY;
-            difficultyConfig = toDifficultyConfig(difficultyPreset);
+            settingsController.setPreset(difficultyPreset);
+            difficultyConfig = settingsController.getConfig();
             showStatus("Difficulty set: Easy", 2f);
         }
         if (consumeClick(normalButton)) {
             difficultyPreset = DifficultyPreset.NORMAL;
-            difficultyConfig = toDifficultyConfig(difficultyPreset);
+            settingsController.setPreset(difficultyPreset);
+            difficultyConfig = settingsController.getConfig();
             showStatus("Difficulty set: Normal", 2f);
         }
         if (consumeClick(hardButton)) {
             difficultyPreset = DifficultyPreset.HARD;
-            difficultyConfig = toDifficultyConfig(difficultyPreset);
+            settingsController.setPreset(difficultyPreset);
+            difficultyConfig = settingsController.getConfig();
             showStatus("Difficulty set: Hard", 2f);
         }
         if (consumeClick(backButton)) {
@@ -340,7 +307,7 @@ public class Main extends ApplicationAdapter {
 
         batch.begin();
         font.draw(batch, "GAME SETTINGS", panel.x + 40f, panel.y + panelH - 28f);
-        font.draw(batch, "Difficulty: " + difficultyPreset.label, panel.x + 40f, panel.y + panelH - 58f);
+        font.draw(batch, "Difficulty: " + difficultyPreset.getLabel(), panel.x + 40f, panel.y + panelH - 58f);
         font.draw(batch, "Easy   - 75s, slower, +6s / -3s submit, 10 Food items", easyButton.x + 20f, easyButton.y + 30f);
         font.draw(batch, "Normal - 60s, balanced, +5s / -5s submit, 15 Food items", normalButton.x + 20f, normalButton.y + 30f);
         font.draw(batch, "Hard   - 45s, faster, +4s / -6s submit, 20 Food items", hardButton.x + 20f, hardButton.y + 30f);
@@ -464,7 +431,7 @@ public class Main extends ApplicationAdapter {
 
         font.draw(batch, "Timer: " + (int) Math.ceil(gameSession.getTimer()), 20f, Gdx.graphics.getHeight() - 20f);
         font.draw(batch, "Score: " + gameSession.getScore(), 20f, Gdx.graphics.getHeight() - 38f);
-        font.draw(batch, "Difficulty: " + difficultyPreset.label, 20f, Gdx.graphics.getHeight() - 56f);
+        font.draw(batch, "Difficulty: " + difficultyPreset.getLabel(), 20f, Gdx.graphics.getHeight() - 56f);
         font.draw(batch, "Plate V/P/C/O: " + gameSession.getVegetableCount() + "/"
                 + gameSession.getProteinCount() + "/" + gameSession.getCarbCount() + "/"
                 + gameSession.getOilCount(), 20f, Gdx.graphics.getHeight() - 74f);
@@ -639,7 +606,7 @@ public class Main extends ApplicationAdapter {
         sceneManager.push(new Scene("Level 1", new Color(0.1f, 0.2f, 0.3f, 1f)));
         loadEntitiesForLevel(1);
         gameState = GameState.PLAYING;
-        showStatus("Game started (" + difficultyPreset.label + ")", 2f);
+        showStatus("Game started (" + difficultyPreset.getLabel() + ")", 2f);
     }
 
     private void loadEntitiesForLevel(int levelNum) {
@@ -797,7 +764,7 @@ public class Main extends ApplicationAdapter {
         }
 
         leaderboardEntries.add(new LeaderboardEntry(
-                sanitizeName(playerNameInput),
+                leaderboardController.sanitizeName(playerNameInput),
                 gameSession.getScore(),
                 entryTexture,
                 ownsTexture,
@@ -812,7 +779,7 @@ public class Main extends ApplicationAdapter {
 
     private void loadLeaderboardEntries() {
         leaderboardEntries.clear();
-        List<LeaderboardRecord> records = leaderboardFileStore.load(LEADERBOARD_FILE);
+        List<LeaderboardRecord> records = leaderboardController.load(LEADERBOARD_FILE);
         for (LeaderboardRecord record : records) {
             String name = record.getName();
             int score = record.getScore();
@@ -845,20 +812,12 @@ public class Main extends ApplicationAdapter {
         List<LeaderboardRecord> records = new ArrayList<>();
         for (LeaderboardEntry entry : leaderboardEntries) {
             records.add(new LeaderboardRecord(
-                    sanitizeName(entry.name),
+                    leaderboardController.sanitizeName(entry.name),
                     entry.score,
                     entry.presetIndex,
                     entry.uploadedPath));
         }
-        leaderboardFileStore.save(LEADERBOARD_FILE, records);
-    }
-
-    private String sanitizeName(String input) {
-        if (input == null) {
-            return "Player";
-        }
-        String safe = input.replace('\t', ' ').replace('\n', ' ').trim();
-        return safe.isBlank() ? "Player" : safe;
+        leaderboardController.save(LEADERBOARD_FILE, records);
     }
 
     private void wirePlayerImageSelectionEvents() {
@@ -978,37 +937,35 @@ public class Main extends ApplicationAdapter {
     }
 
     private void drawStatus(SpriteBatch targetBatch, float x, float y) {
-        if (statusSecondsLeft <= 0f || statusMessage == null || statusMessage.isBlank()) return;
-        font.draw(targetBatch, statusMessage, x, y);
+        if (!flowController.hasStatus()) return;
+        font.draw(targetBatch, flowController.getStatusMessage(), x, y);
     }
 
     private void showStatus(String message, float seconds) {
-        statusMessage = message;
-        statusSecondsLeft = seconds;
+        flowController.showStatus(message, seconds);
     }
 
     public void addFood(FoodCategory category, int scoreValue) {
-        gameSession.addFood(category, scoreValue);
+        gameplayController.addFood(gameSession, category, scoreValue);
     }
 
     public boolean isPlateHealthy() {
-        return gameSession.isPlateHealthy();
+        return gameplayController.isPlateHealthy(gameSession);
     }
 
     public void submitPlate() {
-        boolean healthy = gameSession.isPlateHealthy();
-        gameSession.submitPlate();
-        if (healthy) {
-            showStatus("Healthy plate! +" + gameSession.getHealthyScoreBonus() + " score, +"
-                    + (int) gameSession.getHealthyTimerBonus() + "s. Plate reset.", 2.5f);
+        GameplayController.PlateSubmitResult result = gameplayController.submitPlate(gameSession);
+        if (result.isHealthy()) {
+            showStatus("Healthy plate! +" + result.getHealthyScoreBonus() + " score, +"
+                    + (int) result.getTimerDeltaSeconds() + "s. Plate reset.", 2.5f);
         } else {
-            showStatus("Unhealthy plate. -" + (int) gameSession.getUnhealthyTimerPenalty()
+            showStatus("Unhealthy plate. -" + (int) Math.abs(result.getTimerDeltaSeconds())
                     + "s. Plate reset.", 2.5f);
         }
     }
 
     public void resetPlate() {
-        gameSession.resetPlate();
+        gameplayController.resetPlate(gameSession);
     }
 
     private boolean isSceneKeyJustPressed(int mainKey, int numpadKey) {
@@ -1067,17 +1024,6 @@ public class Main extends ApplicationAdapter {
                 movement.setSpeed(movement.getSpeed() * scaleDelta);
             }
         }
-    }
-    
-    private DifficultyConfig toDifficultyConfig(DifficultyPreset preset) {
-        return new DifficultyConfig(
-                preset.startingTimer,
-                preset.npcCount,
-                preset.npcSpeed,
-                preset.healthyScoreBonus,
-                preset.healthyTimerBonus,
-                preset.unhealthyTimerPenalty,
-                preset.foodEntityCount);
     }
     
     @Override

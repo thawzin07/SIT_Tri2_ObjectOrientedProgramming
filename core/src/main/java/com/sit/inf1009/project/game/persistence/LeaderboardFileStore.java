@@ -1,4 +1,4 @@
-package com.sit.inf1009.project;
+package com.sit.inf1009.project.game.persistence;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
