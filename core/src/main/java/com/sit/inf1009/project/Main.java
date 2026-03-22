@@ -4,7 +4,6 @@ import com.badlogic.gdx.ApplicationAdapter;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.Input.TextInputListener;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
@@ -743,25 +742,6 @@ public class Main extends ApplicationAdapter {
         ioManager.handleEvent(new IOEvent(IOEvent.Type.PLAYER_IMAGE_UPLOAD_REQUEST, sourceTag));
     }
 
-    private void requestNameInput() {
-        Gdx.input.getTextInput(new TextInputListener() {
-            @Override
-            public void input(String text) {
-                if (text == null) return;
-                playerNameInput = text.trim();
-                if (playerNameInput.length() > 24) {
-                    playerNameInput = playerNameInput.substring(0, 24);
-                }
-                showStatus(playerNameInput.isBlank() ? "Name cleared" : "Name set: " + playerNameInput, 2f);
-            }
-
-            @Override
-            public void canceled() {
-                showStatus("Name input cancelled", 2f);
-            }
-        }, "Enter Name", playerNameInput, "Player name");
-    }
-
     private void handleLeaderboardNameTyping() {
         if (gameState != GameState.LEADERBOARD_ENTRY || !leaderboardNameEditing) {
             return;
@@ -1035,12 +1015,6 @@ public class Main extends ApplicationAdapter {
         if (!bounds.contains(clickX, clickY)) return false;
         clickPending = false;
         return true;
-    }
-
-    private void drawButtonRect(Rectangle bounds) {
-        shapeRenderer.setColor(0f, 0f, 0f, 0.45f);
-        shapeRenderer.rect(bounds.x, bounds.y, bounds.width, bounds.height);
-        shapeRenderer.setColor(Color.WHITE);
     }
 
     private void drawScreenPanel(Rectangle panel) {
