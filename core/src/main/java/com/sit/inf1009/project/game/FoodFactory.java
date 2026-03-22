@@ -1,10 +1,10 @@
-package com.sit.inf1009.project.engine.entities;
+package com.sit.inf1009.project.game;
 
 import com.badlogic.gdx.graphics.Texture;
 import com.sit.inf1009.project.GameSession;
 import com.sit.inf1009.project.engine.components.AIMovement;
-import com.sit.inf1009.project.engine.components.FoodCollidableComponent;
-import com.sit.inf1009.project.engine.interfaces.FoodCategory;
+import com.sit.inf1009.project.game.components.FoodCollidableComponent;
+import com.sit.inf1009.project.engine.entities.Entity;
 
 import java.util.Map;
 import java.util.Random;

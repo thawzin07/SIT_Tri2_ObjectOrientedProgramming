@@ -1,11 +1,13 @@
-package com.sit.inf1009.project.engine.components;
+package com.sit.inf1009.project.game.components;
 
 import com.sit.inf1009.project.GameSession;
+import com.sit.inf1009.project.engine.components.CollidableComponent;
 import com.sit.inf1009.project.engine.entities.Entity;
 import com.sit.inf1009.project.engine.managers.EntityManager;
 import com.sit.inf1009.project.engine.managers.InputOutputManager;
-import com.sit.inf1009.project.engine.interfaces.FoodCategory;
-import com.sit.inf1009.project.engine.interfaces.FoodCollidableInterface;
+import com.sit.inf1009.project.game.FoodCategory;
+import com.sit.inf1009.project.game.interfaces.FoodCollidableInterface;
+import com.sit.inf1009.project.game.interfaces.PlayerCollidableInterface;
 
 public class FoodCollidableComponent extends CollidableComponent
         implements FoodCollidableInterface {
@@ -33,7 +35,7 @@ public class FoodCollidableComponent extends CollidableComponent
                             InputOutputManager ioManager) {
         if (collected) return;
 
-        if (other.getCollidable() instanceof com.sit.inf1009.project.engine.interfaces.PlayerCollidableInterface) {
+        if (other.getCollidable() instanceof PlayerCollidableInterface) {
             onPlayerCollision(self, other, entityManager, ioManager);
         } else {
             onObjectCollision(self, other);

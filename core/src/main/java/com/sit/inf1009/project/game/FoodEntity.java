@@ -1,7 +1,7 @@
-package com.sit.inf1009.project.engine.entities;
+package com.sit.inf1009.project.game;
 
 import com.badlogic.gdx.graphics.Color;
-import com.sit.inf1009.project.engine.interfaces.FoodCategory;
+import com.sit.inf1009.project.engine.entities.Entity;
 
 public final class FoodEntity extends Entity {
 	private final FoodCategory type;

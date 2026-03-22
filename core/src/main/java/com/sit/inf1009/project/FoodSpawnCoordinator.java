@@ -1,9 +1,9 @@
 package com.sit.inf1009.project;
 
-import com.sit.inf1009.project.engine.components.FoodCollidableComponent;
 import com.sit.inf1009.project.engine.entities.Entity;
-import com.sit.inf1009.project.engine.entities.FoodFactory;
-import com.sit.inf1009.project.engine.interfaces.FoodCategory;
+import com.sit.inf1009.project.game.FoodCategory;
+import com.sit.inf1009.project.game.FoodFactory;
+import com.sit.inf1009.project.game.components.FoodCollidableComponent;
 import com.sit.inf1009.project.engine.managers.EntityManager;
 import com.sit.inf1009.project.engine.managers.MovementManager;
 

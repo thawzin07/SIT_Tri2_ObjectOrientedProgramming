@@ -1,6 +1,6 @@
 package com.sit.inf1009.project;
 
-import com.sit.inf1009.project.engine.interfaces.FoodCategory;
+import com.sit.inf1009.project.game.FoodCategory;
 
 public class GameSession {
 

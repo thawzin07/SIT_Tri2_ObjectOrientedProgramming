@@ -1,4 +1,4 @@
-package com.sit.inf1009.project.engine.interfaces;
+package com.sit.inf1009.project.game;
 
 public enum FoodCategory {
     VEGETABLE,
