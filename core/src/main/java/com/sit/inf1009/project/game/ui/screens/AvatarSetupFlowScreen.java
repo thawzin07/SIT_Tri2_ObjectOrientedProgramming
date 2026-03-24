@@ -122,7 +122,6 @@ public class AvatarSetupFlowScreen implements IOListener {
             Rectangle rect = avatarRects[i];
             Texture texture = presetAvatars[i];
             batch.draw(texture, rect.x, rect.y, rect.width, rect.height);
-            drawCentered(batch, presetLabels[i], rect.x + rect.width / 2f, rect.y - 8f);
         }
 
         if (uploadedPreviewTexture != null) {
@@ -198,7 +197,7 @@ public class AvatarSetupFlowScreen implements IOListener {
                 selectedPresetIndex = i;
                 selectedUploadedPath = null;
                 disposeUploadedPreview();
-                statusText = "Preset selected: " + presetLabels[i];
+                statusText = "Preset avatar selected";
                 return;
             }
         }

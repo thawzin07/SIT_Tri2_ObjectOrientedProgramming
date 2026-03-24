@@ -3,6 +3,7 @@ package com.sit.inf1009.project.app;
 import com.badlogic.gdx.ApplicationAdapter;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
@@ -132,11 +133,11 @@ public class Main extends ApplicationAdapter {
         playerImageInputService = new PlayerImageInputService(ioManager);
         ioManager.registerOutputHandler(new SoundOutputHandler());
 
-        presetAvatarLabels = new String[] { "Droplet", "Bucket", "LibGDX" };
+        presetAvatarLabels = new String[] { "", "", "" };
         presetAvatars = new Texture[] {
-                new Texture(Gdx.files.internal("droplet.png")),
-                new Texture(Gdx.files.internal("bucket.png")),
-                new Texture(Gdx.files.internal("libgdx.png"))
+                loadTextureWithFallback("avators/defaultavator1.png", "droplet.png"),
+                loadTextureWithFallback("avators/defaultavator2.png", "bucket.png"),
+                loadTextureWithFallback("avators/defaultavator3.png", "libgdx.png")
         };
         foodCategoryTextures = createFoodCategoryTextures();
         gameplayRuntime = new GameplayRuntime(
@@ -428,6 +429,14 @@ public class Main extends ApplicationAdapter {
         return textures;
     }
 
+    private Texture loadTextureWithFallback(String preferredPath, String fallbackPath) {
+        FileHandle preferred = Gdx.files.internal(preferredPath);
+        if (preferred.exists()) {
+            return new Texture(preferred);
+        }
+        return new Texture(Gdx.files.internal(fallbackPath));
+    }
+
     private void applyAvatarSelection(AvatarSetupFlowScreen.SelectionResult result) {
         AvatarFlowOrchestrator.AvatarSelectionState state = AvatarFlowOrchestrator.applyAvatarSelection(
                 result,
@@ -446,8 +455,8 @@ public class Main extends ApplicationAdapter {
         selectedAvatarIsUploaded = state.selectedAvatarIsUploaded();
         selectedPresetIndex = state.selectedPresetIndex();
 
-        if (result != null && !result.isUploaded() && selectedPresetIndex >= 0 && selectedPresetIndex < presetAvatarLabels.length) {
-            showStatus("Preset selected: " + presetAvatarLabels[selectedPresetIndex], 2f);
+        if (result != null && !result.isUploaded() && selectedPresetIndex >= 0 && selectedPresetIndex < presetAvatars.length) {
+            showStatus("Preset avatar selected", 2f);
         }
     }
 
@@ -468,8 +477,8 @@ public class Main extends ApplicationAdapter {
         selectedAvatarTexture = state.selectedAvatarTexture();
         selectedAvatarIsUploaded = state.selectedAvatarIsUploaded();
         selectedPresetIndex = state.selectedPresetIndex();
-        if (selectedPresetIndex >= 0 && selectedPresetIndex < presetAvatarLabels.length) {
-            showStatus("Preset selected: " + presetAvatarLabels[selectedPresetIndex], 2f);
+        if (selectedPresetIndex >= 0 && selectedPresetIndex < presetAvatars.length) {
+            showStatus("Preset avatar selected", 2f);
         }
     }
 
