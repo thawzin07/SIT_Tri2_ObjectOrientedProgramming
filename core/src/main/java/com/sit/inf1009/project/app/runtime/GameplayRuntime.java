@@ -85,8 +85,8 @@ public final class GameplayRuntime {
                                      Texture selectedAvatarTexture) {
         this.activeGameSession = gameSession;
         this.activeDifficultyConfig = difficultyConfig;
-        double playerRadius = 15d * currentGameplayScale;
-        double foodRadius = 8d * currentGameplayScale;
+        double playerRadius = 18d * currentGameplayScale;
+        double foodRadius = 10.5d * currentGameplayScale;
         double playerSpeed = 250d * currentGameplayScale;
         double npcSpeed = difficultyConfig.getNpcSpeed() * currentGameplayScale;
         int worldW = Math.max(1, Gdx.graphics.getWidth());
@@ -251,7 +251,7 @@ public final class GameplayRuntime {
             return;
         }
 
-        double foodRadius = 8d * currentGameplayScale;
+        double foodRadius = 10.5d * currentGameplayScale;
         double npcSpeed = activeDifficultyConfig.getNpcSpeed() * currentGameplayScale;
         int worldW = Math.max(1, Gdx.graphics.getWidth());
         int worldH = Math.max(1, Gdx.graphics.getHeight());
