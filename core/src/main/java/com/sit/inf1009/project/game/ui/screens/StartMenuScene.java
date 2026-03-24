@@ -1,6 +1,7 @@
 package com.sit.inf1009.project.game.ui.screens;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
@@ -52,7 +53,12 @@ public class StartMenuScene extends Scene implements IOListener {
 
     @Override
     public void create() {
-        backgroundTexture = new Texture("start_menu_background.png");
+        FileHandle jpgBackground = Gdx.files.internal("start_menu_background.jpg");
+        if (jpgBackground.exists()) {
+            backgroundTexture = new Texture(jpgBackground);
+        } else {
+            backgroundTexture = new Texture("start_menu_background.png");
+        }
         buttonRenderer = new ButtonRenderer();
 
         camera = new OrthographicCamera();
