@@ -129,7 +129,16 @@ public final class GameplayLoopOrchestrator {
         float originalFontScaleY = font.getData().scaleY;
         font.getData().setScale(hudScale);
         font.setColor(Color.WHITE);
-        font.draw(batch, (int) Math.ceil(gameSession.getTimer()) + "s", hudX + textInsetX, textY);
+        float timerTextX = hudX + textInsetX;
+        Texture timerIcon = appUiRenderer.getTimerIcon();
+        if (timerIcon != null) {
+            float timerIconSize = iconSize * 1.05f;
+            float timerIconX = hudX + (8f * hudScale);
+            float timerIconY = hudY + ((hudHeight - timerIconSize) * 0.5f);
+            batch.draw(timerIcon, timerIconX, timerIconY, timerIconSize, timerIconSize);
+            timerTextX = timerIconX + timerIconSize + (8f * hudScale);
+        }
+        font.draw(batch, (int) Math.ceil(gameSession.getTimer()) + "s", timerTextX, textY);
 
         String scoreText = "Score: " + gameSession.getScore();
         float scoreX = hudX + timerW + (22f * hudScale);
@@ -141,7 +150,16 @@ public final class GameplayLoopOrchestrator {
         if (difficultyX > maxDifficultyX) {
             difficultyX = maxDifficultyX;
         }
-        font.draw(batch, difficultyPreset.getLabel(), difficultyX, textY);
+        Texture difficultyIcon = appUiRenderer.getDifficultyIcon(difficultyPreset);
+        float difficultyTextX = difficultyX;
+        if (difficultyIcon != null) {
+            float difficultyIconSize = iconSize * 1.05f;
+            float difficultyIconX = difficultyX;
+            float difficultyIconY = hudY + ((hudHeight - difficultyIconSize) * 0.5f);
+            batch.draw(difficultyIcon, difficultyIconX, difficultyIconY, difficultyIconSize, difficultyIconSize);
+            difficultyTextX = difficultyIconX + difficultyIconSize + (8f * hudScale);
+        }
+        font.draw(batch, difficultyPreset.getLabel(), difficultyTextX, textY);
 
         drawHudFoodCounter(batch, font, gameplayRuntime.getFoodTexture(FoodCategory.VEGETABLE),
                 gameSession.getVegetableCount(), countersX, iconY, iconSize, counterStep);

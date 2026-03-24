@@ -55,6 +55,10 @@ public final class AppUiRenderer {
     private final BitmapFont font;
     private final OrthographicCamera camera;
     private final GameFlowController flowController;
+    private final Texture easyDifficultyIcon;
+    private final Texture normalDifficultyIcon;
+    private final Texture hardDifficultyIcon;
+    private final Texture timerIcon;
 
     private boolean clickPending;
     private float clickX;
@@ -70,6 +74,10 @@ public final class AppUiRenderer {
         this.font = font;
         this.camera = camera;
         this.flowController = flowController;
+        this.easyDifficultyIcon = loadTextureOrNull("easy.png");
+        this.normalDifficultyIcon = loadTextureOrNull("normal.png");
+        this.hardDifficultyIcon = loadTextureOrNull("hard.png");
+        this.timerIcon = loadTextureOrNull("timer.png");
     }
 
     public void captureClick(Vector3 touchPos) {
@@ -120,6 +128,21 @@ public final class AppUiRenderer {
         font.draw(batch, flowController.getStatusMessage(), x, y);
     }
 
+    public Texture getTimerIcon() {
+        return timerIcon;
+    }
+
+    public Texture getDifficultyIcon(DifficultyPreset difficultyPreset) {
+        if (difficultyPreset == null) {
+            return null;
+        }
+        return switch (difficultyPreset) {
+            case EASY -> easyDifficultyIcon;
+            case NORMAL -> normalDifficultyIcon;
+            case HARD -> hardDifficultyIcon;
+        };
+    }
+
     public DifficultyAction renderDifficultySettings(DifficultyPreset difficultyPreset) {
         applyFullScreenProjection();
 
@@ -150,9 +173,12 @@ public final class AppUiRenderer {
         batch.begin();
         font.draw(batch, "GAME SETTINGS", panel.x + 40f, panel.y + panelH - 28f);
         font.draw(batch, "Difficulty: " + difficultyPreset.getLabel(), panel.x + 40f, panel.y + panelH - 58f);
-        font.draw(batch, "Easy   - 75s, slower, +6s / -3s submit, 10 Food items", easyButton.x + 20f, easyButton.y + 30f);
-        font.draw(batch, "Normal - 60s, balanced, +5s / -5s submit, 15 Food items", normalButton.x + 20f, normalButton.y + 30f);
-        font.draw(batch, "Hard   - 45s, faster, +4s / -6s submit, 20 Food items", hardButton.x + 20f, hardButton.y + 30f);
+        drawDifficultyOption(batch, easyDifficultyIcon, easyButton,
+                "Easy   - 75s, slower, +6s / -3s submit, 10 Food items");
+        drawDifficultyOption(batch, normalDifficultyIcon, normalButton,
+                "Normal - 60s, balanced, +5s / -5s submit, 15 Food items");
+        drawDifficultyOption(batch, hardDifficultyIcon, hardButton,
+                "Hard   - 45s, faster, +4s / -6s submit, 20 Food items");
         font.draw(batch, "Back to Main Menu", backButton.x + 20f, backButton.y + 28f);
         drawStatus(20f, 24f);
         batch.end();
@@ -299,5 +325,42 @@ public final class AppUiRenderer {
         drawStatus(20f, 24f);
         batch.end();
         return action;
+    }
+
+    public void dispose() {
+        if (easyDifficultyIcon != null) {
+            easyDifficultyIcon.dispose();
+        }
+        if (normalDifficultyIcon != null) {
+            normalDifficultyIcon.dispose();
+        }
+        if (hardDifficultyIcon != null) {
+            hardDifficultyIcon.dispose();
+        }
+        if (timerIcon != null) {
+            timerIcon.dispose();
+        }
+    }
+
+    private Texture loadTextureOrNull(String assetName) {
+        if (!Gdx.files.internal(assetName).exists()) {
+            return null;
+        }
+        return new Texture(Gdx.files.internal(assetName));
+    }
+
+    private void drawDifficultyOption(SpriteBatch batch,
+                                      Texture icon,
+                                      Rectangle bounds,
+                                      String label) {
+        float textX = bounds.x + 20f;
+        if (icon != null) {
+            float iconSize = Math.min(30f, bounds.height - 12f);
+            float iconX = bounds.x + 12f;
+            float iconY = bounds.y + (bounds.height - iconSize) / 2f;
+            batch.draw(icon, iconX, iconY, iconSize, iconSize);
+            textX = iconX + iconSize + 12f;
+        }
+        font.draw(batch, label, textX, bounds.y + 30f);
     }
 }

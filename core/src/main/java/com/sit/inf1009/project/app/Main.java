@@ -644,6 +644,9 @@ public class Main extends ApplicationAdapter {
         if (avatarSetupScreen != null) {
             avatarSetupScreen.dispose();
         }
+        if (appUiRenderer != null) {
+            appUiRenderer.dispose();
+        }
         playerImageInputService = null;
         shapeRenderer.dispose();
         batch.dispose();
