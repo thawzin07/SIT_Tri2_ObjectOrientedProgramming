@@ -57,6 +57,7 @@ public final class GameplayLoopOrchestrator {
             return false;
         }
 
+        gameplayRuntime.configureMovementBoundsForCurrentViewport();
         movementManager.updateAll(dt);
         sceneManager.update(dt, entityManager.getEntities());
         gameplayRuntime.clampEntitiesToPlayableArea();
@@ -79,6 +80,12 @@ public final class GameplayLoopOrchestrator {
                                          DifficultyPreset difficultyPreset,
                                          AppUiRenderer appUiRenderer) {
         sceneManager.render(null);
+        Texture playingBackground = appUiRenderer.getPlayingBackgroundTexture();
+        if (playingBackground != null) {
+            batch.begin();
+            batch.draw(playingBackground, 0f, 0f, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+            batch.end();
+        }
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         for (Entity e : entityManager.getEntities()) {

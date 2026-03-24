@@ -59,6 +59,7 @@ public final class AppUiRenderer {
     private final Texture normalDifficultyIcon;
     private final Texture hardDifficultyIcon;
     private final Texture timerIcon;
+    private final Texture playingBackgroundTexture;
 
     private boolean clickPending;
     private float clickX;
@@ -78,6 +79,7 @@ public final class AppUiRenderer {
         this.normalDifficultyIcon = loadTextureOrNull("normal.png");
         this.hardDifficultyIcon = loadTextureOrNull("hard.png");
         this.timerIcon = loadTextureOrNull("timer.png");
+        this.playingBackgroundTexture = loadTextureOrNull("playingbackground.jpg");
     }
 
     public void captureClick(Vector3 touchPos) {
@@ -141,6 +143,10 @@ public final class AppUiRenderer {
             case NORMAL -> normalDifficultyIcon;
             case HARD -> hardDifficultyIcon;
         };
+    }
+
+    public Texture getPlayingBackgroundTexture() {
+        return playingBackgroundTexture;
     }
 
     public DifficultyAction renderDifficultySettings(DifficultyPreset difficultyPreset) {
@@ -339,6 +345,9 @@ public final class AppUiRenderer {
         }
         if (timerIcon != null) {
             timerIcon.dispose();
+        }
+        if (playingBackgroundTexture != null) {
+            playingBackgroundTexture.dispose();
         }
     }
 

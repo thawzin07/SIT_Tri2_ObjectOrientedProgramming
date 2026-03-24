@@ -134,6 +134,18 @@ public final class GameplayRuntime {
                 difficultyConfig.getFoodEntityCount());
     }
 
+    public void configureMovementBoundsForCurrentViewport() {
+        int worldW = Math.max(1, Gdx.graphics.getWidth());
+        int worldH = Math.max(1, Gdx.graphics.getHeight());
+        double maxY = Math.max(1d, worldH - getHudBlockHeight());
+        for (Entity entity : entityManager.getEntities()) {
+            MovementComponent movement = entity.getMovement();
+            if (movement instanceof AIMovement aiMovement) {
+                aiMovement.setBounds(0d, worldW, 0d, maxY);
+            }
+        }
+    }
+
     public void rescaleEntitiesForViewportChange(int oldWidth, int oldHeight, int newWidth, int newHeight) {
         if (oldWidth <= 0 || oldHeight <= 0 || entityManager == null) {
             return;
@@ -227,25 +239,10 @@ public final class GameplayRuntime {
             double minY = radius;
             double maxY = topLimit - radius;
 
-            boolean hitLeft = x < minX;
-            boolean hitRight = x > maxX;
-            boolean hitBottom = y < minY;
-            boolean hitTop = y > maxY;
-
             x = Math.max(minX, Math.min(x, maxX));
             y = Math.max(minY, Math.min(y, maxY));
             entity.setXPosition(x);
             entity.setYPosition(y);
-
-            MovementComponent movement = entity.getMovement();
-            if (movement instanceof AIMovement aiMovement) {
-                if (hitLeft || hitRight) {
-                    aiMovement.bounceHorizontal();
-                }
-                if (hitBottom || hitTop) {
-                    aiMovement.bounceVertical();
-                }
-            }
         }
     }
 
