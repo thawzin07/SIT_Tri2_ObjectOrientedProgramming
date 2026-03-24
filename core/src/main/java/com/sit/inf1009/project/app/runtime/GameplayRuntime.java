@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.Texture;
 import com.sit.inf1009.project.engine.components.CollidableComponent;
 import com.sit.inf1009.project.engine.components.MovementComponent;
 import com.sit.inf1009.project.engine.components.PlayerMovement;
+import com.sit.inf1009.project.engine.components.AIMovement;
 import com.sit.inf1009.project.engine.core.Scene;
 import com.sit.inf1009.project.engine.entities.Entity;
 import com.sit.inf1009.project.engine.managers.EntityManager;
@@ -39,6 +40,8 @@ public final class GameplayRuntime {
     private int referenceViewportWidth;
     private int referenceViewportHeight;
     private double currentGameplayScale = 1.0;
+    private GameSession activeGameSession;
+    private DifficultyConfig activeDifficultyConfig;
 
     public GameplayRuntime(InputOutputManager ioManager,
                            EntityManager entityManager,
@@ -68,6 +71,8 @@ public final class GameplayRuntime {
     public void startNewGame(GameSession gameSession,
                              DifficultyConfig difficultyConfig,
                              Texture selectedAvatarTexture) {
+        this.activeGameSession = gameSession;
+        this.activeDifficultyConfig = difficultyConfig;
         entityManager.clear();
         movementManager.clear();
         sceneManager.push(new Scene("Level 1", new Color(0.1f, 0.2f, 0.3f, 1f)));
@@ -78,12 +83,15 @@ public final class GameplayRuntime {
                                      GameSession gameSession,
                                      DifficultyConfig difficultyConfig,
                                      Texture selectedAvatarTexture) {
+        this.activeGameSession = gameSession;
+        this.activeDifficultyConfig = difficultyConfig;
         double playerRadius = 15d * currentGameplayScale;
         double foodRadius = 8d * currentGameplayScale;
         double playerSpeed = 250d * currentGameplayScale;
         double npcSpeed = difficultyConfig.getNpcSpeed() * currentGameplayScale;
         int worldW = Math.max(1, Gdx.graphics.getWidth());
         int worldH = Math.max(1, Gdx.graphics.getHeight());
+        int playableH = Math.max(1, worldH - (int) Math.ceil(getHudBlockHeight()));
 
         Entity player = new Entity(playerId);
         player.setXPosition(worldW * 0.3);
@@ -101,7 +109,7 @@ public final class GameplayRuntime {
         int minX = (int) Math.max(40, foodRadius * 2);
         int maxX = Math.max(minX + 1, worldW - minX);
         int minY = (int) Math.max(60, foodRadius * 2);
-        int maxY = Math.max(minY + 1, worldH - minY);
+        int maxY = Math.max(minY + 1, playableH - minY);
         this.foodFactory = new FoodFactory(
                 rng,
                 foodRadius,
@@ -159,6 +167,9 @@ public final class GameplayRuntime {
                 movement.setSpeed(movement.getSpeed() * scaleDelta);
             }
         }
+
+        clampEntitiesToPlayableArea();
+        rebuildFoodFactoryForCurrentViewport();
     }
 
     public Color getEntityRenderColor(Entity entity) {
@@ -178,5 +189,89 @@ public final class GameplayRuntime {
             };
         }
         return Color.WHITE;
+    }
+
+    public Texture getFoodTexture(FoodCategory category) {
+        if (foodCategoryTextures == null || category == null) {
+            return null;
+        }
+        return foodCategoryTextures.get(category);
+    }
+
+    public float getHudScaleFactor() {
+        float w = Math.max(1f, Gdx.graphics.getWidth());
+        float h = Math.max(1f, Gdx.graphics.getHeight());
+        float sx = w / 1280f;
+        float sy = h / 720f;
+        float scale = Math.min(sx, sy);
+        return Math.max(0.85f, Math.min(1.45f, scale));
+    }
+
+    public float getHudBlockHeight() {
+        return 34f * getHudScaleFactor();
+    }
+
+    public void clampEntitiesToPlayableArea() {
+        int worldW = Math.max(1, Gdx.graphics.getWidth());
+        int worldH = Math.max(1, Gdx.graphics.getHeight());
+        double topLimit = Math.max(1d, worldH - getHudBlockHeight());
+
+        for (Entity entity : entityManager.getEntities()) {
+            CollidableComponent collidable = entity.getCollidable();
+            double radius = (collidable != null) ? collidable.getCollisionRadius() : 0d;
+
+            double x = entity.getXPosition();
+            double y = entity.getYPosition();
+            double minX = radius;
+            double maxX = worldW - radius;
+            double minY = radius;
+            double maxY = topLimit - radius;
+
+            boolean hitLeft = x < minX;
+            boolean hitRight = x > maxX;
+            boolean hitBottom = y < minY;
+            boolean hitTop = y > maxY;
+
+            x = Math.max(minX, Math.min(x, maxX));
+            y = Math.max(minY, Math.min(y, maxY));
+            entity.setXPosition(x);
+            entity.setYPosition(y);
+
+            MovementComponent movement = entity.getMovement();
+            if (movement instanceof AIMovement aiMovement) {
+                if (hitLeft || hitRight) {
+                    aiMovement.bounceHorizontal();
+                }
+                if (hitBottom || hitTop) {
+                    aiMovement.bounceVertical();
+                }
+            }
+        }
+    }
+
+    private void rebuildFoodFactoryForCurrentViewport() {
+        if (activeGameSession == null || activeDifficultyConfig == null) {
+            return;
+        }
+
+        double foodRadius = 8d * currentGameplayScale;
+        double npcSpeed = activeDifficultyConfig.getNpcSpeed() * currentGameplayScale;
+        int worldW = Math.max(1, Gdx.graphics.getWidth());
+        int worldH = Math.max(1, Gdx.graphics.getHeight());
+        int playableH = Math.max(1, worldH - (int) Math.ceil(getHudBlockHeight()));
+        int minX = (int) Math.max(40, foodRadius * 2);
+        int maxX = Math.max(minX + 1, worldW - minX);
+        int minY = (int) Math.max(60, foodRadius * 2);
+        int maxY = Math.max(minY + 1, playableH - minY);
+
+        this.foodFactory = new FoodFactory(
+                new Random(),
+                foodRadius,
+                npcSpeed,
+                minX, maxX,
+                minY, maxY,
+                activeGameSession,
+                foodCategoryTextures
+        );
     }
 }

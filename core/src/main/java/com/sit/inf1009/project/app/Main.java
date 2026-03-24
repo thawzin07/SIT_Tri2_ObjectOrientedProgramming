@@ -4,8 +4,6 @@ import com.badlogic.gdx.ApplicationAdapter;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -423,31 +421,11 @@ public class Main extends ApplicationAdapter {
 
     private Map<FoodCategory, Texture> createFoodCategoryTextures() {
         Map<FoodCategory, Texture> textures = new EnumMap<>(FoodCategory.class);
-        textures.put(FoodCategory.VEGETABLE, createFoodTexture(new Color(0.2f, 0.85f, 0.2f, 1f), new Color(0.08f, 0.45f, 0.08f, 1f)));
-        textures.put(FoodCategory.PROTEIN, createFoodTexture(new Color(0.9f, 0.25f, 0.25f, 1f), new Color(0.5f, 0.12f, 0.12f, 1f)));
-        textures.put(FoodCategory.CARBOHYDRATE, createFoodTexture(new Color(0.95f, 0.8f, 0.2f, 1f), new Color(0.65f, 0.5f, 0.05f, 1f)));
-        textures.put(FoodCategory.OIL, createFoodTexture(new Color(0.72f, 0.42f, 0.9f, 1f), new Color(0.35f, 0.22f, 0.5f, 1f)));
+        textures.put(FoodCategory.VEGETABLE, new Texture(Gdx.files.internal("vege.png")));
+        textures.put(FoodCategory.PROTEIN, new Texture(Gdx.files.internal("protein.png")));
+        textures.put(FoodCategory.CARBOHYDRATE, new Texture(Gdx.files.internal("carb.png")));
+        textures.put(FoodCategory.OIL, new Texture(Gdx.files.internal("oil.png")));
         return textures;
-    }
-
-    private Texture createFoodTexture(Color fill, Color accent) {
-        Pixmap pixmap = new Pixmap(64, 64, Pixmap.Format.RGBA8888);
-        pixmap.setColor(0f, 0f, 0f, 0f);
-        pixmap.fill();
-
-        pixmap.setColor(fill);
-        pixmap.fillCircle(32, 32, 28);
-
-        pixmap.setColor(accent);
-        pixmap.fillCircle(24, 24, 9);
-        pixmap.fillCircle(40, 40, 7);
-
-        pixmap.setColor(1f, 1f, 1f, 0.55f);
-        pixmap.fillCircle(20, 43, 5);
-
-        Texture texture = new Texture(pixmap);
-        pixmap.dispose();
-        return texture;
     }
 
     private void applyAvatarSelection(AvatarSetupFlowScreen.SelectionResult result) {

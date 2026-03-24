@@ -49,4 +49,12 @@ public class AIMovement extends MovementComponent {
         e.setXPosition(newX);
         e.setYPosition(newY);
     }
+
+    public void bounceHorizontal() {
+        dirX *= -1;
+    }
+
+    public void bounceVertical() {
+        dirY *= -1;
+    }
 }

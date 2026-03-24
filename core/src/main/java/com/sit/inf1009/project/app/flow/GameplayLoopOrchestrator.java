@@ -5,6 +5,7 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
@@ -19,9 +20,11 @@ import com.sit.inf1009.project.engine.managers.EntityManager;
 import com.sit.inf1009.project.engine.managers.MovementManager;
 import com.sit.inf1009.project.engine.managers.SceneManager;
 import com.sit.inf1009.project.game.domain.DifficultyConfig;
+import com.sit.inf1009.project.game.domain.FoodCategory;
 import com.sit.inf1009.project.game.domain.GameSession;
 
 public final class GameplayLoopOrchestrator {
+    private static final GlyphLayout HUD_GLYPH = new GlyphLayout();
 
     public enum PauseAction {
         NONE,
@@ -56,6 +59,7 @@ public final class GameplayLoopOrchestrator {
 
         movementManager.updateAll(dt);
         sceneManager.update(dt, entityManager.getEntities());
+        gameplayRuntime.clampEntitiesToPlayableArea();
         collisionManager.update();
         entityManager.flushRemovals();
         gameplayRuntime.ensureFoodDiversityAndCount(difficultyConfig);
@@ -84,6 +88,19 @@ public final class GameplayLoopOrchestrator {
             shapeRenderer.setColor(gameplayRuntime.getEntityRenderColor(e));
             shapeRenderer.circle((float) e.getXPosition(), (float) e.getYPosition(), r);
         }
+
+        float hudHeight = gameplayRuntime.getHudBlockHeight();
+        float hudY = Gdx.graphics.getHeight() - hudHeight;
+        float hudX = 0f;
+        float hudW = Math.max(1f, Gdx.graphics.getWidth());
+        float hudRight = hudX + hudW;
+
+        shapeRenderer.setColor(0f, 0f, 0f, 0.92f);
+        shapeRenderer.rect(hudX, hudY, hudW, hudHeight);
+
+        float timerW = Math.min(170f, hudW * 0.28f);
+        shapeRenderer.setColor(0.08f, 0.86f, 0.12f, 1f);
+        shapeRenderer.rect(hudX + 2f, hudY + 2f, timerW, hudHeight - 4f);
         shapeRenderer.end();
 
         batch.begin();
@@ -98,15 +115,64 @@ public final class GameplayLoopOrchestrator {
             batch.draw(texture, x, y, size, size);
         }
 
-        font.draw(batch, "Timer: " + (int) Math.ceil(gameSession.getTimer()), 20f, Gdx.graphics.getHeight() - 20f);
-        font.draw(batch, "Score: " + gameSession.getScore(), 20f, Gdx.graphics.getHeight() - 38f);
-        font.draw(batch, "Difficulty: " + difficultyPreset.getLabel(), 20f, Gdx.graphics.getHeight() - 56f);
-        font.draw(batch, "Plate V/P/C/O: " + gameSession.getVegetableCount() + "/"
-                + gameSession.getProteinCount() + "/" + gameSession.getCarbCount() + "/"
-                + gameSession.getOilCount(), 20f, Gdx.graphics.getHeight() - 74f);
+        float hudScale = gameplayRuntime.getHudScaleFactor();
+        float textInsetX = 12f * hudScale;
+        float textTopInset = 10f * hudScale;
+        float textY = hudY + hudHeight - textTopInset;
+        float iconSize = 16f * hudScale;
+        float iconY = hudY + ((hudHeight - iconSize) * 0.5f);
+        float counterStep = 38f * hudScale;
+        float counterGroupWidth = counterStep * 4f;
+        float countersX = hudRight - counterGroupWidth - (12f * hudScale);
 
+        float originalFontScaleX = font.getData().scaleX;
+        float originalFontScaleY = font.getData().scaleY;
+        font.getData().setScale(hudScale);
+        font.setColor(Color.WHITE);
+        font.draw(batch, (int) Math.ceil(gameSession.getTimer()) + "s", hudX + textInsetX, textY);
+
+        String scoreText = "Score: " + gameSession.getScore();
+        float scoreX = hudX + timerW + (22f * hudScale);
+        font.draw(batch, scoreText, scoreX, textY);
+
+        HUD_GLYPH.setText(font, scoreText);
+        float difficultyX = scoreX + HUD_GLYPH.width + (28f * hudScale);
+        float maxDifficultyX = countersX - (60f * hudScale);
+        if (difficultyX > maxDifficultyX) {
+            difficultyX = maxDifficultyX;
+        }
+        font.draw(batch, difficultyPreset.getLabel(), difficultyX, textY);
+
+        drawHudFoodCounter(batch, font, gameplayRuntime.getFoodTexture(FoodCategory.VEGETABLE),
+                gameSession.getVegetableCount(), countersX, iconY, iconSize, counterStep);
+        drawHudFoodCounter(batch, font, gameplayRuntime.getFoodTexture(FoodCategory.PROTEIN),
+                gameSession.getProteinCount(), countersX + counterStep, iconY, iconSize, counterStep);
+        drawHudFoodCounter(batch, font, gameplayRuntime.getFoodTexture(FoodCategory.CARBOHYDRATE),
+                gameSession.getCarbCount(), countersX + (counterStep * 2f), iconY, iconSize, counterStep);
+        drawHudFoodCounter(batch, font, gameplayRuntime.getFoodTexture(FoodCategory.OIL),
+                gameSession.getOilCount(), countersX + (counterStep * 3f), iconY, iconSize, counterStep);
+
+        font.getData().setScale(originalFontScaleX, originalFontScaleY);
         appUiRenderer.drawStatus(20f, 24f);
         batch.end();
+    }
+
+    private static float drawHudFoodCounter(SpriteBatch batch,
+                                            BitmapFont font,
+                                            Texture iconTexture,
+                                            int count,
+                                            float startX,
+                                            float iconY,
+                                            float iconSize,
+                                            float counterStep) {
+        float x = startX;
+        if (iconTexture != null) {
+            batch.draw(iconTexture, x, iconY, iconSize, iconSize);
+        } else {
+            font.draw(batch, "[]", x, iconY + iconSize);
+        }
+        font.draw(batch, String.valueOf(count), x + iconSize + 6f, iconY + iconSize - 1f);
+        return x + counterStep;
     }
 
     public static PauseAction renderPauseMenu(AppUiRenderer appUiRenderer,
