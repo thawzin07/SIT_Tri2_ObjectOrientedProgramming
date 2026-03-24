@@ -41,31 +41,6 @@ public final class GameplayLoopOrchestrator {
         return paused;
     }
 
-    public static int detectLevelHotkey() {
-        if (isSceneKeyJustPressed(Input.Keys.NUM_3, Input.Keys.NUMPAD_3)) return 3;
-        if (isSceneKeyJustPressed(Input.Keys.NUM_2, Input.Keys.NUMPAD_2)) return 2;
-        if (isSceneKeyJustPressed(Input.Keys.NUM_1, Input.Keys.NUMPAD_1)) return 1;
-        return -1;
-    }
-
-    public static void applyLevelHotkey(int level,
-                                        SceneManager sceneManager,
-                                        GameplayRuntime gameplayRuntime,
-                                        GameSession gameSession,
-                                        DifficultyConfig difficultyConfig,
-                                        Texture selectedAvatarTexture) {
-        if (level < 1 || level > 3) {
-            return;
-        }
-        Color background = switch (level) {
-            case 2 -> Color.MAROON;
-            case 3 -> Color.TEAL;
-            default -> new Color(0.1f, 0.2f, 0.3f, 1f);
-        };
-        sceneManager.push(new Scene("Level " + level, background));
-        gameplayRuntime.loadEntitiesForLevel(level, gameSession, difficultyConfig, selectedAvatarTexture);
-    }
-
     public static boolean tickSimulation(float dt,
                                          boolean paused,
                                          MovementManager movementManager,
@@ -170,9 +145,5 @@ public final class GameplayLoopOrchestrator {
         batch.end();
 
         return action;
-    }
-
-    private static boolean isSceneKeyJustPressed(int mainKey, int numpadKey) {
-        return Gdx.input.isKeyJustPressed(mainKey) || Gdx.input.isKeyJustPressed(numpadKey);
     }
 }
