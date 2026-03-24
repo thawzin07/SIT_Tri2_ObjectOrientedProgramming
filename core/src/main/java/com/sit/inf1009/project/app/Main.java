@@ -302,17 +302,6 @@ public class Main extends ApplicationAdapter {
             showStatus("Plate reset", 2f);
         }
 
-        int levelHotkey = GameplayLoopOrchestrator.detectLevelHotkey();
-        if (levelHotkey > 0) {
-            GameplayLoopOrchestrator.applyLevelHotkey(
-                    levelHotkey,
-                    sceneManager,
-                    gameplayRuntime,
-                    gameSession,
-                    difficultyConfig,
-                    selectedAvatarTexture);
-        }
-
         boolean timerExpired = GameplayLoopOrchestrator.tickSimulation(
                 dt,
                 paused,
