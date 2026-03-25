@@ -261,7 +261,7 @@ public final class GameplayLoopOrchestrator {
         font.draw(batch, difficultyPreset.getLabel(), difficultyTextX, textY);
 
         // Food counters
-        font.getData().setScale(hudScale * 1.3f);
+        font.getData().setScale(hudScale * 1.3f); // bigger food counter text
         font.setColor(Color.YELLOW);
         drawHudFoodCounter(batch, font, gameplayRuntime.getFoodTexture(FoodCategory.VEGETABLE),
                 gameSession.getVegetableCount(), countersX, iconY, iconSize, counterStep);
@@ -271,6 +271,8 @@ public final class GameplayLoopOrchestrator {
                 gameSession.getCarbCount(), countersX + (counterStep * 2f), iconY, iconSize, counterStep);
         drawHudFoodCounter(batch, font, gameplayRuntime.getFoodTexture(FoodCategory.OIL),
                 gameSession.getOilCount(), countersX + (counterStep * 3f), iconY, iconSize, counterStep);
+
+        font.getData().setScale(originalFontScaleX, originalFontScaleY); // reset after
 
         // Pause label
         font.setColor(new Color(0.22f, 0.12f, 0.04f, 1f));
