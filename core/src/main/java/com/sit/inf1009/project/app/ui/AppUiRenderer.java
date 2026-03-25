@@ -37,7 +37,8 @@ public final class AppUiRenderer {
         NONE, 
         BACK_TO_MENU, 
         BACK_TO_PAUSE, 
-        CONTINUE_TO_AVATAR
+        CONTINUE_TO_AVATAR,
+        START_TUTORIAL
     }
 
     public enum LeaderboardEntryAction {
@@ -156,7 +157,7 @@ public final class AppUiRenderer {
         if (difficultyPreset == null) return null;
         return switch (difficultyPreset) {
             case EASY -> easyDifficultyIcon;
-            case NORMAL -> normalDifficultyIcon;
+            case NORMAL, TUTORIAL -> normalDifficultyIcon;
             case HARD -> hardDifficultyIcon;
         };
     }
@@ -214,6 +215,11 @@ public final class AppUiRenderer {
         if (rulesOpenedFromStart) {
             continueButton = new Rectangle(panel.x + 40f, panel.y + 76f, panelW - 80f, 44f);
         }
+        Rectangle tutorialButton = new Rectangle(
+                panel.x + 40f,
+                panel.y + (rulesOpenedFromStart ? 128f : 76f),
+                panelW - 80f,
+                44f);
 
         HowToPlayAction action = HowToPlayAction.NONE;
         if (consumeClick(backButton)) {
@@ -221,6 +227,9 @@ public final class AppUiRenderer {
         }
         if (rulesOpenedFromStart && consumeClick(continueButton)) {
             action = HowToPlayAction.CONTINUE_TO_AVATAR;
+        }
+        if (consumeClick(tutorialButton)) {
+            action = HowToPlayAction.START_TUTORIAL;
         }
 
         drawScreenPanel(panel);
@@ -234,6 +243,7 @@ public final class AppUiRenderer {
         if (rulesOpenedFromStart) {
             drawActionButton(continueButton, new Color(0.16f, 0.62f, 0.2f, 1f));
         }
+        drawActionButton(tutorialButton, new Color(0.1f, 0.45f, 0.78f, 1f));
 
         batch.begin();
 
@@ -281,6 +291,8 @@ public final class AppUiRenderer {
         if (rulesOpenedFromStart) {
             font.draw(batch, "Continue to Player Setup", continueButton.x + 20f, continueButton.y + 28f);
         }
+
+        font.draw(batch, "Start Tutorial", tutorialButton.x + 20f, tutorialButton.y + 28f);
 
         drawStatus(20f, 24f);
 
