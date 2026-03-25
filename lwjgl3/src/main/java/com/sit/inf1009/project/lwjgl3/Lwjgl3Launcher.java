@@ -1,7 +1,7 @@
 package com.sit.inf1009.project.lwjgl3;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
-import com.sit.inf1009.project.Main;
+import com.sit.inf1009.project.app.Main;
 
 /** Launches the desktop (LWJGL3) application. */
 public class Lwjgl3Launcher {
