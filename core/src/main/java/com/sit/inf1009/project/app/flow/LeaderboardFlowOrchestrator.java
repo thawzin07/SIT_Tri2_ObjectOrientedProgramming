@@ -3,8 +3,8 @@ package com.sit.inf1009.project.app.flow;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.sit.inf1009.project.app.GameState;
-import com.sit.inf1009.project.app.controllers.LeaderboardController;
 import com.sit.inf1009.project.app.ui.AppUiRenderer;
+import com.sit.inf1009.project.game.persistence.LeaderboardStore;
 import com.sit.inf1009.project.game.persistence.LeaderboardRecord;
 import com.sit.inf1009.project.game.ui.LeaderboardNameEditor;
 
@@ -93,8 +93,7 @@ public final class LeaderboardFlowOrchestrator {
         return new NameEditState(result.getUpdatedName(), true, false, false);
     }
 
-    public static SubmitResult submitEntry(LeaderboardController leaderboardController,
-                                           List<LeaderboardEntry> existingEntries,
+    public static SubmitResult submitEntry(List<LeaderboardEntry> existingEntries,
                                            String playerNameInput,
                                            int score,
                                            Texture selectedAvatarTexture,
@@ -127,7 +126,7 @@ public final class LeaderboardFlowOrchestrator {
 
         List<LeaderboardEntry> next = new ArrayList<>(existingEntries);
         next.add(new LeaderboardEntry(
-                leaderboardController.sanitizeName(playerNameInput),
+                sanitizeName(playerNameInput),
                 score,
                 entryTexture,
                 ownsTexture,
@@ -137,11 +136,11 @@ public final class LeaderboardFlowOrchestrator {
         return new SubmitResult(next, true, null);
     }
 
-    public static List<LeaderboardEntry> loadEntries(LeaderboardController leaderboardController,
+    public static List<LeaderboardEntry> loadEntries(LeaderboardStore leaderboardStore,
                                                      String fileName,
                                                      Texture[] presetAvatars) {
         List<LeaderboardEntry> entries = new ArrayList<>();
-        List<LeaderboardRecord> records = leaderboardController.load(fileName);
+        List<LeaderboardRecord> records = leaderboardStore.load(fileName);
         for (LeaderboardRecord record : records) {
             String name = record.getName();
             int score = record.getScore();
@@ -171,17 +170,25 @@ public final class LeaderboardFlowOrchestrator {
         return entries;
     }
 
-    public static void saveEntries(LeaderboardController leaderboardController,
+    public static void saveEntries(LeaderboardStore leaderboardStore,
                                    String fileName,
                                    List<LeaderboardEntry> entries) {
         List<LeaderboardRecord> records = new ArrayList<>();
         for (LeaderboardEntry entry : entries) {
             records.add(new LeaderboardRecord(
-                    leaderboardController.sanitizeName(entry.getName()),
+                    sanitizeName(entry.getName()),
                     entry.getScore(),
                     entry.presetIndex(),
                     entry.uploadedPath()));
         }
-        leaderboardController.save(fileName, records);
+        leaderboardStore.save(fileName, records);
+    }
+
+    private static String sanitizeName(String input) {
+        if (input == null) {
+            return "Player";
+        }
+        String safe = input.replace('\t', ' ').replace('\n', ' ').trim();
+        return safe.isBlank() ? "Player" : safe;
     }
 }
