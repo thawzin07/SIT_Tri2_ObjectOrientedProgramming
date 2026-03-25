@@ -1,7 +1,6 @@
 package com.sit.inf1009.project.app.flow;
 
 import com.sit.inf1009.project.app.GameState;
-import com.sit.inf1009.project.app.controllers.LeaderboardController;
 import com.sit.inf1009.project.game.persistence.LeaderboardRecord;
 import com.sit.inf1009.project.game.persistence.LeaderboardStore;
 import org.junit.jupiter.api.Test;
@@ -29,10 +28,7 @@ class LeaderboardFlowOrchestratorTest {
 
     @Test
     void submitEntryRejectsBlankName() {
-        LeaderboardController controller = new LeaderboardController(new InMemoryStore());
-
         LeaderboardFlowOrchestrator.SubmitResult result = LeaderboardFlowOrchestrator.submitEntry(
-                controller,
                 List.of(),
                 "   ",
                 12,
@@ -47,10 +43,7 @@ class LeaderboardFlowOrchestratorTest {
 
     @Test
     void submitEntryRejectsMissingAvatarTexture() {
-        LeaderboardController controller = new LeaderboardController(new InMemoryStore());
-
         LeaderboardFlowOrchestrator.SubmitResult result = LeaderboardFlowOrchestrator.submitEntry(
-                controller,
                 List.of(),
                 "Alice",
                 12,
@@ -71,10 +64,9 @@ class LeaderboardFlowOrchestratorTest {
                 new LeaderboardRecord("high", 50, -1, null),
                 new LeaderboardRecord("mid", 10, -1, null)
         );
-        LeaderboardController controller = new LeaderboardController(store);
 
         List<LeaderboardFlowOrchestrator.LeaderboardEntry> entries =
-                LeaderboardFlowOrchestrator.loadEntries(controller, "leaderboard.txt", null);
+                LeaderboardFlowOrchestrator.loadEntries(store, "leaderboard.txt", null);
 
         assertEquals(3, entries.size());
         assertEquals("high", entries.get(0).getName());
@@ -85,13 +77,12 @@ class LeaderboardFlowOrchestratorTest {
     @Test
     void saveEntriesMapsFieldsToStoreRecords() {
         InMemoryStore store = new InMemoryStore();
-        LeaderboardController controller = new LeaderboardController(store);
         List<LeaderboardFlowOrchestrator.LeaderboardEntry> entries = List.of(
                 new LeaderboardFlowOrchestrator.LeaderboardEntry("A\tName", 7, null, false, 2, null),
                 new LeaderboardFlowOrchestrator.LeaderboardEntry("B", 5, null, false, -1, "C:\\tmp\\avatar.png")
         );
 
-        LeaderboardFlowOrchestrator.saveEntries(controller, "leaderboard.txt", entries);
+        LeaderboardFlowOrchestrator.saveEntries(store, "leaderboard.txt", entries);
 
         assertNotNull(store.lastSavedFile);
         assertEquals("leaderboard.txt", store.lastSavedFile);
