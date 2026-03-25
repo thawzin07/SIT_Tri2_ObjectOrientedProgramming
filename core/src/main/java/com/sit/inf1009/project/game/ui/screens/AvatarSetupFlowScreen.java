@@ -164,12 +164,19 @@ public class AvatarSetupFlowScreen implements IOListener {
 
     private void drawBoxes() {
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        
         shapeRenderer.setColor(0f, 0f, 0f, 0.48f);
         for (Rectangle rect : avatarRects) {
             shapeRenderer.rect(rect.x - 3f, rect.y - 3f, rect.width + 6f, rect.height + 6f);
         }
+        
+        shapeRenderer.setColor(0.1f, 0.45f, 0.78f, 1f);
         shapeRenderer.rect(uploadButton.x, uploadButton.y, uploadButton.width, uploadButton.height);
+        
+        shapeRenderer.setColor(0.16f, 0.62f, 0.2f, 1f);
         shapeRenderer.rect(startButton.x, startButton.y, startButton.width, startButton.height);
+        // Back button — dark grey (matches Quit to Main Menu in pause screen)
+        shapeRenderer.setColor(0.2f, 0.2f, 0.25f, 1f);
         shapeRenderer.rect(backButton.x, backButton.y, backButton.width, backButton.height);
         shapeRenderer.end();
 
