@@ -79,6 +79,7 @@ public class Main extends ApplicationAdapter {
     private DifficultyConfig difficultyConfig;
     private boolean paused;
     private boolean rulesOpenedFromPause = false;
+    private boolean rulesOpenedFromStart = false;
 
     private Texture[] presetAvatars;
     private String[] presetAvatarLabels;
@@ -153,7 +154,8 @@ public class Main extends ApplicationAdapter {
         foodMenuScene = new StartMenuScene(ioManager, new StartMenuScene.ActionListener() {
             @Override
             public void onStart() {
-                gameState = GameState.AVATAR_SETUP;
+                rulesOpenedFromStart = true;
+                gameState = GameState.HOW_TO_PLAY;
             }
 
             @Override
@@ -163,6 +165,7 @@ public class Main extends ApplicationAdapter {
 
             @Override
             public void onHowToPlay() {
+                rulesOpenedFromStart = false;
                 gameState = GameState.HOW_TO_PLAY;
             }
 
@@ -264,10 +267,12 @@ public class Main extends ApplicationAdapter {
     }
 
     private void renderHowToPlay() {
-        AppUiRenderer.HowToPlayAction action = appUiRenderer.renderHowToPlay(rulesOpenedFromPause);
+        AppUiRenderer.HowToPlayAction action = appUiRenderer.renderHowToPlay(rulesOpenedFromPause, rulesOpenedFromStart);
+        
         if (action != AppUiRenderer.HowToPlayAction.NONE) {
             playButtonClick();
         }
+        
         switch (action) {
             case BACK_TO_PAUSE:
                 gameState = GameState.PLAYING;
@@ -275,6 +280,11 @@ public class Main extends ApplicationAdapter {
                 break;
             case BACK_TO_MENU:
                 gameState = GameState.FOOD_MENU;
+                rulesOpenedFromStart = false;
+                break;
+            case CONTINUE_TO_AVATAR:
+                gameState = GameState.AVATAR_SETUP;
+                rulesOpenedFromStart = false;
                 break;
             default:
                 break;
