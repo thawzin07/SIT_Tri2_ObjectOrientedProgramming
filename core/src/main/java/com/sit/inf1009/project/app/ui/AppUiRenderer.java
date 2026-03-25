@@ -68,6 +68,7 @@ public final class AppUiRenderer {
     private boolean clickPending;
     private float clickX;
     private float clickY;
+    private float chromeScale = 1f;
 
     public AppUiRenderer(ShapeRenderer shapeRenderer, SpriteBatch batch, BitmapFont font, OrthographicCamera camera, GameFlowController flowController) {
         this.shapeRenderer = shapeRenderer;
@@ -89,10 +90,10 @@ public final class AppUiRenderer {
     public void captureClick(Vector3 touchPos) {
         clickPending = Gdx.input.justTouched();
         if (!clickPending) return;
-        touchPos.set(Gdx.input.getX(), Gdx.input.getY(), 0);
-        camera.unproject(touchPos);
-        clickX = touchPos.x;
-        clickY = touchPos.y;
+        // UI screens render in logical screen coordinates (0..width, 0..height),
+        // so map click directly to that space for reliable fullscreen interaction.
+        clickX = Gdx.input.getX();
+        clickY = Gdx.graphics.getHeight() - Gdx.input.getY();
     }
 
     public boolean consumeClick(Rectangle bounds) {
@@ -112,15 +113,15 @@ public final class AppUiRenderer {
     }
 
     public void drawScreenPanel(Rectangle panel) {
-        UiPanelRenderer.drawScreenPanel(shapeRenderer, panel);
+        UiPanelRenderer.drawScreenPanel(shapeRenderer, panel, chromeScale);
     }
 
     public void drawActionButton(Rectangle bounds, Color fillColor) {
-        UiPanelRenderer.drawActionButton(shapeRenderer, bounds, fillColor);
+        UiPanelRenderer.drawActionButton(shapeRenderer, bounds, fillColor, chromeScale);
     }
 
     public void drawTextInputField(Rectangle bounds, boolean active) {
-        UiPanelRenderer.drawTextInputField(shapeRenderer, bounds, active);
+        UiPanelRenderer.drawTextInputField(shapeRenderer, bounds, active, chromeScale);
     }
 
     public void drawStatus(float x, float y) {
@@ -158,17 +159,36 @@ public final class AppUiRenderer {
 
     public DifficultyAction renderDifficultySettings(DifficultyPreset difficultyPreset) {
         applyFullScreenProjection();
+        float uiScale = getFullscreenUiScale();
+        chromeScale = uiScale;
         float width = Gdx.graphics.getWidth();
         float height = Gdx.graphics.getHeight();
         float centerX = width / 2f;
-        float panelW = Math.min(760f, width - 80f);
-        float panelH = Math.min(500f, height - 80f);
+        float panelW = Math.min(760f * uiScale, width - (80f * uiScale));
+        float panelH = Math.min(500f * uiScale, height - (80f * uiScale));
         Rectangle panel = new Rectangle(centerX - panelW / 2f, (height - panelH) / 2f, panelW, panelH);
 
-        Rectangle easyButton = new Rectangle(panel.x + 40f, panel.y + panelH - 180f, panelW - 80f, 48f);
-        Rectangle normalButton = new Rectangle(panel.x + 40f, panel.y + panelH - 240f, panelW - 80f, 48f);
-        Rectangle hardButton = new Rectangle(panel.x + 40f, panel.y + panelH - 300f, panelW - 80f, 48f);
-        Rectangle backButton = new Rectangle(panel.x + 40f, panel.y + 30f, panelW - 80f, 44f);
+        float sidePad = 40f * uiScale;
+        float preferredButtonH = 48f * uiScale;
+        float preferredGap = 12f * uiScale;
+        Rectangle backButton = new Rectangle(panel.x + sidePad, panel.y + (30f * uiScale), panelW - sidePad * 2f, 44f * uiScale);
+
+        float topButtonsY = panel.y + panelH - (180f * uiScale);
+        float bottomButtonsY = backButton.y + backButton.height + (18f * uiScale);
+        float availableButtonsHeight = Math.max(120f * uiScale, topButtonsY - bottomButtonsY);
+
+        float buttonH = preferredButtonH;
+        float buttonGap = preferredGap;
+        float required = (buttonH * 3f) + (buttonGap * 2f);
+        if (required > availableButtonsHeight) {
+            float shrinkRatio = availableButtonsHeight / Math.max(1f, required);
+            buttonH *= shrinkRatio;
+            buttonGap *= shrinkRatio;
+        }
+
+        Rectangle easyButton = new Rectangle(panel.x + sidePad, topButtonsY, panelW - sidePad * 2f, buttonH);
+        Rectangle normalButton = new Rectangle(panel.x + sidePad, topButtonsY - (buttonH + buttonGap), panelW - sidePad * 2f, buttonH);
+        Rectangle hardButton = new Rectangle(panel.x + sidePad, topButtonsY - ((buttonH + buttonGap) * 2f), panelW - sidePad * 2f, buttonH);
 
         DifficultyAction action = DifficultyAction.NONE;
         if (consumeClick(easyButton)) action = DifficultyAction.SET_EASY;
@@ -182,13 +202,18 @@ public final class AppUiRenderer {
         drawActionButton(hardButton, difficultyPreset == DifficultyPreset.HARD ? new Color(0.75f, 0.22f, 0.22f, 1f) : new Color(0.4f, 0.16f, 0.16f, 1f));
         drawActionButton(backButton, new Color(0.2f, 0.2f, 0.25f, 1f));
 
+        float baseScaleX = font.getData().scaleX;
+        float baseScaleY = font.getData().scaleY;
+        font.getData().setScale(baseScaleX * uiScale, baseScaleY * uiScale);
+
         batch.begin();
-        font.draw(batch, "GAME SETTINGS", panel.x + 40f, panel.y + panelH - 28f);
-        font.draw(batch, "Difficulty: " + difficultyPreset.getLabel(), panel.x + 40f, panel.y + panelH - 58f);
+        font.draw(batch, "GAME SETTINGS", panel.x + (40f * uiScale), panel.y + panelH - (28f * uiScale));
+        font.draw(batch, "Difficulty: " + difficultyPreset.getLabel(), panel.x + (40f * uiScale), panel.y + panelH - (58f * uiScale));
         drawDifficultyOption(batch, easyDifficultyIcon, easyButton, "Easy   - 75s, +6s / -3s submit");
         drawDifficultyOption(batch, normalDifficultyIcon, normalButton, "Normal - 60s, +5s / -5s submit");
         drawDifficultyOption(batch, hardDifficultyIcon, hardButton, "Hard   - 45s, +4s / -6s submit");
-        font.draw(batch, "Back to Main Menu", backButton.x + 20f, backButton.y + 28f);
+        font.draw(batch, "Back to Main Menu", backButton.x + (20f * uiScale), backButton.y + (28f * uiScale));
+        font.getData().setScale(baseScaleX, baseScaleY);
         drawStatus(20f, 24f);
         batch.end();
         return action;
@@ -196,18 +221,20 @@ public final class AppUiRenderer {
 
     public HowToPlayAction renderHowToPlay(boolean rulesOpenedFromPause, boolean rulesOpenedFromStart) {
         applyFullScreenProjection();
+        float uiScale = getFullscreenUiScale();
+        chromeScale = uiScale;
 
         float width = Gdx.graphics.getWidth();
         float height = Gdx.graphics.getHeight();
         float centerX = width / 2f;
-        float panelW = Math.min(840f, width - 80f);
-        float panelH = Math.min(620f, height - 40f); 
+        float panelW = Math.min(840f * uiScale, width - (80f * uiScale));
+        float panelH = Math.min(620f * uiScale, height - (40f * uiScale)); 
         Rectangle panel = new Rectangle(centerX - panelW / 2f, (height - panelH) / 2f, panelW, panelH);
         
-        Rectangle backButton = new Rectangle(panel.x + 40f, panel.y + 24f, panelW - 80f, 44f);
+        Rectangle backButton = new Rectangle(panel.x + (40f * uiScale), panel.y + (24f * uiScale), panelW - (80f * uiScale), 44f * uiScale);
         Rectangle continueButton = null;
         if (rulesOpenedFromStart) {
-            continueButton = new Rectangle(panel.x + 40f, panel.y + 76f, panelW - 80f, 44f);
+            continueButton = new Rectangle(panel.x + (40f * uiScale), panel.y + (76f * uiScale), panelW - (80f * uiScale), 44f * uiScale);
         }
 
         HowToPlayAction action = HowToPlayAction.NONE;
@@ -222,7 +249,7 @@ public final class AppUiRenderer {
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         shapeRenderer.setColor(0.1f, 0.45f, 0.78f, 0.5f);
-        shapeRenderer.rect(panel.x + 8f, panel.y + panelH - 48f, panelW - 16f, 36f);
+        shapeRenderer.rect(panel.x + (8f * uiScale), panel.y + panelH - (48f * uiScale), panelW - (16f * uiScale), 36f * uiScale);
         shapeRenderer.end();
 
         drawActionButton(backButton, new Color(0.2f, 0.2f, 0.25f, 1f));
@@ -232,25 +259,25 @@ public final class AppUiRenderer {
 
         batch.begin();
 
-        float textX = panel.x + 52f;
+        float textX = panel.x + (52f * uiScale);
         float originalScaleX = font.getData().scaleX;
         float originalScaleY = font.getData().scaleY;
 
-        font.getData().setScale(1.2f, 1.2f);
+        font.getData().setScale(1.2f * uiScale, 1.2f * uiScale);
         font.setColor(Color.WHITE);
-        font.draw(batch, "HOW TO PLAY", panel.x + 40f, panel.y + panelH - 22f);
+        font.draw(batch, "HOW TO PLAY", panel.x + (40f * uiScale), panel.y + panelH - (22f * uiScale));
 
-        font.getData().setScale(1f, 1f);
+        font.getData().setScale(uiScale, uiScale);
         // TIGHTENED SPACING: Reduced the subtracted numbers to pull the text higher
-        font.draw(batch, "1.  Move with WASD or arrow keys.", textX, panel.y + panelH - 80f);
-        font.draw(batch, "2.  Collect food items to fill your plate:", textX, panel.y + panelH - 120f);
+        font.draw(batch, "1.  Move with WASD or arrow keys.", textX, panel.y + panelH - (80f * uiScale));
+        font.draw(batch, "2.  Collect food items to fill your plate:", textX, panel.y + panelH - (120f * uiScale));
 
-        float iconSize   = 32f;
-        float usableW    = panelW - 80f - 20f;
+        float iconSize   = 32f * uiScale;
+        float usableW    = panelW - (80f * uiScale) - (20f * uiScale);
         float colSpacing = usableW / 4f;
-        float iconStartX = textX + 20f;
+        float iconStartX = textX + (20f * uiScale);
         // Moved the row of icons up
-        float iconY      = panel.y + panelH - 170f;
+        float iconY      = panel.y + panelH - (170f * uiScale);
 
         String[] ranges = {"2 - 4", "1 - 3", "1 - 2", "0 - 1"};
         Texture[] icons = {vegeIcon, proteinIcon, carbIcon, oilIcon};
@@ -260,21 +287,21 @@ public final class AppUiRenderer {
             if (icons[i] != null) {
                 batch.draw(icons[i], colX, iconY, iconSize, iconSize);
             }
-            font.getData().setScale(1.2f, 1.2f);
+            font.getData().setScale(1.2f * uiScale, 1.2f * uiScale);
             font.setColor(Color.WHITE);
-            font.draw(batch, ranges[i], colX + iconSize + 6f, iconY + iconSize - 4f);
+            font.draw(batch, ranges[i], colX + iconSize + (6f * uiScale), iconY + iconSize - (4f * uiScale));
         }
 
-        font.getData().setScale(1f, 1f);
+        font.getData().setScale(uiScale, uiScale);
         // Pulled Step 3 and Step 4 significantly higher to avoid the buttons
-        font.draw(batch, "3.  Press  ENTER  to submit plate, repeat until time ends.", textX, panel.y + panelH - 220f);
-        font.draw(batch, "4.  Press  R  to reset plate,  ESC  to pause/resume.", textX, panel.y + panelH - 260f);
+        font.draw(batch, "3.  Press  ENTER  to submit plate, repeat until time ends.", textX, panel.y + panelH - (220f * uiScale));
+        font.draw(batch, "4.  Press  R  to reset plate,  ESC  to pause/resume.", textX, panel.y + panelH - (260f * uiScale));
 
         String backText = rulesOpenedFromPause ? "Back to Pause Menu" : "Back to Main Menu";
-        font.draw(batch, backText, backButton.x + 20f, backButton.y + 28f);
+        font.draw(batch, backText, backButton.x + (20f * uiScale), backButton.y + (28f * uiScale));
 
         if (rulesOpenedFromStart) {
-            font.draw(batch, "Continue to Player Setup", continueButton.x + 20f, continueButton.y + 28f);
+            font.draw(batch, "Continue to Player Setup", continueButton.x + (20f * uiScale), continueButton.y + (28f * uiScale));
         }
 
         drawStatus(20f, 24f);
@@ -287,6 +314,7 @@ public final class AppUiRenderer {
 
     public LeaderboardEntryAction renderLeaderboardEntry(int finalScore, Texture selectedAvatarTexture, String playerNameInput, boolean leaderboardNameEditing) {
         applyFullScreenProjection();
+        chromeScale = getFullscreenUiScale();
 
         float width   = Gdx.graphics.getWidth();
         float height  = Gdx.graphics.getHeight();
@@ -393,44 +421,51 @@ public final class AppUiRenderer {
 
     public LeaderboardViewAction renderLeaderboardView(List<? extends LeaderboardRow> rows, boolean leaderboardOpenedFromMenu) {
         applyFullScreenProjection();
+        float uiScale = getFullscreenUiScale();
+        chromeScale = uiScale;
 
         float width = Gdx.graphics.getWidth();
         float height = Gdx.graphics.getHeight();
         float centerX = width / 2f;
-        float panelW = Math.min(800f, width - 80f);
-        float panelH = Math.min(540f, height - 80f);
+        float panelW = Math.min(800f * uiScale, width - (80f * uiScale));
+        float panelH = Math.min(540f * uiScale, height - (80f * uiScale));
         Rectangle panel = new Rectangle(centerX - panelW / 2f, (height - panelH) / 2f, panelW, panelH);
         String footerLabel = leaderboardOpenedFromMenu ? "Back to Main Menu" : "Play Again";
-        Rectangle footerButton = new Rectangle(panel.x + 40f, panel.y + 30f, panelW - 80f, 44f);
+        Rectangle footerButton = new Rectangle(panel.x + (40f * uiScale), panel.y + (30f * uiScale), panelW - (80f * uiScale), 44f * uiScale);
 
         LeaderboardViewAction action = consumeClick(footerButton) ? LeaderboardViewAction.FOOTER_CLICKED : LeaderboardViewAction.NONE;
 
         drawScreenPanel(panel);
         drawActionButton(footerButton, new Color(0.2f, 0.2f, 0.25f, 1f));
 
+        float baseScaleX = font.getData().scaleX;
+        float baseScaleY = font.getData().scaleY;
+        font.getData().setScale(baseScaleX * uiScale, baseScaleY * uiScale);
+
         batch.begin();
-        float topY = panel.y + panelH - 28f;
-        font.draw(batch, "LEADERBOARD", panel.x + 40f, topY);
+        float topY = panel.y + panelH - (28f * uiScale);
+        font.draw(batch, "LEADERBOARD", panel.x + (40f * uiScale), topY);
 
         int maxRows = Math.min(10, rows.size());
-        float rowY = topY - 42f;
+        float rowY = topY - (42f * uiScale);
         for (int i = 0; i < maxRows; i++) {
             LeaderboardRow entry = rows.get(i);
-            float rowX = panel.x + 40f;
+            float rowX = panel.x + (40f * uiScale);
             font.draw(batch, String.format("%2d.", i + 1), rowX, rowY);
             if (entry.getAvatarTexture() != null) {
-                batch.draw(entry.getAvatarTexture(), rowX + 34f, rowY - 18f, 24f, 24f);
+                batch.draw(entry.getAvatarTexture(), rowX + (34f * uiScale), rowY - (18f * uiScale), 24f * uiScale, 24f * uiScale);
             }
-            font.draw(batch, entry.getName(), rowX + 70f, rowY);
-            font.draw(batch, "Score: " + entry.getScore(), panel.x + panelW - 170f, rowY);
-            rowY -= 30f;
+            font.draw(batch, entry.getName(), rowX + (70f * uiScale), rowY);
+            font.draw(batch, "Score: " + entry.getScore(), panel.x + panelW - (170f * uiScale), rowY);
+            rowY -= 30f * uiScale;
         }
 
         if (rows.isEmpty()) {
-            font.draw(batch, "No entries yet.", panel.x + 40f, topY - 42f);
+            font.draw(batch, "No entries yet.", panel.x + (40f * uiScale), topY - (42f * uiScale));
         }
 
-        font.draw(batch, footerLabel, footerButton.x + 16f, footerButton.y + 28f);
+        font.draw(batch, footerLabel, footerButton.x + (16f * uiScale), footerButton.y + (28f * uiScale));
+        font.getData().setScale(baseScaleX, baseScaleY);
         drawStatus(20f, 24f);
         batch.end();
         return action;
@@ -453,15 +488,22 @@ public final class AppUiRenderer {
         return new Texture(Gdx.files.internal(assetName));
     }
 
+    private float getFullscreenUiScale() {
+        float width = Math.max(1f, Gdx.graphics.getWidth());
+        float height = Math.max(1f, Gdx.graphics.getHeight());
+        float scale = Math.min(width / 800f, height / 600f);
+        return Math.max(1f, Math.min(1.8f, scale));
+    }
+
     private void drawDifficultyOption(SpriteBatch batch, Texture icon, Rectangle bounds, String label) {
-        float textX = bounds.x + 20f;
+        float textX = bounds.x + (20f * chromeScale);
         if (icon != null) {
-            float iconSize = Math.min(30f, bounds.height - 12f);
-            float iconX = bounds.x + 12f;
+            float iconSize = Math.min(32f * chromeScale, bounds.height - (12f * chromeScale));
+            float iconX = bounds.x + (12f * chromeScale);
             float iconY = bounds.y + (bounds.height - iconSize) / 2f;
             batch.draw(icon, iconX, iconY, iconSize, iconSize);
-            textX = iconX + iconSize + 12f;
+            textX = iconX + iconSize + (12f * chromeScale);
         }
-        font.draw(batch, label, textX, bounds.y + 30f);
+        font.draw(batch, label, textX, bounds.y + (30f * chromeScale));
     }
 }
