@@ -106,9 +106,14 @@ public final class AppUiRenderer {
         int logicalHeight = Gdx.graphics.getHeight();
         int pixelWidth = Gdx.graphics.getBackBufferWidth();
         int pixelHeight = Gdx.graphics.getBackBufferHeight();
+        
         Gdx.gl.glViewport(0, 0, pixelWidth, pixelHeight);
-        batch.getProjectionMatrix().setToOrtho2D(0, 0, logicalWidth, logicalHeight);
-        shapeRenderer.setProjectionMatrix(batch.getProjectionMatrix());
+        
+        camera.setToOrtho(false, logicalWidth, logicalHeight);
+        camera.update();
+        
+        batch.setProjectionMatrix(camera.combined);
+        shapeRenderer.setProjectionMatrix(camera.combined);
     }
 
     public void drawScreenPanel(Rectangle panel) {
