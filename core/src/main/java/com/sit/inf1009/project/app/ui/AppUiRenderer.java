@@ -33,6 +33,30 @@ public final class AppUiRenderer {
         BACK_TO_MENU
     }
 
+    public static final class DifficultyRenderResult {
+        private final DifficultyAction action;
+        private final float musicVolume;
+        private final boolean musicVolumeChanged;
+
+        public DifficultyRenderResult(DifficultyAction action, float musicVolume, boolean musicVolumeChanged) {
+            this.action = action;
+            this.musicVolume = musicVolume;
+            this.musicVolumeChanged = musicVolumeChanged;
+        }
+
+        public DifficultyAction action() {
+            return action;
+        }
+
+        public float musicVolume() {
+            return musicVolume;
+        }
+
+        public boolean musicVolumeChanged() {
+            return musicVolumeChanged;
+        }
+    }
+
     public enum HowToPlayAction {
         NONE, 
         BACK_TO_MENU, 
@@ -157,7 +181,7 @@ public final class AppUiRenderer {
         };
     }
 
-    public DifficultyAction renderDifficultySettings(DifficultyPreset difficultyPreset) {
+    public DifficultyRenderResult renderDifficultySettings(DifficultyPreset difficultyPreset, float currentMusicVolume) {
         applyFullScreenProjection();
         float uiScale = getFullscreenUiScale();
         chromeScale = uiScale;
@@ -196,19 +220,54 @@ public final class AppUiRenderer {
         if (consumeClick(hardButton)) action = DifficultyAction.SET_HARD;
         if (consumeClick(backButton)) action = DifficultyAction.BACK_TO_MENU;
 
+        float sliderW = 170f * uiScale;
+        float sliderH = 10f * uiScale;
+        float sliderX = panel.x + panel.width - sidePad - sliderW;
+        float sliderY = panel.y + panel.height - (62f * uiScale);
+        Rectangle sliderTrack = new Rectangle(sliderX, sliderY, sliderW, sliderH);
+        float knobRadius = 9f * uiScale;
+        Rectangle sliderHitbox = new Rectangle(sliderTrack.x - knobRadius, sliderTrack.y - knobRadius, sliderTrack.width + knobRadius * 2f, sliderTrack.height + knobRadius * 2f);
+
+        float musicVolume = Math.max(0f, Math.min(1f, currentMusicVolume));
+        boolean musicVolumeChanged = false;
+        if (Gdx.input.isTouched()) {
+            float tx = Gdx.input.getX();
+            float ty = Gdx.graphics.getHeight() - Gdx.input.getY();
+            if (sliderHitbox.contains(tx, ty)) {
+                float nextVolume = (tx - sliderTrack.x) / sliderTrack.width;
+                nextVolume = Math.max(0f, Math.min(1f, nextVolume));
+                if (Math.abs(nextVolume - musicVolume) > 0.001f) {
+                    musicVolume = nextVolume;
+                    musicVolumeChanged = true;
+                }
+            }
+        }
+
         drawScreenPanel(panel);
         drawActionButton(easyButton, difficultyPreset == DifficultyPreset.EASY ? new Color(0.16f, 0.62f, 0.2f, 1f) : new Color(0.12f, 0.34f, 0.18f, 1f));
         drawActionButton(normalButton, difficultyPreset == DifficultyPreset.NORMAL ? new Color(0.1f, 0.45f, 0.78f, 1f) : new Color(0.1f, 0.26f, 0.45f, 1f));
         drawActionButton(hardButton, difficultyPreset == DifficultyPreset.HARD ? new Color(0.75f, 0.22f, 0.22f, 1f) : new Color(0.4f, 0.16f, 0.16f, 1f));
         drawActionButton(backButton, new Color(0.2f, 0.2f, 0.25f, 1f));
 
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        shapeRenderer.setColor(0.2f, 0.23f, 0.3f, 1f);
+        shapeRenderer.rect(sliderTrack.x, sliderTrack.y, sliderTrack.width, sliderTrack.height);
+        shapeRenderer.setColor(0.12f, 0.65f, 0.22f, 1f);
+        shapeRenderer.rect(sliderTrack.x, sliderTrack.y, sliderTrack.width * musicVolume, sliderTrack.height);
+        float knobX = sliderTrack.x + (sliderTrack.width * musicVolume);
+        float knobY = sliderTrack.y + (sliderTrack.height / 2f);
+        shapeRenderer.setColor(0.92f, 0.96f, 1f, 1f);
+        shapeRenderer.circle(knobX, knobY, knobRadius);
+        shapeRenderer.end();
+
         float baseScaleX = font.getData().scaleX;
         float baseScaleY = font.getData().scaleY;
         font.getData().setScale(baseScaleX * uiScale, baseScaleY * uiScale);
 
         batch.begin();
-        font.draw(batch, "GAME SETTINGS", panel.x + (40f * uiScale), panel.y + panelH - (28f * uiScale));
+        font.draw(batch, "SETTINGS", panel.x + (40f * uiScale), panel.y + panelH - (28f * uiScale));
         font.draw(batch, "Difficulty: " + difficultyPreset.getLabel(), panel.x + (40f * uiScale), panel.y + panelH - (58f * uiScale));
+        font.draw(batch, "Music: " + Math.round(musicVolume * 100f) + "%", sliderTrack.x, sliderTrack.y + (30f * uiScale));
         drawDifficultyOption(batch, easyDifficultyIcon, easyButton, "Easy   - 75s, +6s / -3s submit");
         drawDifficultyOption(batch, normalDifficultyIcon, normalButton, "Normal - 60s, +5s / -5s submit");
         drawDifficultyOption(batch, hardDifficultyIcon, hardButton, "Hard   - 45s, +4s / -6s submit");
@@ -216,7 +275,7 @@ public final class AppUiRenderer {
         font.getData().setScale(baseScaleX, baseScaleY);
         drawStatus(20f, 24f);
         batch.end();
-        return action;
+        return new DifficultyRenderResult(action, musicVolume, musicVolumeChanged);
     }
 
     public HowToPlayAction renderHowToPlay(boolean rulesOpenedFromPause, boolean rulesOpenedFromStart) {

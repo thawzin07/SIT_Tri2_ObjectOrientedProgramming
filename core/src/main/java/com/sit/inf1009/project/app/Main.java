@@ -83,6 +83,7 @@ public class Main extends ApplicationAdapter {
     private DifficultyConfig difficultyConfig;
     private boolean paused;
     private boolean rulesOpenedFromPause = false;
+    private float musicVolume = 1.0f;
     private boolean rulesOpenedFromStart = false;
 
     private Texture[] presetAvatars;
@@ -133,6 +134,7 @@ public class Main extends ApplicationAdapter {
         ioManager.registerInputHandler(new LibGdxMouseInputHandler(ioManager));
         playerImageInputService = new PlayerImageInputService(ioManager);
         ioManager.registerOutputHandler(new SoundOutputHandler());
+        ioManager.sendOutput(new IOEvent(IOEvent.Type.SOUND_SET_MUSIC_VOLUME, musicVolume));
 
         presetAvatarLabels = new String[] { "", "", "" };
         presetAvatars = new Texture[] {
@@ -242,7 +244,12 @@ public class Main extends ApplicationAdapter {
     }
 
     private void renderDifficultySettings() {
-        AppUiRenderer.DifficultyAction action = appUiRenderer.renderDifficultySettings(difficultyPreset);
+        AppUiRenderer.DifficultyRenderResult result = appUiRenderer.renderDifficultySettings(difficultyPreset, musicVolume);
+        if (result.musicVolumeChanged()) {
+            musicVolume = result.musicVolume();
+            ioManager.sendOutput(new IOEvent(IOEvent.Type.SOUND_SET_MUSIC_VOLUME, musicVolume));
+        }
+        AppUiRenderer.DifficultyAction action = result.action();
         if (action != AppUiRenderer.DifficultyAction.NONE) {
             playButtonClick();
         }
