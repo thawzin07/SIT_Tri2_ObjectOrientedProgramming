@@ -5,6 +5,7 @@ import com.sit.inf1009.project.engine.components.AIMovement;
 import com.sit.inf1009.project.game.components.FoodCollidableComponent;
 import com.sit.inf1009.project.game.domain.FoodCategory;
 import com.sit.inf1009.project.game.domain.GameSession;
+import com.sit.inf1009.project.game.entities.FoodEntity;
 import com.sit.inf1009.project.engine.entities.Entity;
 
 import java.util.Map;
@@ -50,7 +51,7 @@ public final class FoodFactory {
 
         FoodCategory category = resolveCategory(requestedCategory);
 
-        Entity npc = new Entity(id);
+        Entity npc = new FoodEntity(id, category);
 
         npc.setXPosition(minX + rng.nextInt(Math.max(1, maxX - minX)));
         npc.setYPosition(minY + rng.nextInt(Math.max(1, maxY - minY)));
