@@ -14,9 +14,6 @@ import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.math.Vector3;
 import com.sit.inf1009.project.app.controllers.GameFlowController;
-import com.sit.inf1009.project.app.controllers.GameplayController;
-import com.sit.inf1009.project.app.controllers.LeaderboardController;
-import com.sit.inf1009.project.app.controllers.SettingsController;
 import com.sit.inf1009.project.app.flow.AvatarFlowOrchestrator;
 import com.sit.inf1009.project.app.flow.GameplayLoopOrchestrator;
 import com.sit.inf1009.project.app.flow.LeaderboardFlowOrchestrator;
@@ -40,6 +37,7 @@ import com.sit.inf1009.project.engine.managers.MovementManager;
 import com.sit.inf1009.project.engine.managers.SceneManager;
 import com.sit.inf1009.project.engine.managers.CollisionManager;
 import com.sit.inf1009.project.game.persistence.LeaderboardFileStore;
+import com.sit.inf1009.project.game.persistence.LeaderboardStore;
 import com.sit.inf1009.project.game.services.FoodSpawnCoordinator;
 import com.sit.inf1009.project.game.ui.screens.AvatarSetupFlowScreen;
 import com.sit.inf1009.project.game.ui.screens.StartMenuScene;
@@ -57,9 +55,7 @@ public class Main extends ApplicationAdapter {
     private static final float BUTTON_H = 38f;
     private static final String LEADERBOARD_FILE = "leaderboard.txt";
     private final GameFlowController flowController = new GameFlowController(GameState.FOOD_MENU);
-    private final SettingsController settingsController = new SettingsController(DifficultyPreset.NORMAL);
-    private final GameplayController gameplayController = new GameplayController();
-    private final LeaderboardController leaderboardController = new LeaderboardController(new LeaderboardFileStore());
+    private final LeaderboardStore leaderboardStore = new LeaderboardFileStore();
 
     private ShapeRenderer shapeRenderer;
     private SpriteBatch batch;
@@ -122,10 +118,10 @@ public class Main extends ApplicationAdapter {
         collisionManager = new CollisionManager(entityManager, ioManager);
         sceneManager = new SceneManager();
         foodSpawnCoordinator = new FoodSpawnCoordinator(entityManager, movementManager);
-        difficultyPreset = settingsController.getPreset();
-        difficultyConfig = settingsController.getConfig();
+        difficultyPreset = DifficultyPreset.NORMAL;
+        difficultyConfig = difficultyPreset.toConfig();
         gameState = flowController.getState();
-        gameSession = gameplayController.createSession(settingsController.getConfig());
+        gameSession = GameSession.fromConfig(difficultyConfig);
         paused = false;
 
         ioManager.registerInputHandler(new KeyboardInputHandler(ioManager));
@@ -246,20 +242,17 @@ public class Main extends ApplicationAdapter {
         switch (action) {
             case SET_EASY:
                 difficultyPreset = DifficultyPreset.EASY;
-                settingsController.setPreset(difficultyPreset);
-                difficultyConfig = settingsController.getConfig();
+                difficultyConfig = difficultyPreset.toConfig();
                 showStatus("Difficulty set: Easy", 2f);
                 break;
             case SET_NORMAL:
                 difficultyPreset = DifficultyPreset.NORMAL;
-                settingsController.setPreset(difficultyPreset);
-                difficultyConfig = settingsController.getConfig();
+                difficultyConfig = difficultyPreset.toConfig();
                 showStatus("Difficulty set: Normal", 2f);
                 break;
             case SET_HARD:
                 difficultyPreset = DifficultyPreset.HARD;
-                settingsController.setPreset(difficultyPreset);
-                difficultyConfig = settingsController.getConfig();
+                difficultyConfig = difficultyPreset.toConfig();
                 showStatus("Difficulty set: Hard", 2f);
                 break;
             case BACK_TO_MENU:
@@ -415,7 +408,7 @@ public class Main extends ApplicationAdapter {
     }
 
     private void startNewGame() {
-        gameSession = gameplayController.createSession(difficultyConfig);
+        gameSession = GameSession.fromConfig(difficultyConfig);
         paused = false;
         leaderboardNameEditing = false;
         playerNameInput = "";
@@ -492,7 +485,6 @@ public class Main extends ApplicationAdapter {
 
     private void submitLeaderboardEntry() {
         LeaderboardFlowOrchestrator.SubmitResult result = LeaderboardFlowOrchestrator.submitEntry(
-                leaderboardController,
                 leaderboardEntries,
                 playerNameInput,
                 gameSession.getScore(),
@@ -514,11 +506,11 @@ public class Main extends ApplicationAdapter {
 
     private void loadLeaderboardEntries() {
         leaderboardEntries.clear();
-        leaderboardEntries.addAll(LeaderboardFlowOrchestrator.loadEntries(leaderboardController, LEADERBOARD_FILE, presetAvatars));
+        leaderboardEntries.addAll(LeaderboardFlowOrchestrator.loadEntries(leaderboardStore, LEADERBOARD_FILE, presetAvatars));
     }
 
     private void saveLeaderboardEntries() {
-        LeaderboardFlowOrchestrator.saveEntries(leaderboardController, LEADERBOARD_FILE, leaderboardEntries);
+        LeaderboardFlowOrchestrator.saveEntries(leaderboardStore, LEADERBOARD_FILE, leaderboardEntries);
     }
 
     private void wirePlayerImageSelectionEvents() {
@@ -583,15 +575,19 @@ public class Main extends ApplicationAdapter {
     }
 
     public void addFood(FoodCategory category, int scoreValue) {
-        gameplayController.addFood(gameSession, category, scoreValue);
+        if (gameSession != null && category != null) {
+            gameSession.addFood(category, scoreValue);
+        }
     }
 
     public boolean isPlateHealthy() {
-        return gameplayController.isPlateHealthy(gameSession);
+        return gameSession != null && gameSession.isPlateHealthy();
     }
 
     public void submitPlate() {
-        GameplayController.PlateSubmitResult result = gameplayController.submitPlate(gameSession);
+        GameSession.PlateSubmitResult result = gameSession == null
+                ? new GameSession.PlateSubmitResult(false, 0, 0f)
+                : gameSession.submitPlate();
         if (result.isHealthy()) {
             showStatus("Healthy plate! +" + result.getHealthyScoreBonus() + " score, +"
                     + (int) result.getTimerDeltaSeconds() + "s. Plate reset.", 2.5f);
@@ -602,7 +598,9 @@ public class Main extends ApplicationAdapter {
     }
 
     public void resetPlate() {
-        gameplayController.resetPlate(gameSession);
+        if (gameSession != null) {
+            gameSession.resetPlate();
+        }
     }
 
     @Override
