@@ -37,7 +37,8 @@ public final class AppUiRenderer {
     public enum HowToPlayAction {
         NONE,
         BACK_TO_MENU,
-        BACK_TO_PAUSE
+        BACK_TO_PAUSE,
+        CONTINUE_TO_AVATAR
     }
 
     public enum LeaderboardEntryAction {
@@ -125,13 +126,6 @@ public final class AppUiRenderer {
     public void drawTextInputField(Rectangle bounds, boolean active) {
         UiPanelRenderer.drawTextInputField(shapeRenderer, bounds, active);
     }
-
-//    public void drawStatus(float x, float y) {
-//        if (!flowController.hasStatus()) {
-//            return;
-//        }
-//        font.draw(batch, flowController.getStatusMessage(), x, y);
-//    }
     
     public void drawStatus(float x, float y) {
         if (!flowController.hasStatus()) {
@@ -140,27 +134,21 @@ public final class AppUiRenderer {
 
         String statusMessage = flowController.getStatusMessage();
         
-        // 1. Measure the text
         GlyphLayout layout = new GlyphLayout(font, statusMessage);
         float padding = 8f;
 
-        // 2. Pause the SpriteBatch so we can draw shapes behind the text
         batch.end();
 
-        // 3. Enable transparency
         Gdx.gl.glEnable(GL20.GL_BLEND);
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
 
-        // 4. Draw the semi-transparent black box
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         shapeRenderer.setColor(0f, 0f, 0f, 0.7f);
         shapeRenderer.rect(x - padding, y - layout.height - padding, layout.width + (padding * 2), layout.height + (padding * 2));
         shapeRenderer.end();
 
-        // Disable transparency
         Gdx.gl.glDisable(GL20.GL_BLEND);
 
-        // 5. Restart the SpriteBatch and draw the text on top
         batch.begin();
         font.draw(batch, statusMessage, x, y);
     }
@@ -226,7 +214,7 @@ public final class AppUiRenderer {
         return action;
     }
 
-    public HowToPlayAction renderHowToPlay(boolean rulesOpenedFromPause) {
+    public HowToPlayAction renderHowToPlay(boolean rulesOpenedFromPause, boolean rulesOpenedFromStart) {
         applyFullScreenProjection();
 
         float width = Gdx.graphics.getWidth();
@@ -235,15 +223,27 @@ public final class AppUiRenderer {
         float panelW = Math.min(840f, width - 80f);
         float panelH = Math.min(520f, height - 80f);
         Rectangle panel = new Rectangle(centerX - panelW / 2f, (height - panelH) / 2f, panelW, panelH);
+        
         Rectangle backButton = new Rectangle(panel.x + 40f, panel.y + 30f, panelW - 80f, 44f);
+        Rectangle continueButton = null;
+        if (rulesOpenedFromStart) {
+            continueButton = new Rectangle(panel.x + 40f, panel.y + 90f, panelW - 80f, 44f);
+        }
 
         HowToPlayAction action = HowToPlayAction.NONE;
         if (consumeClick(backButton)) {
             action = rulesOpenedFromPause ? HowToPlayAction.BACK_TO_PAUSE : HowToPlayAction.BACK_TO_MENU;
         }
+        if (rulesOpenedFromStart && consumeClick(continueButton)) {
+            action = HowToPlayAction.CONTINUE_TO_AVATAR;
+        }
 
         drawScreenPanel(panel);
         drawActionButton(backButton, new Color(0.2f, 0.2f, 0.25f, 1f));
+        
+        if (rulesOpenedFromStart) {
+            drawActionButton(continueButton, new Color(0.16f, 0.62f, 0.2f, 1f));
+        }
 
         batch.begin();
         float textX = panel.x + 40f;
@@ -257,8 +257,14 @@ public final class AppUiRenderer {
         font.draw(batch, "6. Press Enter to submit plate (this resets plate).", textX, topY - 182f);
         font.draw(batch, "7. Press R to clear plate, Esc to pause/resume.", textX, topY - 210f);
         font.draw(batch, "8. Timer end -> submit name/avatar to leaderboard.", textX, topY - 238f);
+        
         String backText = rulesOpenedFromPause ? "Back to Pause Menu" : "Back to Main Menu";
         font.draw(batch, backText, backButton.x + 20f, backButton.y + 28f);
+
+        if (rulesOpenedFromStart) {
+            font.draw(batch, "Continue to Player Setup", continueButton.x + 20f, continueButton.y + 28f);
+        }
+        
         drawStatus(20f, 24f);
         batch.end();
         return action;
