@@ -34,11 +34,16 @@ public final class GameplayLoopOrchestrator {
         QUIT_TO_MENU
     }
 
+    public enum HudAction {
+        NONE,
+        PAUSE_CLICKED
+    }
+
     private GameplayLoopOrchestrator() {
     }
 
-    public static boolean togglePauseOnSpace(boolean paused) {
-        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+    public static boolean togglePauseOnEsc(boolean paused) {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             return !paused;
         }
         return paused;
@@ -70,7 +75,7 @@ public final class GameplayLoopOrchestrator {
         return nextTimer <= 0f;
     }
 
-    public static void renderWorldAndHud(ShapeRenderer shapeRenderer,
+    public static HudAction renderWorldAndHud(ShapeRenderer shapeRenderer,
                                          SpriteBatch batch,
                                          BitmapFont font,
                                          EntityManager entityManager,
@@ -177,9 +182,35 @@ public final class GameplayLoopOrchestrator {
         drawHudFoodCounter(batch, font, gameplayRuntime.getFoodTexture(FoodCategory.OIL),
                 gameSession.getOilCount(), countersX + (counterStep * 3f), iconY, iconSize, counterStep);
 
+        // Pause button in HUD bar, placed between score/difficulty and food counters
+        float pauseBtnW = 70f * hudScale;
+        float pauseBtnH = hudHeight - 8f;
+        float pauseBtnX = countersX - pauseBtnW - (10f * hudScale);
+        float pauseBtnY = hudY + 4f;
+        Rectangle pauseHudBtn = new Rectangle(pauseBtnX, pauseBtnY, pauseBtnW, pauseBtnH);
+
         font.getData().setScale(originalFontScaleX, originalFontScaleY);
         appUiRenderer.drawStatus(20f, 24f);
         batch.end();
+
+        // Draw pause button shape (shapeRenderer outside batch)
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        shapeRenderer.setColor(0.55f, 0.28f, 0.08f, 1f);
+        shapeRenderer.rect(pauseBtnX, pauseBtnY, pauseBtnW, pauseBtnH);
+        shapeRenderer.end();
+
+        batch.begin();
+        font.getData().setScale(hudScale);
+        font.setColor(Color.WHITE);
+        font.draw(batch, "| |  Pause", pauseBtnX + 6f * hudScale, pauseBtnY + pauseBtnH - (4f * hudScale));
+        font.getData().setScale(originalFontScaleX, originalFontScaleY);
+        batch.end();
+
+        HudAction hudAction = HudAction.NONE;
+        if (appUiRenderer.consumeClick(pauseHudBtn)) {
+            hudAction = HudAction.PAUSE_CLICKED;
+        }
+        return hudAction;
     }
 
     private static float drawHudFoodCounter(SpriteBatch batch,

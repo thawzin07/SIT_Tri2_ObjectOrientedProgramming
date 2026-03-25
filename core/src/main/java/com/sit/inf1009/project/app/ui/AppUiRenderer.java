@@ -220,7 +220,7 @@ public final class AppUiRenderer {
         font.draw(batch, "4. Move with WASD and catch food items.", textX, topY - 126f);
         font.draw(batch, "5. Build a healthy plate target: Veg: 2-4 Protein: 1-3 Carbs: 1-2 Oil: 0-1", textX, topY - 154f);
         font.draw(batch, "6. Press Enter to submit plate (this resets plate).", textX, topY - 182f);
-        font.draw(batch, "7. Press R to clear plate, Space to pause/resume.", textX, topY - 210f);
+        font.draw(batch, "7. Press R to clear plate, Esc to pause/resume.", textX, topY - 210f);
         font.draw(batch, "8. Timer end -> submit name/avatar to leaderboard.", textX, topY - 238f);
         String backText = rulesOpenedFromPause ? "Back to Pause Menu" : "Back to Main Menu";
         font.draw(batch, backText, backButton.x + 20f, backButton.y + 28f);
@@ -230,60 +230,129 @@ public final class AppUiRenderer {
     }
 
     public LeaderboardEntryAction renderLeaderboardEntry(int finalScore,
-                                                         Texture selectedAvatarTexture,
-                                                         String playerNameInput,
-                                                         boolean leaderboardNameEditing) {
-        applyFullScreenProjection();
+            Texture selectedAvatarTexture,
+            String playerNameInput,
+            boolean leaderboardNameEditing) {
+applyFullScreenProjection();
 
-        float width = Gdx.graphics.getWidth();
-        float height = Gdx.graphics.getHeight();
-        float centerX = width / 2f;
-        float panelW = Math.min(760f, width - 80f);
-        float panelH = Math.min(520f, height - 80f);
-        Rectangle panel = new Rectangle(centerX - panelW / 2f, (height - panelH) / 2f, panelW, panelH);
+float width   = Gdx.graphics.getWidth();
+float height  = Gdx.graphics.getHeight();
+float centerX = width / 2f;
+float panelW  = Math.min(760f, width - 80f);
+float panelH  = Math.min(580f, height - 60f);
+Rectangle panel = new Rectangle(centerX - panelW / 2f, (height - panelH) / 2f, panelW, panelH);
 
-        Rectangle nameField = new Rectangle(panel.x + 40f, panel.y + panelH - 170f, panelW - 80f, 48f);
-        Rectangle uploadButton = new Rectangle(panel.x + 40f, panel.y + panelH - 235f, panelW - 80f, 48f);
-        Rectangle submitButton = new Rectangle(panel.x + 40f, panel.y + panelH - 300f, panelW - 80f, 48f);
-        Rectangle backButton = new Rectangle(panel.x + 40f, panel.y + 30f, panelW - 80f, 44f);
+float pad  = 40f;
+float btnW = panelW - pad * 2f;
+float btnH = 44f;
+float gap  = 12f;
 
-        LeaderboardEntryAction action = LeaderboardEntryAction.NONE;
-        if (consumeClick(nameField)) action = LeaderboardEntryAction.ENABLE_NAME_EDIT;
-        if (consumeClick(uploadButton)) action = LeaderboardEntryAction.REQUEST_UPLOAD;
-        if (consumeClick(submitButton)) action = LeaderboardEntryAction.SUBMIT;
-        if (consumeClick(backButton)) action = LeaderboardEntryAction.BACK_TO_MENU;
+// ── Stack buttons from bottom up ──────────────────────────────────────
+Rectangle backButton   = new Rectangle(panel.x + pad, panel.y + 28f,                 btnW, btnH);
+Rectangle submitButton = new Rectangle(panel.x + pad, backButton.y   + btnH + gap,   btnW, btnH);
+Rectangle uploadButton = new Rectangle(panel.x + pad, submitButton.y + btnH + gap,   btnW, btnH);
+Rectangle nameField    = new Rectangle(panel.x + pad, uploadButton.y + btnH + gap,   btnW, 42f);
 
-        drawScreenPanel(panel);
-        drawTextInputField(nameField, leaderboardNameEditing);
-        drawActionButton(uploadButton, new Color(0.12f, 0.34f, 0.5f, 1f));
-        drawActionButton(submitButton, new Color(0.13f, 0.47f, 0.2f, 1f));
-        drawActionButton(backButton, new Color(0.2f, 0.2f, 0.25f, 1f));
+// ── Hit detection ─────────────────────────────────────────────────────
+LeaderboardEntryAction action = LeaderboardEntryAction.NONE;
+if (consumeClick(nameField))    action = LeaderboardEntryAction.ENABLE_NAME_EDIT;
+if (consumeClick(uploadButton)) action = LeaderboardEntryAction.REQUEST_UPLOAD;
+if (consumeClick(submitButton)) action = LeaderboardEntryAction.SUBMIT;
+if (consumeClick(backButton))   action = LeaderboardEntryAction.BACK_TO_MENU;
 
-        batch.begin();
-        float headerY = panel.y + panelH - 28f;
-        font.draw(batch, "RUN COMPLETE", panel.x + 40f, headerY);
-        font.draw(batch, "Final Score: " + finalScore, panel.x + 40f, headerY - 30f);
-        font.draw(batch, "Enter your name and submit to leaderboard", panel.x + 40f, headerY - 58f);
+// ── Background ────────────────────────────────────────────────────────
+drawScreenPanel(panel);
 
-        if (selectedAvatarTexture != null) {
-            font.draw(batch, "Avatar:", panel.x + 40f, headerY - 86f);
-            batch.draw(selectedAvatarTexture, panel.x + 90f, headerY - 104f, 28f, 28f);
-        } else {
-            font.draw(batch, "Avatar: <none>", panel.x + 40f, headerY - 86f);
-        }
+// ── Divider between info area and input area ──────────────────────────
+float dividerY = nameField.y + 42f + gap * 2f;
+shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+shapeRenderer.setColor(0.72f, 0.78f, 0.9f, 0.25f);
+shapeRenderer.rect(panel.x + pad, dividerY, panelW - pad * 2f, 1f);
+shapeRenderer.end();
 
-        String shownName = playerNameInput.isBlank() ? "Type your name..." : playerNameInput;
-        if (leaderboardNameEditing && ((System.currentTimeMillis() / 350L) % 2L == 0L)) {
-            shownName += "_";
-        }
-        font.draw(batch, shownName, nameField.x + 16f, nameField.y + 30f);
-        font.draw(batch, "Upload / Change Image", uploadButton.x + 16f, uploadButton.y + 30f);
-        font.draw(batch, "Submit to Leaderboard", submitButton.x + 16f, submitButton.y + 30f);
-        font.draw(batch, "Back to Main Menu", backButton.x + 16f, backButton.y + 28f);
-        drawStatus(20f, 24f);
-        batch.end();
-        return action;
-    }
+// ── Buttons ───────────────────────────────────────────────────────────
+drawTextInputField(nameField, leaderboardNameEditing);
+drawActionButton(uploadButton, new Color(0.1f,  0.45f, 0.78f, 1f));  // blue
+drawActionButton(submitButton, new Color(0.13f, 0.47f, 0.2f,  1f));  // green
+drawActionButton(backButton,   new Color(0.2f,  0.2f,  0.25f, 1f));  // dark grey
+
+// ── Info card: avatar + score ─────────────────────────────────────────
+float avatarSize  = 64f;
+float avatarX     = panel.x + pad;
+float cardCenterY = (dividerY + panel.y + panelH) / 2f;
+float avatarY     = cardCenterY - avatarSize / 2f;
+float scoreBlockX = avatarX + avatarSize + 24f;
+float scoreTopY   = cardCenterY + 30f;
+
+float titleBarH = 32f;
+float titleBarY = panel.y + panelH - titleBarH - 8f;
+
+shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+// Title accent bar
+shapeRenderer.setColor(0.1f, 0.45f, 0.78f, 0.4f);
+shapeRenderer.rect(panel.x + 8f, titleBarY, panelW - 16f, titleBarH);
+// Avatar portrait frame background
+shapeRenderer.setColor(0.06f, 0.08f, 0.14f, 1f);
+shapeRenderer.rect(avatarX - 4f, avatarY - 4f, avatarSize + 8f, avatarSize + 8f);
+// Avatar frame border (4 edges drawn as thin rects)
+shapeRenderer.setColor(0.72f, 0.78f, 0.9f, 0.6f);
+shapeRenderer.rect(avatarX - 5f, avatarY - 5f,              avatarSize + 10f, 1f);
+shapeRenderer.rect(avatarX - 5f, avatarY + avatarSize + 4f, avatarSize + 10f, 1f);
+shapeRenderer.rect(avatarX - 5f, avatarY - 5f,              1f, avatarSize + 10f);
+shapeRenderer.rect(avatarX + avatarSize + 4f, avatarY - 5f, 1f, avatarSize + 10f);
+shapeRenderer.end();
+
+batch.begin();
+
+// Title
+font.setColor(Color.WHITE);
+font.draw(batch, "RUN COMPLETE", panel.x + pad, titleBarY + titleBarH - 8f);
+
+// Avatar image
+if (selectedAvatarTexture != null) {
+batch.draw(selectedAvatarTexture, avatarX, avatarY, avatarSize, avatarSize);
+} else {
+font.setColor(new Color(0.55f, 0.55f, 0.65f, 1f));
+font.draw(batch, "[ no avatar ]", avatarX + 4f, avatarY + avatarSize - 8f);
+font.setColor(Color.WHITE);
+}
+
+// Score label + value
+font.setColor(new Color(0.72f, 0.78f, 0.9f, 1f));
+font.draw(batch, "FINAL SCORE", scoreBlockX, scoreTopY);
+font.setColor(Color.WHITE);
+font.draw(batch, String.valueOf(finalScore), scoreBlockX, scoreTopY - 22f);
+
+// Subtitle
+font.setColor(new Color(0.65f, 0.68f, 0.75f, 1f));
+font.draw(batch, "Enter your name and upload your", scoreBlockX, scoreTopY - 50f);
+font.draw(batch, "avatar to save your score.",      scoreBlockX, scoreTopY - 66f);
+font.setColor(Color.WHITE);
+
+// ── Name field label ───────────────────────────────────────────────────
+font.setColor(new Color(0.72f, 0.78f, 0.9f, 1f));
+font.draw(batch, "YOUR NAME", panel.x + pad, nameField.y + 42f + 18f);
+font.setColor(Color.WHITE);
+
+// ── Name field text ────────────────────────────────────────────────────
+boolean isEmpty  = playerNameInput.isBlank();
+String shownName = isEmpty ? "Type your name here..." : playerNameInput;
+if (leaderboardNameEditing && ((System.currentTimeMillis() / 350L) % 2L == 0L)) {
+shownName += "_";
+}
+font.setColor(isEmpty ? new Color(0.45f, 0.48f, 0.55f, 1f) : Color.WHITE);
+font.draw(batch, shownName, nameField.x + 14f, nameField.y + 28f);
+font.setColor(Color.WHITE);
+
+// ── Button labels ──────────────────────────────────────────────────────
+font.draw(batch, "Upload / Change Avatar", uploadButton.x + 16f, uploadButton.y + 28f);
+font.draw(batch, "Submit to Leaderboard",  submitButton.x + 16f, submitButton.y + 28f);
+font.draw(batch, "Back to Main Menu",       backButton.x  + 16f, backButton.y  + 28f);
+
+drawStatus(20f, 24f);
+batch.end();
+return action;
+}
 
     public LeaderboardViewAction renderLeaderboardView(List<? extends LeaderboardRow> rows,
                                                        boolean leaderboardOpenedFromMenu) {

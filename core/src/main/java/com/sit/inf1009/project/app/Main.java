@@ -291,7 +291,7 @@ public class Main extends ApplicationAdapter {
     private void renderGameplay(float dt) {
         appUiRenderer.applyFullScreenProjection();
 
-        paused = GameplayLoopOrchestrator.togglePauseOnSpace(paused);
+        paused = GameplayLoopOrchestrator.togglePauseOnEsc(paused);
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
             submitPlate();
@@ -318,7 +318,7 @@ public class Main extends ApplicationAdapter {
             showStatus("Time up! Enter name and submit to leaderboard", 4f);
         }
 
-        GameplayLoopOrchestrator.renderWorldAndHud(
+        GameplayLoopOrchestrator.HudAction hudAction = GameplayLoopOrchestrator.renderWorldAndHud(
                 shapeRenderer,
                 batch,
                 font,
@@ -328,6 +328,10 @@ public class Main extends ApplicationAdapter {
                 gameSession,
                 difficultyPreset,
                 appUiRenderer);
+
+        if (hudAction == GameplayLoopOrchestrator.HudAction.PAUSE_CLICKED) {
+            paused = !paused;
+        }
 
         if (paused) {
             GameplayLoopOrchestrator.PauseAction action =
