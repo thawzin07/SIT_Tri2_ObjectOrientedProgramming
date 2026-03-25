@@ -99,7 +99,7 @@ public class StartMenuScene extends Scene implements IOListener {
                 new Color(0.02f, 0.18f, 0.55f, 1f),
                 new Color(0.04f, 0.22f, 0.60f, 1f)),
 
-            new MenuButton("HOW TO PLAY",
+            new MenuButton("TUTORIAL",
                 btnX, topY - (btnH + gap) * 2, btnW, btnH,
                 new Color(0.82f, 0.52f, 0.02f, 1f),
                 new Color(0.98f, 0.72f, 0.10f, 1f),

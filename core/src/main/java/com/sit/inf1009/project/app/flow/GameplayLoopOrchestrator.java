@@ -76,21 +76,27 @@ public final class GameplayLoopOrchestrator {
     }
 
     public static HudAction renderWorldAndHud(ShapeRenderer shapeRenderer,
-                                         SpriteBatch batch,
-                                         BitmapFont font,
-                                         EntityManager entityManager,
-                                         SceneManager sceneManager,
-                                         GameplayRuntime gameplayRuntime,
-                                         GameSession gameSession,
-                                         DifficultyPreset difficultyPreset,
-                                         AppUiRenderer appUiRenderer) {
-        sceneManager.render(null);
-        Texture playingBackground = appUiRenderer.getPlayingBackgroundTexture();
-        if (playingBackground != null) {
-            batch.begin();
-            batch.draw(playingBackground, 0f, 0f, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-            batch.end();
-        }
+							            SpriteBatch batch,
+							            BitmapFont font,
+							            EntityManager entityManager,
+							            SceneManager sceneManager,
+							            GameplayRuntime gameplayRuntime,
+							            GameSession gameSession,
+							            DifficultyPreset difficultyPreset,
+							            AppUiRenderer appUiRenderer,
+							            Runnable backgroundLayerRenderer) {
+
+    	sceneManager.render(null);
+    	Texture playingBackground = appUiRenderer.getPlayingBackgroundTexture();
+    	if (playingBackground != null) {
+    	    batch.begin();
+    	    batch.draw(playingBackground, 0f, 0f, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+    	    batch.end();
+    	}
+
+    	if (backgroundLayerRenderer != null) {
+    	    backgroundLayerRenderer.run();
+    	}
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         for (Entity e : entityManager.getEntities()) {

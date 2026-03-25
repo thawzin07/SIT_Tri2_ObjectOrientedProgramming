@@ -139,10 +139,10 @@ public final class AppUiRenderer {
             return null;
         }
         return switch (difficultyPreset) {
-            case EASY -> easyDifficultyIcon;
-            case NORMAL -> normalDifficultyIcon;
-            case HARD -> hardDifficultyIcon;
-        };
+	        case EASY -> easyDifficultyIcon;
+	        case NORMAL, TUTORIAL -> normalDifficultyIcon;
+	        case HARD -> hardDifficultyIcon;
+	    };
     }
 
     public Texture getPlayingBackgroundTexture() {
