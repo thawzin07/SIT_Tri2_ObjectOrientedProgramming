@@ -9,9 +9,12 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
+import com.badlogic.gdx.graphics.GL20;
 import com.sit.inf1009.project.app.DifficultyPreset;
 import com.sit.inf1009.project.app.controllers.GameFlowController;
 import com.sit.inf1009.project.game.ui.UiPanelRenderer;
+
 
 import java.util.List;
 
@@ -123,11 +126,43 @@ public final class AppUiRenderer {
         UiPanelRenderer.drawTextInputField(shapeRenderer, bounds, active);
     }
 
+//    public void drawStatus(float x, float y) {
+//        if (!flowController.hasStatus()) {
+//            return;
+//        }
+//        font.draw(batch, flowController.getStatusMessage(), x, y);
+//    }
+    
     public void drawStatus(float x, float y) {
         if (!flowController.hasStatus()) {
             return;
         }
-        font.draw(batch, flowController.getStatusMessage(), x, y);
+
+        String statusMessage = flowController.getStatusMessage();
+        
+        // 1. Measure the text
+        GlyphLayout layout = new GlyphLayout(font, statusMessage);
+        float padding = 8f;
+
+        // 2. Pause the SpriteBatch so we can draw shapes behind the text
+        batch.end();
+
+        // 3. Enable transparency
+        Gdx.gl.glEnable(GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+
+        // 4. Draw the semi-transparent black box
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        shapeRenderer.setColor(0f, 0f, 0f, 0.7f);
+        shapeRenderer.rect(x - padding, y - layout.height - padding, layout.width + (padding * 2), layout.height + (padding * 2));
+        shapeRenderer.end();
+
+        // Disable transparency
+        Gdx.gl.glDisable(GL20.GL_BLEND);
+
+        // 5. Restart the SpriteBatch and draw the text on top
+        batch.begin();
+        font.draw(batch, statusMessage, x, y);
     }
 
     public Texture getTimerIcon() {
