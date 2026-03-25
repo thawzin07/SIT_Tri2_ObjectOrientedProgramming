@@ -106,9 +106,17 @@ public final class AppUiRenderer {
         int logicalHeight = Gdx.graphics.getHeight();
         int pixelWidth = Gdx.graphics.getBackBufferWidth();
         int pixelHeight = Gdx.graphics.getBackBufferHeight();
+        
+        // Stretch the physical rendering to the real screen pixels
         Gdx.gl.glViewport(0, 0, pixelWidth, pixelHeight);
-        batch.getProjectionMatrix().setToOrtho2D(0, 0, logicalWidth, logicalHeight);
-        shapeRenderer.setProjectionMatrix(batch.getProjectionMatrix());
+        
+        // THE FIX: Force the camera to match the logical screen size!
+        camera.setToOrtho(false, logicalWidth, logicalHeight);
+        camera.update();
+        
+        // Tell the batch and shapeRenderer to look through the updated camera lens
+        batch.setProjectionMatrix(camera.combined);
+        shapeRenderer.setProjectionMatrix(camera.combined);
     }
 
     public void drawScreenPanel(Rectangle panel) {
