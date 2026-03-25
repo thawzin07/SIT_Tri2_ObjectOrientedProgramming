@@ -2,6 +2,30 @@ package com.sit.inf1009.project.game.domain;
 
 public class GameSession {
 
+    public static final class PlateSubmitResult {
+        private final boolean healthy;
+        private final int healthyScoreBonus;
+        private final float timerDeltaSeconds;
+
+        public PlateSubmitResult(boolean healthy, int healthyScoreBonus, float timerDeltaSeconds) {
+            this.healthy = healthy;
+            this.healthyScoreBonus = healthyScoreBonus;
+            this.timerDeltaSeconds = timerDeltaSeconds;
+        }
+
+        public boolean isHealthy() {
+            return healthy;
+        }
+
+        public int getHealthyScoreBonus() {
+            return healthyScoreBonus;
+        }
+
+        public float getTimerDeltaSeconds() {
+            return timerDeltaSeconds;
+        }
+    }
+
     private int vegetableCount;
     private int proteinCount;
     private int carbCount;
@@ -27,6 +51,17 @@ public class GameSession {
         this.healthyScoreBonus = healthyScoreBonus;
         this.healthyTimerBonus = healthyTimerBonus;
         this.unhealthyTimerPenalty = unhealthyTimerPenalty;
+    }
+
+    public static GameSession fromConfig(DifficultyConfig config) {
+        if (config == null) {
+            return null;
+        }
+        return new GameSession(
+                config.getStartingTimer(),
+                config.getHealthyScoreBonus(),
+                config.getHealthyTimerBonus(),
+                config.getUnhealthyTimerPenalty());
     }
 
     public void addFood(FoodCategory category, int plateValue) {
@@ -55,17 +90,18 @@ public class GameSession {
                 && oilCount >= 0 && oilCount <= 1;
     }
 
-    public void submitPlate() {
-        if (isPlateHealthy()) {
+    public PlateSubmitResult submitPlate() {
+        boolean healthy = isPlateHealthy();
+        float timerDeltaSeconds = healthy ? healthyTimerBonus : -unhealthyTimerPenalty;
+        if (healthy) {
             score += healthyScoreBonus;
             timer += healthyTimerBonus;
-            System.out.println("Healthy plate submitted! Score: " + score);
         } else {
             timer -= unhealthyTimerPenalty;
-            System.out.println("Unhealthy plate submitted!");
         }
 
         resetPlate();
+        return new PlateSubmitResult(healthy, healthyScoreBonus, timerDeltaSeconds);
     }
 
     public void resetPlate() {
