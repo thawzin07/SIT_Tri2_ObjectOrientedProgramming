@@ -1,5 +1,7 @@
 package com.sit.inf1009.project.app;
 
+import com.sit.inf1009.project.game.domain.DifficultyConfig;
+
 public enum DifficultyPreset {
     EASY("Easy", 75f, 6, 50f, 8, 6f, 3f, 10),
     NORMAL("Normal", 60f, 8, 75f, 10, 5f, 5f, 15),
@@ -62,5 +64,16 @@ public enum DifficultyPreset {
 
     public int getFoodEntityCount() {
         return foodEntityCount;
+    }
+
+    public DifficultyConfig toConfig() {
+        return new DifficultyConfig(
+                startingTimer,
+                npcCount,
+                npcSpeed,
+                healthyScoreBonus,
+                healthyTimerBonus,
+                unhealthyTimerPenalty,
+                foodEntityCount);
     }
 }
