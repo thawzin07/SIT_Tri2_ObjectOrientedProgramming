@@ -109,7 +109,7 @@ public final class GameplayLoopOrchestrator {
         float timerChipX = hudX + outerPad;
         float timerChipY = hudY + outerPad;
 
-        float counterStep = 40f * hudScale;
+        float counterStep = 55f * hudScale;
         float foodGroupW = (counterStep * 4f) + (22f * hudScale);
         float countersX = hudRight - foodGroupW - (14f * hudScale);
         float foodGroupX = countersX - (8f * hudScale);
@@ -230,10 +230,12 @@ public final class GameplayLoopOrchestrator {
             batch.draw(timerIcon, timerIconX, timerIconY, timerIconSize, timerIconSize);
             timerTextX = timerIconX + timerIconSize + (8f * hudScale);
         }
-        font.setColor(new Color(0.13f, 0.27f, 0.11f, 1f));
+        font.getData().setScale(hudScale * 1.3f);
+        font.setColor(Color.BLACK);
         font.draw(batch, (int) Math.ceil(gameSession.getTimer()) + "s", timerTextX, textY);
 
         // Score
+        font.getData().setScale(hudScale * 1.3f);
         font.setColor(Color.WHITE);
         String scoreText = "Score: " + gameSession.getScore();
         float scoreX = timerChipX + timerChipW + (18f * hudScale);
@@ -259,6 +261,8 @@ public final class GameplayLoopOrchestrator {
         font.draw(batch, difficultyPreset.getLabel(), difficultyTextX, textY);
 
         // Food counters
+        font.getData().setScale(hudScale * 1.3f);
+        font.setColor(Color.YELLOW);
         drawHudFoodCounter(batch, font, gameplayRuntime.getFoodTexture(FoodCategory.VEGETABLE),
                 gameSession.getVegetableCount(), countersX, iconY, iconSize, counterStep);
         drawHudFoodCounter(batch, font, gameplayRuntime.getFoodTexture(FoodCategory.PROTEIN),
