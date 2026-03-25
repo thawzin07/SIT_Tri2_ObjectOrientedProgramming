@@ -107,14 +107,11 @@ public final class AppUiRenderer {
         int pixelWidth = Gdx.graphics.getBackBufferWidth();
         int pixelHeight = Gdx.graphics.getBackBufferHeight();
         
-        // Stretch the physical rendering to the real screen pixels
         Gdx.gl.glViewport(0, 0, pixelWidth, pixelHeight);
         
-        // THE FIX: Force the camera to match the logical screen size!
         camera.setToOrtho(false, logicalWidth, logicalHeight);
         camera.update();
         
-        // Tell the batch and shapeRenderer to look through the updated camera lens
         batch.setProjectionMatrix(camera.combined);
         shapeRenderer.setProjectionMatrix(camera.combined);
     }
