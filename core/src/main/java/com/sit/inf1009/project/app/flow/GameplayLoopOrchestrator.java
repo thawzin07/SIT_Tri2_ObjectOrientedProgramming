@@ -109,18 +109,12 @@ public final class GameplayLoopOrchestrator {
         float timerChipX = hudX + outerPad;
         float timerChipY = hudY + outerPad;
 
-        float counterStep = 40f * hudScale;
+        float counterStep = 55f * hudScale;
         float foodGroupW = (counterStep * 4f) + (22f * hudScale);
         float countersX = hudRight - foodGroupW - (14f * hudScale);
         float foodGroupX = countersX - (8f * hudScale);
         float foodGroupY = hudY + (7f * hudScale);
         float foodGroupH = hudHeight - (14f * hudScale);
-
-        float pauseBtnW = 88f * hudScale;
-        float pauseBtnH = hudHeight - (outerPad * 2f);
-        float pauseBtnX = foodGroupX - pauseBtnW - (12f * hudScale);
-        float pauseBtnY = hudY + outerPad;
-        Rectangle pauseHudBtn = new Rectangle(pauseBtnX, pauseBtnY, pauseBtnW, pauseBtnH);
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
 
@@ -171,32 +165,6 @@ public final class GameplayLoopOrchestrator {
                 foodGroupW - (3f * hudScale), foodGroupH - (3f * hudScale),
                 new Color(0f, 0f, 0f, 0.10f));
 
-        // Pause capsule
-        drawCapsule(shapeRenderer, pauseBtnX, pauseBtnY, pauseBtnW, pauseBtnH,
-                new Color(0.35f, 0.20f, 0.08f, 1f));
-        drawCapsule(shapeRenderer, pauseBtnX + (3f * hudScale), pauseBtnY + (3f * hudScale),
-                pauseBtnW - (6f * hudScale), pauseBtnH - (6f * hudScale),
-                new Color(0.84f, 0.67f, 0.38f, 1f));
-
-        // Pause gloss
-        drawCapsule(shapeRenderer,
-                pauseBtnX + (3f * hudScale),
-                pauseBtnY + (pauseBtnH * 0.54f),
-                pauseBtnW - (6f * hudScale),
-                (pauseBtnH - (6f * hudScale)) * 0.24f,
-                new Color(1f, 1f, 1f, 0.10f));
-
-        // Pause icon bars
-        float barW = 5f * hudScale;
-        float barH = 18f * hudScale;
-        float barGap = 5f * hudScale;
-        float barsX = pauseBtnX + (13f * hudScale);
-        float barsY = pauseBtnY + ((pauseBtnH - barH) / 2f);
-
-        shapeRenderer.setColor(0.24f, 0.13f, 0.04f, 1f);
-        shapeRenderer.rect(barsX, barsY, barW, barH);
-        shapeRenderer.rect(barsX + barW + barGap, barsY, barW, barH);
-
         shapeRenderer.end();
 
         batch.begin();
@@ -230,10 +198,12 @@ public final class GameplayLoopOrchestrator {
             batch.draw(timerIcon, timerIconX, timerIconY, timerIconSize, timerIconSize);
             timerTextX = timerIconX + timerIconSize + (8f * hudScale);
         }
-        font.setColor(new Color(0.13f, 0.27f, 0.11f, 1f));
+        font.getData().setScale(hudScale * 1.3f);
+        font.setColor(Color.BLACK);
         font.draw(batch, (int) Math.ceil(gameSession.getTimer()) + "s", timerTextX, textY);
 
         // Score
+        font.getData().setScale(hudScale * 1.3f);
         font.setColor(Color.WHITE);
         String scoreText = "Score: " + gameSession.getScore();
         float scoreX = timerChipX + timerChipW + (18f * hudScale);
@@ -242,11 +212,10 @@ public final class GameplayLoopOrchestrator {
         // Difficulty
         HUD_GLYPH.setText(font, scoreText);
         float difficultyX = scoreX + HUD_GLYPH.width + (22f * hudScale);
-        float maxDifficultyX = pauseBtnX - (82f * hudScale);
-        if (difficultyX > maxDifficultyX) {
-            difficultyX = maxDifficultyX;
-        }
-
+float maxDifficultyX = foodGroupX - (82f * hudScale);
+if (difficultyX > maxDifficultyX) {
+    difficultyX = maxDifficultyX;
+}
         Texture difficultyIcon = appUiRenderer.getDifficultyIcon(difficultyPreset);
         float difficultyTextX = difficultyX;
         if (difficultyIcon != null) {
@@ -259,6 +228,9 @@ public final class GameplayLoopOrchestrator {
         font.draw(batch, difficultyPreset.getLabel(), difficultyTextX, textY);
 
         // Food counters
+        font.getData().setScale(hudScale * 1.3f); // bigger food counter text
+        font.setColor(Color.YELLOW);
+        
         drawHudFoodCounter(batch, font, gameplayRuntime.getFoodTexture(FoodCategory.VEGETABLE),
                 gameSession.getVegetableCount(), countersX, iconY, iconSize, counterStep);
         drawHudFoodCounter(batch, font, gameplayRuntime.getFoodTexture(FoodCategory.PROTEIN),
@@ -267,11 +239,8 @@ public final class GameplayLoopOrchestrator {
                 gameSession.getCarbCount(), countersX + (counterStep * 2f), iconY, iconSize, counterStep);
         drawHudFoodCounter(batch, font, gameplayRuntime.getFoodTexture(FoodCategory.OIL),
                 gameSession.getOilCount(), countersX + (counterStep * 3f), iconY, iconSize, counterStep);
-
-        // Pause label
-        font.setColor(new Color(0.22f, 0.12f, 0.04f, 1f));
-        float pauseLabelX = barsX + (barW * 2f) + barGap + (9f * hudScale);
-        font.draw(batch, "Pause", pauseLabelX, textY);
+        
+        font.getData().setScale(originalFontScaleX, originalFontScaleY); // reset after
 
         font.getData().setScale(originalFontScaleX, originalFontScaleY);
         font.setColor(Color.WHITE);
@@ -280,9 +249,6 @@ public final class GameplayLoopOrchestrator {
         batch.end();
 
         HudAction hudAction = HudAction.NONE;
-        if (appUiRenderer.consumeClick(pauseHudBtn)) {
-            hudAction = HudAction.PAUSE_CLICKED;
-        }
         return hudAction;
     }
 
