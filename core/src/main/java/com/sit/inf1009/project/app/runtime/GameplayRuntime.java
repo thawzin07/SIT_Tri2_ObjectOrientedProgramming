@@ -5,7 +5,6 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.sit.inf1009.project.engine.components.CollidableComponent;
 import com.sit.inf1009.project.engine.components.MovementComponent;
-import com.sit.inf1009.project.engine.components.PlayerMovement;
 import com.sit.inf1009.project.engine.components.AIMovement;
 import com.sit.inf1009.project.engine.core.Scene;
 import com.sit.inf1009.project.engine.entities.Entity;
@@ -14,10 +13,10 @@ import com.sit.inf1009.project.engine.managers.InputOutputManager;
 import com.sit.inf1009.project.engine.managers.MovementManager;
 import com.sit.inf1009.project.engine.managers.SceneManager;
 import com.sit.inf1009.project.game.components.FoodCollidableComponent;
-import com.sit.inf1009.project.game.components.PlayerCollidableComponent;
 import com.sit.inf1009.project.game.domain.DifficultyConfig;
 import com.sit.inf1009.project.game.domain.FoodCategory;
 import com.sit.inf1009.project.game.domain.GameSession;
+import com.sit.inf1009.project.game.entities.PlayerEntity;
 import com.sit.inf1009.project.game.factory.FoodFactory;
 import com.sit.inf1009.project.game.services.FoodSpawnCoordinator;
 
@@ -93,14 +92,14 @@ public final class GameplayRuntime {
         int worldH = Math.max(1, Gdx.graphics.getHeight());
         int playableH = Math.max(1, worldH - (int) Math.ceil(getHudBlockHeight()));
 
-        Entity player = new Entity(playerId);
+        PlayerEntity player = PlayerEntity.getInstance(
+                playerId,
+                ioManager,
+                playerSpeed,
+                playerRadius,
+                selectedAvatarTexture);
         player.setXPosition(worldW * 0.3);
         player.setYPosition(worldH * 0.35);
-        player.setMovement(new PlayerMovement(ioManager, playerSpeed));
-        player.setCollidable(new PlayerCollidableComponent(playerRadius));
-        if (selectedAvatarTexture != null) {
-            player.setTexture(selectedAvatarTexture);
-        }
         entityManager.addEntity(player);
         movementManager.addMovable(player);
 

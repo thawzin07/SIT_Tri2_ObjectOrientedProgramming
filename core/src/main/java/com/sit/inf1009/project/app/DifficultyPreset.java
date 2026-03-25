@@ -1,9 +1,9 @@
 package com.sit.inf1009.project.app;
 
 public enum DifficultyPreset {
-    EASY("Easy", 75f, 6, 95f, 8, 6f, 3f, 10),
-    NORMAL("Normal", 60f, 8, 120f, 10, 5f, 5f, 15),
-    HARD("Hard", 45f, 10, 150f, 12, 4f, 6f, 20);
+    EASY("Easy", 75f, 6, 50f, 8, 6f, 3f, 10),
+    NORMAL("Normal", 60f, 8, 75f, 10, 5f, 5f, 15),
+    HARD("Hard", 45f, 10, 100f, 12, 4f, 6f, 20);
 
     private final String label;
     private final float startingTimer;
