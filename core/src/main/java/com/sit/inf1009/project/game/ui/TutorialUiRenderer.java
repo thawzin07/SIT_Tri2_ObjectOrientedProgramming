@@ -1,6 +1,7 @@
 package com.sit.inf1009.project.game.ui;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
@@ -15,7 +16,7 @@ import java.util.Map;
 
 public class TutorialUiRenderer {
 
-    private static final float BASE_FONT_SCALE = 0.95f;
+    private static final float BASE_FONT_SCALE = 1.0f;   // matches status text baseline
     private static final float MIN_FONT_SCALE = 0.72f;
     private static final float SCALE_STEP = 0.05f;
 
@@ -60,20 +61,23 @@ public class TutorialUiRenderer {
         float bottomLimit = panelY + PANEL_PADDING;
         float availableHeight = topY - bottomLimit;
 
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-        shapeRenderer.setColor(0f, 0f, 0f, 0.65f);
-        shapeRenderer.rect(panelX, panelY, panelW, panelH);
-        shapeRenderer.end();
-
         float oldScaleX = font.getData().scaleX;
         float oldScaleY = font.getData().scaleY;
 
         float fittedScale = resolveFittedScale(font, contentWidth, availableHeight, tutorialState);
 
+        Gdx.gl.glEnable(GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        shapeRenderer.setColor(0f, 0f, 0f, 0.7f); // match AppUiRenderer.drawStatus background alpha
+        shapeRenderer.rect(panelX, panelY, panelW, panelH);
+        shapeRenderer.end();
+
         batch.begin();
 
         font.getData().setScale(fittedScale);
-        font.setColor(1f, 1f, 1f, 0.78f);
+        font.setColor(1f, 1f, 1f, 1f); // match status text opacity
 
         GlyphLayout layout = new GlyphLayout();
 
@@ -118,6 +122,8 @@ public class TutorialUiRenderer {
         font.getData().setScale(oldScaleX, oldScaleY);
 
         batch.end();
+
+        Gdx.gl.glDisable(GL20.GL_BLEND);
     }
 
     private float drawTutorialFoodLine(

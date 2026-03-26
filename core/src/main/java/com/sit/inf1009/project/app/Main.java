@@ -175,7 +175,7 @@ public class Main extends ApplicationAdapter {
             @Override
             public void onHowToPlay() {
                 rulesOpenedFromStart = false;
-                gameState = GameState.HOW_TO_PLAY;
+                gameState = GameState.TUTORIAL;
             }
 
             @Override
@@ -241,6 +241,9 @@ public class Main extends ApplicationAdapter {
             case LEADERBOARD_VIEW:
                 renderLeaderboardView();
                 break;
+            case TUTORIAL:
+                startTutorial();
+                break;
             default:
                 break;
         }
@@ -294,11 +297,6 @@ public class Main extends ApplicationAdapter {
             case CONTINUE_TO_AVATAR:
                 gameState = GameState.AVATAR_SETUP;
                 rulesOpenedFromStart = false;
-                break;
-            case START_TUTORIAL:
-                rulesOpenedFromPause = false;
-                rulesOpenedFromStart = false;
-                startTutorial();
                 break;
             default:
                 break;
