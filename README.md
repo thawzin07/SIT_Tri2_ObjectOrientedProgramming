@@ -1,7 +1,6 @@
-﻿# SIT Tri2 Object-Oriented Programming - Team Project
+# Balanced Bites (INF1009 OOP Team Project)
 
-**Developed by:**
-
+## Team
 - Thaw Zin Htun
 - Ee Chew Fong Olivia
 - Gan Wei Yang
@@ -10,44 +9,61 @@
 - Sreekantom Sai Saketh
 
 ## Project Overview
-This project applies object-oriented programming principles in Java with libGDX to build a reusable engine (Part 1) and a game implementation (Part 2).
+Balanced Bites is a real-time educational nutrition game built with Java + libGDX on top of a reusable OOP engine.
 
-**Part 1 (Week 1-7):** Abstract Engine - generic, reusable foundation  
-**Part 2 (Week 8-12):** Game implementation - gameplay, UI flows, persistence, and polish built on top of the engine
+Goal:
+- Help children and families learn balanced eating through active play.
+- Turn static nutrition learning into interactive decision-making.
 
-## Current Architecture
-The codebase is organized into layered packages:
+Target audience:
+- Children aged 3-13 and families.
 
-- `app` - application orchestration and runtime flow (`Main`, controllers, runtime, app UI renderer, flow orchestrators)
-- `engine` - reusable abstract systems (input/output manager, scene/entity/movement/collision managers, handlers, interfaces)
-- `game` - game-specific domain logic (food domain, collidables, UI screens, leaderboard and persistence logic)
+## Gameplay Summary
+Players control an avatar and collect moving food-group objects to form a healthy plate.
 
-### Flow Orchestrators
-Recent refactoring decomposed large app flow into dedicated units:
+Core loop:
+1. Move and collect food objects.
+2. Build a plate using Vegetables, Protein, Carbohydrates, and Oil.
+3. Submit the plate for scoring and time bonus/penalty.
+4. Repeat until timer ends.
 
-- `StateFlowOrchestrator`
-- `GameplayLoopOrchestrator`
-- `AvatarFlowOrchestrator`
-- `LeaderboardFlowOrchestrator`
+Included game flows:
+- Main Menu
+- Settings (difficulty + music volume)
+- Tutorial / How To Play
+- Avatar Setup
+- Gameplay
+- Leaderboard Entry / Leaderboard View
+- Credits
 
-### Design Patterns Used
-- **Observer / Event Bus:** `IOEvent`, `IOListener`, `InputOutputManager`
-- **Factory:** `FoodFactory`
-- **Strategy / Polymorphism:** `MovementComponent`, `PlayerMovement`, `AIMovement`
-- **Orchestrator / Facade-style flow modules:** `app.flow.*`
+## Architecture
+Layered structure:
+- `app`: entry point, state flow, orchestration, app-level UI rendering
+- `game`: domain logic, entities, services, persistence, game screens
+- `engine`: reusable runtime infrastructure (IO, entity/scene/movement/collision managers)
+- `framework`: libGDX runtime (rendering, input polling, asset loading, game loop)
+
+Runtime style:
+- Component-based modules
+- Event-driven IO routing via `InputOutputManager` and `IOEvent`
 
 ## Key Features
-- Start menu, settings, how-to-play, avatar setup, gameplay, leaderboard flows
-- Difficulty presets and configurable gameplay parameters
-- Food spawning coordination and collision-based collection
-- Leaderboard persistence abstraction (`LeaderboardStore`)
-- Audio system with MP3 support:
-  - button click SFX (`btn_click`)
-  - collision SFX (`collisionmusic`)
-  - state-based BGM (`foodmenumusic`, `settingmusic`, `howtoplaymusic`, `playersetupmusic`, `leaderboardmusic`)
+- 3 difficulty presets (Easy / Normal / Hard)
+- Fullscreen-aware UI and gameplay scaling
+- HUD with food-group tracking
+- Persistent leaderboard storage
+- Avatar presets and image upload flow
+- Music/SFX with runtime volume control
+- In-game credits screen
+
+## Design Patterns (Implemented)
+- **Factory:** `FoodFactory` centralizes creation of food entities.
+- **Observer / Listener:** `InputOutputManager` dispatches `IOEvent` to subscribed `IOListener`s.
+- **Strategy:** `MovementComponent` enables interchangeable movement behavior (`PlayerMovement`, `AIMovement`).
+- **Template Method:** `AbstractInputHandler` and `AbstractOutputHandler` define shared lifecycle with specialized subclasses.
+- **Facade / Orchestrator:** `app.flow.*Orchestrator` classes coordinate complex flow steps behind simple calls.
 
 ## Project Structure (Current)
-
 ```text
 SIT_Tri2_ObjectOrientedProgramming/
 |-- Asgn_briefs/
@@ -84,20 +100,10 @@ SIT_Tri2_ObjectOrientedProgramming/
 ```
 
 ## Technologies Used
-
-- **Language:** Java 17
-- **Framework:** libGDX 1.14.0
-- **Build Tool:** Gradle
-- **Version Control:** Git/GitHub
-- **IDE:** Eclipse
-
-## OOP Principles Applied
-
-- **Encapsulation** - Data hiding and access control
-- **Inheritance** - Deriving new classes from existing ones
-- **Polymorphism** - Method overriding and interface implementation
-- **Abstraction** - Generic engine components separate from specific logic
-- **SOLID Principles** - Single Responsibility, Open-Closed, Liskov Substitution, Interface Segregation, Dependency Inversion
+- Java 17
+- libGDX 1.14.0
+- Gradle
+- Git/GitHub
 
 ## Testing
 
@@ -116,172 +122,27 @@ SIT_Tri2_ObjectOrientedProgramming/
   - `AvatarFlowOrchestratorTest`
 
 ### Run Tests
-- Windows:
-  - `.\gradlew.bat test`
-- macOS/Linux:
-  - `./gradlew test`
+- Windows: `.\gradlew.bat test`
+- macOS/Linux: `./gradlew test`
 
-### If output looks too quiet
-This project sets Gradle logging to quiet (`org.gradle.logging.level=quiet`), so successful runs may show minimal logs.
+## Build and Run
+- Windows build: `.\gradlew.bat build`
+- Windows run desktop: `.\gradlew.bat :lwjgl3:run`
+- macOS/Linux build: `./gradlew build`
+- macOS/Linux run desktop: `./gradlew :lwjgl3:run`
 
-Use:
-- `.\gradlew.bat test --info`
-- `.\gradlew.bat test --console=plain`
-- `.\gradlew.bat cleanTest test --rerun-tasks --info`
+## Controls (Gameplay)
+- Move: `WASD` or Arrow keys
+- Submit plate: `Enter`
+- Reset plate: `R`
+- Pause: `Esc`
 
-## Setup Instructions
+## Attribution / Credits
+Some music and background effects are inspired by Plants vs. Zombies (PopCap Games), used for educational and non-commercial project context.
 
-1. Build from terminal:
-   - Windows: `.\gradlew.bat build`
-   - macOS/Linux: `./gradlew build`
-
-2. Run desktop launcher from terminal:
-   - Windows: `.\gradlew.bat :lwjgl3:run`
-   - macOS/Linux: `./gradlew :lwjgl3:run`
-
-3. Or run from IDE:
-   - `lwjgl3/src/main/java/com/sit/inf1009/project/lwjgl3/Lwjgl3Launcher.java`
-
-### Eclipse Import (optional detailed steps)
-1. Clone the repository in Eclipse:
-   - File -> Import -> Git -> Projects from Git -> Clone URI
-   - Enter repository URL: `https://github.com/thawzin07/SIT_Tri2_ObjectOrientedProgramming.git`
-   - Enter your GitHub credentials (Use your Personal Access Token as password)
-   - Select the `main` branch
-   - Import project files into an empty folder
-   - Choose "Import as general project"
-
-2. Refresh/build:
-   - Right-click project -> Gradle -> Refresh Gradle Project
-
-3. Run:
-   - Navigate to `lwjgl3` module and run `Lwjgl3Launcher.java`
-
-## GitHub Personal Access Token Setup
-
-To push/pull code, you need a GitHub personal access token:
-
-1. Go to GitHub.com -> Settings -> Developer settings
-2. Click **Personal access tokens** -> **Tokens (classic)**
-3. Click **Generate new token (classic)**
-4. Give it a name (e.g., "Eclipse Git Access")
-5. Select scope: **repo** (full control of private repositories)
-6. Click **Generate token**
-7. **Copy the token immediately** (you won't see it again)
-8. Use this token as your password in Eclipse when pushing/pulling
-
-## Development Workflow
-
-### Initial Setup (One-time)
-1. Clone the repository in Eclipse (see Setup Instructions)
-2. Create your personal branch:
-   - Right-click project -> **Team** -> **Switch To** -> **New Branch**
-   - Name it: `yourname-dev` (e.g., `john-dev`, `mary-dev`)
-   - Check **Checkout new branch** and **Configure Upstream for push and pull**
-   - Click **Finish**
-
-### Daily Workflow
-
-#### Step 1: Pull Latest Changes from Main
-Before starting work each day:
-1. Right-click project -> **Team** -> **Switch To** -> **main**
-2. Right-click project -> **Team** -> **Pull**
-3. Switch back to your branch: **Team** -> **Switch To** -> **yourname-dev**
-4. Merge main into your branch: **Team** -> **Merge** -> Select **main**
-
-#### Step 2: Make Your Changes
-1. Create/modify files in the appropriate package
-2. Test your changes locally
-3. Ensure code follows coding conventions
-
-#### Step 3: Commit to Your Branch
-1. Right-click project -> **Team** -> **Add to Index** (stages your changes)
-2. Right-click project -> **Team** -> **Commit**
-3. Write a descriptive commit message (e.g., "Add collision detection to EntityManager")
-4. Click **Commit**
-
-#### Step 4: Push to Your Branch
-1. Right-click project -> **Team** -> **Push Branch 'yourname-dev'**
-2. Enter GitHub credentials when prompted:
-   - **Username:** Your GitHub username
-   - **Password:** Your GitHub personal access token
-3. Click **Finish**
-
-#### Step 5: Create Pull Request (When Feature is Complete)
-1. Go to GitHub repository: `https://github.com/thawzin07/SIT_Tri2_ObjectOrientedProgramming`
-2. Click **Pull requests** tab
-3. Click **New pull request**
-4. Set:
-   - **Base:** `main`
-   - **Compare:** `yourname-dev`
-5. Click **Create pull request**
-6. Add title and description:
-   - Title: "Add [Feature Name]"
-   - Description: Explain what you added/changed and why
-7. Click **Create pull request**
-8. Notify team members to review
-
-#### Step 6: Code Review Process
-- **For Pull Request Creator:**
-  - Wait for at least 1-2 team members to review
-  - Address any feedback or requested changes
-  - Make additional commits if needed
-
-- **For Reviewers:**
-  - Review the code changes on GitHub
-  - Add comments or suggestions
-  - Click **Approve** if code looks good
-  - Click **Request changes** if issues are found
-
-#### Step 7: Merge Pull Request
-Once approved by team members:
-1. Click **Merge pull request** on GitHub
-2. Click **Confirm merge**
-3. Click **Delete branch** (optional, keeps repo clean)
-4. In Eclipse, switch to `main` and pull latest changes
-
-### Branch Naming Convention
-- **main** - Main production branch (only merge after approval)
-- **yourname-dev** - Personal development branch (e.g., `john-dev`, `mary-dev`)
-
-### Important Rules
-- NEVER push directly to main
-- Always work on your personal branch
-- Pull from main regularly to avoid conflicts
-- Test thoroughly before creating pull request
-- Get approval before merging to main
-
-## Team Collaboration
-
-### Git Workflow Best Practices
-- Each member works on their own branch (`yourname-dev`)
-- Pull from main daily to stay updated
-- Create pull requests for all changes to main
-- Require at least 1-2 approvals before merging
-- Use descriptive commit messages
-
-### Code Standards
-- Follow established coding conventions
-- Document classes and methods where necessary
-- Test code before pushing
-- Communicate breaking changes to the team
-- Review teammates' pull requests promptly
-
-## Contributing
-
-All team members should:
-1. Pull latest changes before starting work
-2. Work on assigned components
-3. Test thoroughly before committing
-4. Push regularly to keep repository updated
-5. Communicate blockers or dependencies with team
+Special thanks:
+- Team members
+- Professors and lab instructors
 
 ## License
-
-This project is developed as part of INF1009 Object-Oriented Programming course at Singapore Institute of Technology.
-
----
-
-**Course:** INF1009 Object-Oriented Programming  
-**Institution:** Singapore Institute of Technology  
-**Academic Year:** 2025/2026
+Developed for INF1009 Object-Oriented Programming (Singapore Institute of Technology), AY 2025/2026.
