@@ -39,6 +39,7 @@ public final class StateFlowOrchestrator {
 
         return switch (state) {
             case FOOD_MENU -> "foodmenumusic";
+            case CREDITS -> "foodmenumusic";
             case DIFFICULTY_SETTINGS -> "settingmusic";
             case HOW_TO_PLAY -> "howtoplaymusic";
             case AVATAR_SETUP -> "playersetupmusic";

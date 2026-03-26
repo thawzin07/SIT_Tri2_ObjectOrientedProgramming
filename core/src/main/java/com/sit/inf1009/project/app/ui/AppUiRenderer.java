@@ -1,5 +1,7 @@
 package com.sit.inf1009.project.app.ui;
 
+import java.util.List;
+
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
@@ -14,8 +16,6 @@ import com.badlogic.gdx.math.Vector3;
 import com.sit.inf1009.project.app.DifficultyPreset;
 import com.sit.inf1009.project.app.controllers.GameFlowController;
 import com.sit.inf1009.project.game.ui.UiPanelRenderer;
-
-import java.util.List;
 
 public final class AppUiRenderer {
 
@@ -70,6 +70,10 @@ public final class AppUiRenderer {
 
     public enum LeaderboardViewAction {
         NONE, FOOTER_CLICKED
+    }
+
+    public enum CreditsAction {
+        NONE, BACK_TO_MENU
     }
 
     private final ShapeRenderer shapeRenderer;
@@ -529,6 +533,57 @@ public final class AppUiRenderer {
         }
 
         font.draw(batch, footerLabel, footerButton.x + (16f * uiScale), footerButton.y + (28f * uiScale));
+        font.getData().setScale(baseScaleX, baseScaleY);
+        drawStatus(20f, 24f);
+        batch.end();
+        return action;
+    }
+
+    public CreditsAction renderCredits() {
+        applyFullScreenProjection();
+        float uiScale = getFullscreenUiScale();
+        chromeScale = uiScale;
+
+        float width = Gdx.graphics.getWidth();
+        float height = Gdx.graphics.getHeight();
+        float centerX = width / 2f;
+        float panelW = Math.min(840f * uiScale, width - (80f * uiScale));
+        float panelH = Math.min(560f * uiScale, height - (80f * uiScale));
+        Rectangle panel = new Rectangle(centerX - panelW / 2f, (height - panelH) / 2f, panelW, panelH);
+        Rectangle backButton = new Rectangle(panel.x + (40f * uiScale), panel.y + (30f * uiScale), panelW - (80f * uiScale), 44f * uiScale);
+
+        CreditsAction action = consumeClick(backButton) ? CreditsAction.BACK_TO_MENU : CreditsAction.NONE;
+
+        drawScreenPanel(panel);
+        drawActionButton(backButton, new Color(0.2f, 0.2f, 0.25f, 1f));
+
+        float baseScaleX = font.getData().scaleX;
+        float baseScaleY = font.getData().scaleY;
+        font.getData().setScale(baseScaleX * uiScale, baseScaleY * uiScale);
+
+        batch.begin();
+        float textX = panel.x + (40f * uiScale);
+        float lineY = panel.y + panelH - (28f * uiScale);
+        float lineGap = 32f * uiScale;
+
+        font.setColor(Color.WHITE);
+        font.draw(batch, "CREDITS", textX, lineY);
+        lineY -= lineGap * 1.2f;
+
+        font.draw(batch, "Balanced Bites - INF1009 OOP Team Project", textX, lineY);
+        lineY -= lineGap;
+        font.draw(batch, "Special thanks to all team members, professors, and lab instructors.", textX, lineY);
+        lineY -= lineGap * 1.4f;
+
+        font.draw(batch, "Attribution:", textX, lineY);
+        lineY -= lineGap;
+        font.draw(batch, "Some music and background effects are inspired by", textX, lineY);
+        lineY -= lineGap;
+        font.draw(batch, "Plants vs. Zombies (PopCap Games).", textX, lineY);
+        lineY -= lineGap;
+        font.draw(batch, "Used for educational and non-commercial project presentation.", textX, lineY);
+
+        font.draw(batch, "Back to Main Menu", backButton.x + (16f * uiScale), backButton.y + (28f * uiScale));
         font.getData().setScale(baseScaleX, baseScaleY);
         drawStatus(20f, 24f);
         batch.end();
