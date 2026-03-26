@@ -36,6 +36,7 @@ public class IOEvent {
         SOUND_PLAY,        // payload: String  — sound clip name
         SOUND_STOP,        // payload: String  — sound clip name
         SOUND_STOP_ALL,    // payload: null
+        SOUND_SET_MUSIC_VOLUME, // payload: Float [0..1]
 
         // ── Output: Display ───────────────────────────────────────────────────
         DISPLAY_RENDER,    // payload: null    — request a frame render

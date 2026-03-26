@@ -37,6 +37,7 @@ public class SoundOutputHandler extends AbstractOutputHandler {
     private final Map<String, Music> musicPool = new HashMap<>();
     private String currentMusicName;
     private Music currentMusic;
+    private float musicVolume = 1.0f;
 
     public SoundOutputHandler() {
         // Prime commonly-used sounds.
@@ -54,6 +55,11 @@ public class SoundOutputHandler extends AbstractOutputHandler {
 
         } else if (event.getType() == IOEvent.Type.SOUND_STOP_ALL) {
             stopAll();
+        } else if (event.getType() == IOEvent.Type.SOUND_SET_MUSIC_VOLUME) {
+            Float value = event.getPayloadOrNull(Float.class);
+            if (value != null) {
+                setMusicVolume(value);
+            }
         }
     }
 
@@ -117,9 +123,18 @@ public class SoundOutputHandler extends AbstractOutputHandler {
         if (next == null) return;
 
         next.setLooping(true);
+        next.setVolume(musicVolume);
         next.play();
         currentMusic = next;
         currentMusicName = trackName;
+    }
+
+    private void setMusicVolume(float value) {
+        float clamped = Math.max(0f, Math.min(1f, value));
+        musicVolume = clamped;
+        if (currentMusic != null) {
+            currentMusic.setVolume(musicVolume);
+        }
     }
 
     private Sound getOrCreateEffect(String clipName) {
