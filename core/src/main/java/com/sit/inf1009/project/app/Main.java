@@ -20,13 +20,9 @@ import com.sit.inf1009.project.app.flow.LeaderboardFlowOrchestrator;
 import com.sit.inf1009.project.app.flow.StateFlowOrchestrator;
 import com.sit.inf1009.project.app.runtime.GameplayRuntime;
 import com.sit.inf1009.project.app.ui.AppUiRenderer;
-import com.sit.inf1009.project.engine.components.CollidableComponent;
-import com.sit.inf1009.project.engine.core.Scene;
 import com.sit.inf1009.project.engine.core.handlers.KeyboardInputHandler;
 import com.sit.inf1009.project.engine.core.handlers.LibGdxMouseInputHandler;
-import com.sit.inf1009.project.engine.core.handlers.PlayerImageInputService;
 import com.sit.inf1009.project.engine.core.handlers.SoundOutputHandler;
-import com.sit.inf1009.project.engine.entities.Entity;
 import com.sit.inf1009.project.game.domain.DifficultyConfig;
 import com.sit.inf1009.project.game.domain.FoodCategory;
 import com.sit.inf1009.project.game.domain.GameSession;
@@ -53,8 +49,6 @@ import java.util.Map;
 public class Main extends ApplicationAdapter {
 
     private static final int PLAYER_ID = 1;
-    private static final float BUTTON_W = 250f;
-    private static final float BUTTON_H = 38f;
     private static final String LEADERBOARD_FILE = "leaderboard.txt";
     private final GameFlowController flowController = new GameFlowController(GameState.FOOD_MENU);
     private final LeaderboardStore leaderboardStore = new LeaderboardFileStore();
@@ -74,9 +68,8 @@ public class Main extends ApplicationAdapter {
     private CollisionManager collisionManager;
     private SceneManager sceneManager;
     private GameSession gameSession;
-    private PlayerImageInputService playerImageInputService;
 
-    private GameState gameState;
+
     private DifficultyPreset difficultyPreset;
     private DifficultyConfig difficultyConfig;
     private boolean paused;
@@ -95,10 +88,8 @@ public class Main extends ApplicationAdapter {
 
     private final List<LeaderboardFlowOrchestrator.LeaderboardEntry> leaderboardEntries = new ArrayList<>();
     private String playerNameInput = "";
-    private boolean leaderboardOpenedFromMenu;
     private String activeBackgroundTrack;
 
-    private boolean leaderboardNameEditing;
     private int lastViewportWidth;
     private int lastViewportHeight;
     
@@ -128,16 +119,14 @@ public class Main extends ApplicationAdapter {
         foodSpawnCoordinator = new FoodSpawnCoordinator(entityManager, movementManager);
         difficultyPreset = DifficultyPreset.NORMAL;
         difficultyConfig = difficultyPreset.toConfig();
-        gameState = flowController.getState();
         gameSession = GameSession.fromConfig(difficultyConfig);
-        paused = false;
+        flowController.resume();
 
         tutorialCoordinator = new TutorialCoordinator();
         tutorialUiRenderer = new TutorialUiRenderer();
 
         ioManager.registerInputHandler(new KeyboardInputHandler(ioManager));
         ioManager.registerInputHandler(new LibGdxMouseInputHandler(ioManager));
-        playerImageInputService = new PlayerImageInputService(ioManager);
         ioManager.registerOutputHandler(new SoundOutputHandler());
         ioManager.sendOutput(new IOEvent(IOEvent.Type.SOUND_SET_MUSIC_VOLUME, musicVolume));
 
@@ -165,30 +154,27 @@ public class Main extends ApplicationAdapter {
         foodMenuScene = new StartMenuScene(ioManager, new StartMenuScene.ActionListener() {
             @Override
             public void onStart() {
-                rulesOpenedFromStart = true;
-                gameState = GameState.HOW_TO_PLAY;
+            	flowController.openHowToPlayFromStart();
             }
 
             @Override
             public void onDifficulty() {
-                gameState = GameState.DIFFICULTY_SETTINGS;
+            	flowController.openDifficultySettings();
             }
 
             @Override
             public void onHowToPlay() {
-                rulesOpenedFromStart = false;
-                gameState = GameState.TUTORIAL;
+                flowController.openTutorial();
             }
 
             @Override
             public void onHighScores() {
-                leaderboardOpenedFromMenu = true;
-                gameState = GameState.LEADERBOARD_VIEW;
+                flowController.openLeaderboard(true);
             }
 
             @Override
             public void onCredits() {
-                gameState = GameState.CREDITS;
+            	flowController.openCredits();
             }
             
             @Override
@@ -202,7 +188,7 @@ public class Main extends ApplicationAdapter {
         avatarSetupScreen = new AvatarSetupFlowScreen(ioManager, presetAvatars, presetAvatarLabels, new AvatarSetupFlowScreen.ActionListener() {
             @Override
             public void onBackToMainMenu() {
-                gameState = GameState.FOOD_MENU;
+            	flowController.goToMainMenu();
             }
 
             @Override
@@ -218,7 +204,7 @@ public class Main extends ApplicationAdapter {
         lastViewportWidth = Math.max(1, Gdx.graphics.getWidth());
         lastViewportHeight = Math.max(1, Gdx.graphics.getHeight());
         gameplayRuntime.initViewportBaseline(lastViewportWidth, lastViewportHeight);
-        gameState = GameState.FOOD_MENU;
+        flowController.goToMainMenu();
     }
 
     @Override
@@ -231,7 +217,7 @@ public class Main extends ApplicationAdapter {
 
         appUiRenderer.captureClick(touchPos);
 
-        switch (gameState) {
+        switch (flowController.getState()) {
             case FOOD_MENU:
                 foodMenuScene.render(batch);
                 break;
@@ -291,7 +277,7 @@ public class Main extends ApplicationAdapter {
                 showStatus("Difficulty set: Hard", 2f);
                 break;
             case BACK_TO_MENU:
-                gameState = GameState.FOOD_MENU;
+            	flowController.goToMainMenu();
                 break;
             default:
                 break;
@@ -299,7 +285,7 @@ public class Main extends ApplicationAdapter {
     }
 
     private void renderHowToPlay() {
-        AppUiRenderer.HowToPlayAction action = appUiRenderer.renderHowToPlay(rulesOpenedFromPause, rulesOpenedFromStart);
+        AppUiRenderer.HowToPlayAction action = appUiRenderer.renderHowToPlay(flowController.isRulesOpenedFromPause(), flowController.isRulesOpenedFromStart());
         
         if (action != AppUiRenderer.HowToPlayAction.NONE) {
             playButtonClick();
@@ -307,16 +293,20 @@ public class Main extends ApplicationAdapter {
         
         switch (action) {
             case BACK_TO_PAUSE:
-                gameState = GameState.PLAYING;
-                rulesOpenedFromPause = false;
+            	flowController.setRulesOpenedFromPause(false);
+                flowController.setRulesOpenedFromStart(false);
+                flowController.startPlaying();
                 break;
             case BACK_TO_MENU:
-                gameState = GameState.FOOD_MENU;
-                rulesOpenedFromStart = false;
+            	flowController.setRulesOpenedFromPause(false);
+                flowController.setRulesOpenedFromStart(false);
+                flowController.goToMainMenu();
+
                 break;
             case CONTINUE_TO_AVATAR:
-                gameState = GameState.AVATAR_SETUP;
-                rulesOpenedFromStart = false;
+            	flowController.setRulesOpenedFromPause(false);
+                flowController.setRulesOpenedFromStart(false);
+                flowController.goToAvatarSetup();
                 break;
             default:
                 break;
@@ -327,10 +317,12 @@ public class Main extends ApplicationAdapter {
         appUiRenderer.applyFullScreenProjection();
 
         if (!tutorialCoordinator.isFinished()) {
-            paused = GameplayLoopOrchestrator.togglePauseOnEsc(paused);
+        	if (GameplayLoopOrchestrator.togglePauseOnEsc(flowController.isPaused()) != flowController.isPaused()) {
+        	    flowController.togglePaused();
+        	}
         }
 
-        if (!paused && !tutorialCoordinator.isFinished()) {
+        if (!flowController.isPaused()&& !tutorialCoordinator.isFinished()) {
             if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
                 submitPlate();
             }
@@ -350,7 +342,7 @@ public class Main extends ApplicationAdapter {
 
         boolean timerExpired = GameplayLoopOrchestrator.tickSimulation(
                 dt,
-                paused,
+                flowController.isPaused(),
                 movementManager,
                 sceneManager,
                 entityManager,
@@ -359,9 +351,9 @@ public class Main extends ApplicationAdapter {
                 activeConfig,
                 gameSession);
         if (timerExpired && !tutorialCoordinator.isActive()) {
-            paused = false;
-            gameState = GameState.LEADERBOARD_ENTRY;
-            leaderboardNameEditing = true;
+        	flowController.resume();
+        	flowController.goToLeaderboardEntry();
+            flowController.setLeaderboardNameEditing(true);
             showStatus("Time up! Enter name and submit to leaderboard", 4f);
         }
 
@@ -389,18 +381,18 @@ public class Main extends ApplicationAdapter {
                 tutorialBackgroundRenderer);
 
         if (hudAction == GameplayLoopOrchestrator.HudAction.PAUSE_CLICKED && !tutorialCoordinator.isFinished()) {
-            paused = !paused;
+            flowController.togglePaused();
         }
 
         if (tutorialCoordinator.isActive() && tutorialCoordinator.isFinished()) {
-            paused = true;
+        	flowController.pause();
             Rectangle continueButton = tutorialUiRenderer.createContinueButton();
 
             if (appUiRenderer.consumeClick(continueButton)) {
                 playButtonClick();
                 tutorialCoordinator.stop();
-                paused = false;
-                gameState = GameState.AVATAR_SETUP;
+                flowController.resume();
+                flowController.goToAvatarSetup();
                 return;
             }
 
@@ -413,13 +405,13 @@ public class Main extends ApplicationAdapter {
             return;
         }
 
-        if (paused) {
+        if (flowController.isPaused()) {
             GameplayLoopOrchestrator.PauseAction action =
                     GameplayLoopOrchestrator.renderPauseMenu(appUiRenderer, batch, font);
             switch (action) {
                 case RESUME -> {
                     playButtonClick();
-                    paused = false;
+                    flowController.resume();
                 }
                 case RESTART -> {
                     playButtonClick();
@@ -431,14 +423,13 @@ public class Main extends ApplicationAdapter {
                 }
                 case OPEN_RULES -> {
                     playButtonClick();
-                    rulesOpenedFromPause = true;
-                    gameState = GameState.HOW_TO_PLAY;
+                    flowController.openRulesFromPause();
                 }
                 case QUIT_TO_MENU -> {
                     playButtonClick();
                     tutorialCoordinator.stop();
-                    gameState = GameState.FOOD_MENU;
-                    paused = false;
+                    flowController.goToMainMenu();
+                    flowController.resume();
                 }
                 default -> {
                 }
@@ -448,9 +439,9 @@ public class Main extends ApplicationAdapter {
 
     private void renderLeaderboardEntry() {
         LeaderboardFlowOrchestrator.NameEditState updated =
-                LeaderboardFlowOrchestrator.updateNameTyping(gameState, leaderboardNameEditing, playerNameInput);
+                LeaderboardFlowOrchestrator.updateNameTyping(flowController.getState(), flowController.isLeaderboardNameEditing(), playerNameInput);
         playerNameInput = updated.playerNameInput();
-        leaderboardNameEditing = updated.leaderboardNameEditing();
+        flowController.setLeaderboardNameEditing(updated.leaderboardNameEditing());
         if (updated.confirmed()) {
             showStatus("Name confirmed", 2f);
         } else if (updated.canceled()) {
@@ -460,26 +451,26 @@ public class Main extends ApplicationAdapter {
                 gameSession.getScore(),
                 selectedAvatarTexture,
                 playerNameInput,
-                leaderboardNameEditing);
+                flowController.isLeaderboardNameEditing());
         if (action != AppUiRenderer.LeaderboardEntryAction.NONE) {
             playButtonClick();
         }
         switch (action) {
             case ENABLE_NAME_EDIT:
-                leaderboardNameEditing = true;
+            	flowController.setLeaderboardNameEditing(true);
                 showStatus("Typing enabled. Press Enter to confirm name.", 2.5f);
                 break;
             case REQUEST_UPLOAD:
-                leaderboardNameEditing = false;
+            	flowController.setLeaderboardNameEditing(false);
                 requestImageUpload("leaderboard-entry");
                 break;
             case SUBMIT:
-                leaderboardNameEditing = false;
+            	flowController.setLeaderboardNameEditing(false);
                 submitLeaderboardEntry();
                 break;
             case BACK_TO_MENU:
-                leaderboardNameEditing = false;
-                gameState = GameState.FOOD_MENU;
+            	flowController.setLeaderboardNameEditing(false);
+                flowController.goToMainMenu();
                 break;
             default:
                 break;
@@ -488,13 +479,13 @@ public class Main extends ApplicationAdapter {
 
     private void renderLeaderboardView() {
         AppUiRenderer.LeaderboardViewAction action =
-                appUiRenderer.renderLeaderboardView(leaderboardEntries, leaderboardOpenedFromMenu);
+                appUiRenderer.renderLeaderboardView(leaderboardEntries, flowController.isLeaderboardOpenedFromMenu());
         if (action == AppUiRenderer.LeaderboardViewAction.FOOTER_CLICKED) {
             playButtonClick();
-            gameState = GameState.FOOD_MENU;
+            flowController.goToMainMenu();
             playerNameInput = "";
-            leaderboardNameEditing = false;
-            leaderboardOpenedFromMenu = false;
+            flowController.setLeaderboardNameEditing(false);
+            flowController.setLeaderboardOpenedFromMenu(false);
             showStatus("Setup ready for next run", 2f);
         }
     }
@@ -503,18 +494,18 @@ public class Main extends ApplicationAdapter {
         AppUiRenderer.CreditsAction action = appUiRenderer.renderCredits();
         if (action == AppUiRenderer.CreditsAction.BACK_TO_MENU) {
             playButtonClick();
-            gameState = GameState.FOOD_MENU;
+            flowController.closeCredits();
         }
     }
 
     private void startNewGame() {
         tutorialCoordinator.stop();
         gameSession = GameSession.fromConfig(difficultyConfig);
-        paused = false;
-        leaderboardNameEditing = false;
+        flowController.resume();
+        flowController.setLeaderboardNameEditing(false);
         playerNameInput = "";
         gameplayRuntime.startNewGame(gameSession, difficultyConfig, selectedAvatarTexture);
-        gameState = GameState.PLAYING;
+        flowController.startPlaying();
         showStatus("Game started (" + difficultyPreset.getLabel() + ")", 2f);
     }
 
@@ -522,11 +513,11 @@ public class Main extends ApplicationAdapter {
         DifficultyConfig tutorialConfig = tutorialCoordinator.getConfig();
         tutorialCoordinator.start();
         gameSession = GameSession.fromConfig(tutorialConfig);
-        paused = false;
-        leaderboardNameEditing = false;
+        flowController.resume();
+        flowController.setLeaderboardNameEditing(false);
         playerNameInput = "";
         gameplayRuntime.startNewGame(gameSession, tutorialConfig, selectedAvatarTexture);
-        gameState = GameState.PLAYING;
+        flowController.startPlaying();
         showStatus("Tutorial started", 2f);
     }
 
@@ -570,27 +561,6 @@ public class Main extends ApplicationAdapter {
         }
     }
 
-    private void selectPresetAvatar(int index) {
-        AvatarFlowOrchestrator.AvatarSelectionState state = AvatarFlowOrchestrator.selectPresetAvatar(
-                index,
-                new AvatarFlowOrchestrator.AvatarSelectionState(
-                        uploadedAvatarTexture,
-                        uploadedAvatarPath,
-                        selectedAvatarTexture,
-                        selectedAvatarIsUploaded,
-                        selectedPresetIndex),
-                presetAvatars,
-                PLAYER_ID,
-                entityManager);
-        uploadedAvatarTexture = state.uploadedAvatarTexture();
-        uploadedAvatarPath = state.uploadedAvatarPath();
-        selectedAvatarTexture = state.selectedAvatarTexture();
-        selectedAvatarIsUploaded = state.selectedAvatarIsUploaded();
-        selectedPresetIndex = state.selectedPresetIndex();
-        if (selectedPresetIndex >= 0 && selectedPresetIndex < presetAvatars.length) {
-            showStatus("Preset avatar selected", 2f);
-        }
-    }
 
     private void requestImageUpload(String sourceTag) {
         ioManager.handleEvent(new IOEvent(IOEvent.Type.PLAYER_IMAGE_UPLOAD_REQUEST, sourceTag));
@@ -612,8 +582,7 @@ public class Main extends ApplicationAdapter {
         leaderboardEntries.clear();
         leaderboardEntries.addAll(result.entries());
         saveLeaderboardEntries();
-        leaderboardOpenedFromMenu = false;
-        gameState = GameState.LEADERBOARD_VIEW;
+        flowController.openLeaderboard(false);
         showStatus("Leaderboard entry submitted", 2f);
     }
 
@@ -628,7 +597,7 @@ public class Main extends ApplicationAdapter {
 
     private void wirePlayerImageSelectionEvents() {
         ioManager.addListener(IOEvent.Type.PLAYER_IMAGE_SELECTED, event -> {
-            if (gameState != GameState.LEADERBOARD_ENTRY) {
+            if (flowController.getState() != GameState.LEADERBOARD_ENTRY) {
                 return;
             }
             String path = event.requirePayload(String.class);
@@ -655,7 +624,7 @@ public class Main extends ApplicationAdapter {
         });
 
         ioManager.addListener(IOEvent.Type.PLAYER_IMAGE_SELECTION_FAILED, event -> {
-            if (gameState != GameState.LEADERBOARD_ENTRY) {
+            if (flowController.getState() != GameState.LEADERBOARD_ENTRY) {
                 return;
             }
             String reason = event.getPayloadOrNull(String.class);
@@ -666,14 +635,6 @@ public class Main extends ApplicationAdapter {
         });
     }
 
-    private void applyAvatarToPlayer() {
-        for (Entity entity : entityManager.getEntities()) {
-            if (entity.getID() == PLAYER_ID) {
-                entity.setTexture(selectedAvatarTexture);
-                return;
-            }
-        }
-    }
 
     private void showStatus(String message, float seconds) {
         flowController.showStatus(message, seconds);
@@ -684,7 +645,7 @@ public class Main extends ApplicationAdapter {
     }
 
     private void syncBackgroundMusicForState() {
-        activeBackgroundTrack = StateFlowOrchestrator.syncBackgroundMusicForState(ioManager, gameState, activeBackgroundTrack);
+        activeBackgroundTrack = StateFlowOrchestrator.syncBackgroundMusicForState(ioManager, flowController.getState(), activeBackgroundTrack);
     }
 
     public void addFood(FoodCategory category, int scoreValue) {
@@ -706,7 +667,7 @@ public class Main extends ApplicationAdapter {
             }
 
             if (tutorialResult.finished()) {
-                paused = true;
+            	flowController.pause();
             }
 
             return;
@@ -790,7 +751,6 @@ public class Main extends ApplicationAdapter {
         if (appUiRenderer != null) {
             appUiRenderer.dispose();
         }
-        playerImageInputService = null;
         shapeRenderer.dispose();
         batch.dispose();
         font.dispose();
