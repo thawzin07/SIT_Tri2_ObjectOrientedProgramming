@@ -82,7 +82,8 @@ public final class GameplayLoopOrchestrator {
                                               GameplayRuntime gameplayRuntime,
                                               GameSession gameSession,
                                               DifficultyPreset difficultyPreset,
-                                              AppUiRenderer appUiRenderer) {
+                                              AppUiRenderer appUiRenderer,
+                                              Runnable backgroundLayerRenderer) {
         sceneManager.render(batch);
 
         Texture playingBackground = appUiRenderer.getPlayingBackgroundTexture();
@@ -90,6 +91,10 @@ public final class GameplayLoopOrchestrator {
             batch.begin();
             batch.draw(playingBackground, 0f, 0f, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
             batch.end();
+        }
+
+        if (backgroundLayerRenderer != null) {
+            backgroundLayerRenderer.run();
         }
 
         float hudHeight = gameplayRuntime.getHudBlockHeight();

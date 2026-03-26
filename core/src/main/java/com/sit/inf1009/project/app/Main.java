@@ -14,9 +14,6 @@ import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.math.Vector3;
 import com.sit.inf1009.project.app.controllers.GameFlowController;
-import com.sit.inf1009.project.app.controllers.GameplayController;
-import com.sit.inf1009.project.app.controllers.LeaderboardController;
-import com.sit.inf1009.project.app.controllers.SettingsController;
 import com.sit.inf1009.project.app.flow.AvatarFlowOrchestrator;
 import com.sit.inf1009.project.app.flow.GameplayLoopOrchestrator;
 import com.sit.inf1009.project.app.flow.LeaderboardFlowOrchestrator;
@@ -40,7 +37,10 @@ import com.sit.inf1009.project.engine.managers.MovementManager;
 import com.sit.inf1009.project.engine.managers.SceneManager;
 import com.sit.inf1009.project.engine.managers.CollisionManager;
 import com.sit.inf1009.project.game.persistence.LeaderboardFileStore;
+import com.sit.inf1009.project.game.persistence.LeaderboardStore;
 import com.sit.inf1009.project.game.services.FoodSpawnCoordinator;
+import com.sit.inf1009.project.game.services.TutorialCoordinator;
+import com.sit.inf1009.project.game.ui.TutorialUiRenderer;
 import com.sit.inf1009.project.game.ui.screens.AvatarSetupFlowScreen;
 import com.sit.inf1009.project.game.ui.screens.StartMenuScene;
 
@@ -57,9 +57,7 @@ public class Main extends ApplicationAdapter {
     private static final float BUTTON_H = 38f;
     private static final String LEADERBOARD_FILE = "leaderboard.txt";
     private final GameFlowController flowController = new GameFlowController(GameState.FOOD_MENU);
-    private final SettingsController settingsController = new SettingsController(DifficultyPreset.NORMAL);
-    private final GameplayController gameplayController = new GameplayController();
-    private final LeaderboardController leaderboardController = new LeaderboardController(new LeaderboardFileStore());
+    private final LeaderboardStore leaderboardStore = new LeaderboardFileStore();
 
     private ShapeRenderer shapeRenderer;
     private SpriteBatch batch;
@@ -108,6 +106,9 @@ public class Main extends ApplicationAdapter {
     private GameplayRuntime gameplayRuntime;
     private FoodSpawnCoordinator foodSpawnCoordinator;
 
+    private TutorialCoordinator tutorialCoordinator;
+    private TutorialUiRenderer tutorialUiRenderer;
+
     @Override
     public void create() {
         shapeRenderer = new ShapeRenderer();
@@ -116,6 +117,7 @@ public class Main extends ApplicationAdapter {
         
         camera = new OrthographicCamera();
         camera.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        camera.update();
         appUiRenderer = new AppUiRenderer(shapeRenderer, batch, font, camera, flowController);
 
         ioManager = new InputOutputManager();
@@ -124,11 +126,14 @@ public class Main extends ApplicationAdapter {
         collisionManager = new CollisionManager(entityManager, ioManager);
         sceneManager = new SceneManager();
         foodSpawnCoordinator = new FoodSpawnCoordinator(entityManager, movementManager);
-        difficultyPreset = settingsController.getPreset();
-        difficultyConfig = settingsController.getConfig();
+        difficultyPreset = DifficultyPreset.NORMAL;
+        difficultyConfig = difficultyPreset.toConfig();
         gameState = flowController.getState();
-        gameSession = gameplayController.createSession(settingsController.getConfig());
+        gameSession = GameSession.fromConfig(difficultyConfig);
         paused = false;
+
+        tutorialCoordinator = new TutorialCoordinator();
+        tutorialUiRenderer = new TutorialUiRenderer();
 
         ioManager.registerInputHandler(new KeyboardInputHandler(ioManager));
         ioManager.registerInputHandler(new LibGdxMouseInputHandler(ioManager));
@@ -172,7 +177,7 @@ public class Main extends ApplicationAdapter {
             @Override
             public void onHowToPlay() {
                 rulesOpenedFromStart = false;
-                gameState = GameState.HOW_TO_PLAY;
+                gameState = GameState.TUTORIAL;
             }
 
             @Override
@@ -238,6 +243,9 @@ public class Main extends ApplicationAdapter {
             case LEADERBOARD_VIEW:
                 renderLeaderboardView();
                 break;
+            case TUTORIAL:
+                startTutorial();
+                break;
             default:
                 break;
         }
@@ -256,20 +264,17 @@ public class Main extends ApplicationAdapter {
         switch (action) {
             case SET_EASY:
                 difficultyPreset = DifficultyPreset.EASY;
-                settingsController.setPreset(difficultyPreset);
-                difficultyConfig = settingsController.getConfig();
+                difficultyConfig = difficultyPreset.toConfig();
                 showStatus("Difficulty set: Easy", 2f);
                 break;
             case SET_NORMAL:
                 difficultyPreset = DifficultyPreset.NORMAL;
-                settingsController.setPreset(difficultyPreset);
-                difficultyConfig = settingsController.getConfig();
+                difficultyConfig = difficultyPreset.toConfig();
                 showStatus("Difficulty set: Normal", 2f);
                 break;
             case SET_HARD:
                 difficultyPreset = DifficultyPreset.HARD;
-                settingsController.setPreset(difficultyPreset);
-                difficultyConfig = settingsController.getConfig();
+                difficultyConfig = difficultyPreset.toConfig();
                 showStatus("Difficulty set: Hard", 2f);
                 break;
             case BACK_TO_MENU:
@@ -308,15 +313,27 @@ public class Main extends ApplicationAdapter {
     private void renderGameplay(float dt) {
         appUiRenderer.applyFullScreenProjection();
 
-        paused = GameplayLoopOrchestrator.togglePauseOnEsc(paused);
+        if (!tutorialCoordinator.isFinished()) {
+            paused = GameplayLoopOrchestrator.togglePauseOnEsc(paused);
+        }
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
-            submitPlate();
+        if (!paused && !tutorialCoordinator.isFinished()) {
+            if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+                submitPlate();
+            }
+            if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
+                resetPlate();
+                showStatus("Plate reset", 2f);
+            }
         }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
-            resetPlate();
-            showStatus("Plate reset", 2f);
-        }
+
+        DifficultyConfig activeConfig = tutorialCoordinator.isActive()
+                ? tutorialCoordinator.getConfig()
+                : difficultyConfig;
+
+        DifficultyPreset activePreset = tutorialCoordinator.isActive()
+                ? tutorialCoordinator.getPreset()
+                : difficultyPreset;
 
         boolean timerExpired = GameplayLoopOrchestrator.tickSimulation(
                 dt,
@@ -326,13 +343,24 @@ public class Main extends ApplicationAdapter {
                 entityManager,
                 collisionManager,
                 gameplayRuntime,
-                difficultyConfig,
+                activeConfig,
                 gameSession);
-        if (timerExpired) {
+        if (timerExpired && !tutorialCoordinator.isActive()) {
             paused = false;
             gameState = GameState.LEADERBOARD_ENTRY;
             leaderboardNameEditing = true;
             showStatus("Time up! Enter name and submit to leaderboard", 4f);
+        }
+
+        Runnable tutorialBackgroundRenderer = null;
+        if (tutorialCoordinator.isActive() && !tutorialCoordinator.isFinished()) {
+            tutorialBackgroundRenderer = () -> tutorialUiRenderer.renderTutorialInstructionsPanel(
+                    shapeRenderer,
+                    batch,
+                    font,
+                    foodCategoryTextures,
+                    tutorialCoordinator.getState()
+            );
         }
 
         GameplayLoopOrchestrator.HudAction hudAction = GameplayLoopOrchestrator.renderWorldAndHud(
@@ -343,11 +371,33 @@ public class Main extends ApplicationAdapter {
                 sceneManager,
                 gameplayRuntime,
                 gameSession,
-                difficultyPreset,
-                appUiRenderer);
+                activePreset,
+                appUiRenderer,
+                tutorialBackgroundRenderer);
 
-        if (hudAction == GameplayLoopOrchestrator.HudAction.PAUSE_CLICKED) {
+        if (hudAction == GameplayLoopOrchestrator.HudAction.PAUSE_CLICKED && !tutorialCoordinator.isFinished()) {
             paused = !paused;
+        }
+
+        if (tutorialCoordinator.isActive() && tutorialCoordinator.isFinished()) {
+            paused = true;
+            Rectangle continueButton = tutorialUiRenderer.createContinueButton();
+
+            if (appUiRenderer.consumeClick(continueButton)) {
+                playButtonClick();
+                tutorialCoordinator.stop();
+                paused = false;
+                gameState = GameState.AVATAR_SETUP;
+                return;
+            }
+
+            tutorialUiRenderer.renderTutorialCompleteOverlay(
+                    shapeRenderer,
+                    batch,
+                    font,
+                    continueButton
+            );
+            return;
         }
 
         if (paused) {
@@ -360,7 +410,11 @@ public class Main extends ApplicationAdapter {
                 }
                 case RESTART -> {
                     playButtonClick();
-                    startNewGame();
+                    if (tutorialCoordinator.isActive()) {
+                        startTutorial();
+                    } else {
+                        startNewGame();
+                    }
                 }
                 case OPEN_RULES -> {
                     playButtonClick();
@@ -369,6 +423,7 @@ public class Main extends ApplicationAdapter {
                 }
                 case QUIT_TO_MENU -> {
                     playButtonClick();
+                    tutorialCoordinator.stop();
                     gameState = GameState.FOOD_MENU;
                     paused = false;
                 }
@@ -432,13 +487,26 @@ public class Main extends ApplicationAdapter {
     }
 
     private void startNewGame() {
-        gameSession = gameplayController.createSession(difficultyConfig);
+        tutorialCoordinator.stop();
+        gameSession = GameSession.fromConfig(difficultyConfig);
         paused = false;
         leaderboardNameEditing = false;
         playerNameInput = "";
         gameplayRuntime.startNewGame(gameSession, difficultyConfig, selectedAvatarTexture);
         gameState = GameState.PLAYING;
         showStatus("Game started (" + difficultyPreset.getLabel() + ")", 2f);
+    }
+
+    private void startTutorial() {
+        DifficultyConfig tutorialConfig = tutorialCoordinator.getConfig();
+        tutorialCoordinator.start();
+        gameSession = GameSession.fromConfig(tutorialConfig);
+        paused = false;
+        leaderboardNameEditing = false;
+        playerNameInput = "";
+        gameplayRuntime.startNewGame(gameSession, tutorialConfig, selectedAvatarTexture);
+        gameState = GameState.PLAYING;
+        showStatus("Tutorial started", 2f);
     }
 
     private Map<FoodCategory, Texture> createFoodCategoryTextures() {
@@ -509,7 +577,6 @@ public class Main extends ApplicationAdapter {
 
     private void submitLeaderboardEntry() {
         LeaderboardFlowOrchestrator.SubmitResult result = LeaderboardFlowOrchestrator.submitEntry(
-                leaderboardController,
                 leaderboardEntries,
                 playerNameInput,
                 gameSession.getScore(),
@@ -531,11 +598,11 @@ public class Main extends ApplicationAdapter {
 
     private void loadLeaderboardEntries() {
         leaderboardEntries.clear();
-        leaderboardEntries.addAll(LeaderboardFlowOrchestrator.loadEntries(leaderboardController, LEADERBOARD_FILE, presetAvatars));
+        leaderboardEntries.addAll(LeaderboardFlowOrchestrator.loadEntries(leaderboardStore, LEADERBOARD_FILE, presetAvatars));
     }
 
     private void saveLeaderboardEntries() {
-        LeaderboardFlowOrchestrator.saveEntries(leaderboardController, LEADERBOARD_FILE, leaderboardEntries);
+        LeaderboardFlowOrchestrator.saveEntries(leaderboardStore, LEADERBOARD_FILE, leaderboardEntries);
     }
 
     private void wirePlayerImageSelectionEvents() {
@@ -600,15 +667,33 @@ public class Main extends ApplicationAdapter {
     }
 
     public void addFood(FoodCategory category, int scoreValue) {
-        gameplayController.addFood(gameSession, category, scoreValue);
+        if (gameSession != null && category != null) {
+            gameSession.addFood(category, scoreValue);
+        }
     }
 
     public boolean isPlateHealthy() {
-        return gameplayController.isPlateHealthy(gameSession);
+        return gameSession != null && gameSession.isPlateHealthy();
     }
 
     public void submitPlate() {
-        GameplayController.PlateSubmitResult result = gameplayController.submitPlate(gameSession);
+        if (tutorialCoordinator.isActive()) {
+            TutorialCoordinator.TutorialSubmitResult tutorialResult = tutorialCoordinator.submit(gameSession);
+
+            if (tutorialResult.message() != null) {
+                showStatus(tutorialResult.message(), tutorialResult.finished() ? 2.5f : 3f);
+            }
+
+            if (tutorialResult.finished()) {
+                paused = true;
+            }
+
+            return;
+        }
+
+        GameSession.PlateSubmitResult result = gameSession == null
+                ? new GameSession.PlateSubmitResult(false, 0, 0f)
+                : gameSession.submitPlate();
         if (result.isHealthy()) {
             showStatus("Healthy plate! +" + result.getHealthyScoreBonus() + " score, +"
                     + (int) result.getTimerDeltaSeconds() + "s. Plate reset.", 2.5f);
@@ -619,13 +704,20 @@ public class Main extends ApplicationAdapter {
     }
 
     public void resetPlate() {
-        gameplayController.resetPlate(gameSession);
+        if (gameSession != null) {
+            gameSession.resetPlate();
+        }
     }
 
     @Override
     public void resize(int width, int height) {
         int safeWidth = Math.max(1, width);
         int safeHeight = Math.max(1, height);
+
+        if (camera != null) {
+            camera.setToOrtho(false, safeWidth, safeHeight);
+            camera.update();
+        }
 
         if (safeWidth != lastViewportWidth || safeHeight != lastViewportHeight) {
             gameplayRuntime.rescaleEntitiesForViewportChange(lastViewportWidth, lastViewportHeight, safeWidth, safeHeight);
