@@ -156,7 +156,7 @@ public final class AppUiRenderer {
         if (difficultyPreset == null) return null;
         return switch (difficultyPreset) {
             case EASY -> easyDifficultyIcon;
-            case NORMAL -> normalDifficultyIcon;
+            case NORMAL, TUTORIAL -> normalDifficultyIcon;
             case HARD -> hardDifficultyIcon;
         };
     }
