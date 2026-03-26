@@ -104,7 +104,6 @@ public final class GameplayRuntime {
         movementManager.addMovable(player);
 
         Random rng = new Random();
-        int npcCount = (levelNum == 1) ? difficultyConfig.getNpcCount() : Math.max(4, difficultyConfig.getNpcCount() / 2);
         int minX = (int) Math.max(40, foodRadius * 2);
         int maxX = Math.max(minX + 1, worldW - minX);
         int minY = (int) Math.max(60, foodRadius * 2);
