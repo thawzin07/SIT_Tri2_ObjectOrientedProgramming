@@ -156,17 +156,10 @@ public final class AppUiRenderer {
     public Texture getDifficultyIcon(DifficultyPreset difficultyPreset) {
         if (difficultyPreset == null) return null;
         return switch (difficultyPreset) {
-<<<<<<< HEAD
             case EASY -> easyDifficultyIcon;
             case NORMAL, TUTORIAL -> normalDifficultyIcon;
             case HARD -> hardDifficultyIcon;
         };
-=======
-	        case EASY -> easyDifficultyIcon;
-	        case NORMAL, TUTORIAL -> normalDifficultyIcon;
-	        case HARD -> hardDifficultyIcon;
-	    };
->>>>>>> refs/remotes/origin/gerome-dev
     }
 
     public DifficultyAction renderDifficultySettings(DifficultyPreset difficultyPreset) {
