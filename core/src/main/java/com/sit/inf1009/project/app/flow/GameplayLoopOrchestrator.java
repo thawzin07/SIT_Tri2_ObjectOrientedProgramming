@@ -75,6 +75,7 @@ public final class GameplayLoopOrchestrator {
     }
 
     public static HudAction renderWorldAndHud(ShapeRenderer shapeRenderer,
+<<<<<<< HEAD
                                               SpriteBatch batch,
                                               BitmapFont font,
                                               EntityManager entityManager,
@@ -92,6 +93,29 @@ public final class GameplayLoopOrchestrator {
             batch.draw(playingBackground, 0f, 0f, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
             batch.end();
         }
+=======
+							            SpriteBatch batch,
+							            BitmapFont font,
+							            EntityManager entityManager,
+							            SceneManager sceneManager,
+							            GameplayRuntime gameplayRuntime,
+							            GameSession gameSession,
+							            DifficultyPreset difficultyPreset,
+							            AppUiRenderer appUiRenderer,
+							            Runnable backgroundLayerRenderer) {
+
+    	sceneManager.render(null);
+    	Texture playingBackground = appUiRenderer.getPlayingBackgroundTexture();
+    	if (playingBackground != null) {
+    	    batch.begin();
+    	    batch.draw(playingBackground, 0f, 0f, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+    	    batch.end();
+    	}
+
+    	if (backgroundLayerRenderer != null) {
+    	    backgroundLayerRenderer.run();
+    	}
+>>>>>>> refs/remotes/origin/gerome-dev
 
         if (backgroundLayerRenderer != null) {
             backgroundLayerRenderer.run();
