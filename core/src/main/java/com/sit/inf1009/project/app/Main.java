@@ -185,6 +185,11 @@ public class Main extends ApplicationAdapter {
                 leaderboardOpenedFromMenu = true;
                 gameState = GameState.LEADERBOARD_VIEW;
             }
+
+            @Override
+            public void onCredits() {
+                gameState = GameState.CREDITS;
+            }
         });
         foodMenuScene.create();
         foodMenuScene.resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
@@ -224,6 +229,9 @@ public class Main extends ApplicationAdapter {
         switch (gameState) {
             case FOOD_MENU:
                 foodMenuScene.render(batch);
+                break;
+            case CREDITS:
+                renderCredits();
                 break;
             case DIFFICULTY_SETTINGS:
                 renderDifficultySettings();
@@ -483,6 +491,14 @@ public class Main extends ApplicationAdapter {
             leaderboardNameEditing = false;
             leaderboardOpenedFromMenu = false;
             showStatus("Setup ready for next run", 2f);
+        }
+    }
+
+    private void renderCredits() {
+        AppUiRenderer.CreditsAction action = appUiRenderer.renderCredits();
+        if (action == AppUiRenderer.CreditsAction.BACK_TO_MENU) {
+            playButtonClick();
+            gameState = GameState.FOOD_MENU;
         }
     }
 

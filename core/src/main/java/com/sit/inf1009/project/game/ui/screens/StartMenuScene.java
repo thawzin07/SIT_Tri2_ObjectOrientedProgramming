@@ -52,6 +52,7 @@ public class StartMenuScene extends Scene implements IOListener {
         void onDifficulty();
         void onHowToPlay();
         void onHighScores();
+        void onCredits();
     }
 
     private static final float VIRTUAL_W = 800f;
@@ -113,11 +114,11 @@ public class StartMenuScene extends Scene implements IOListener {
     }
 
     private void setupButtons() {
-        float btnW = VIRTUAL_W * 0.46f;
-        float btnH = VIRTUAL_H * 0.10f;
+        float btnW = VIRTUAL_W * 0.44f;
+        float btnH = VIRTUAL_H * 0.085f;
         float btnX = (VIRTUAL_W - btnW) / 2f;
-        float gap = VIRTUAL_H * 0.025f;
-        float topY = VIRTUAL_H * 0.44f;
+        float gap = VIRTUAL_H * 0.02f;
+        float topY = VIRTUAL_H * 0.47f;
 
         buttons = new MenuButtonData[] {
             new MenuButtonData("START",
@@ -146,7 +147,14 @@ public class StartMenuScene extends Scene implements IOListener {
                 new Color(0.62f, 0.28f, 0.02f, 1f),
                 new Color(0.82f, 0.48f, 0.08f, 1f),
                 new Color(0.38f, 0.14f, 0.01f, 1f),
-                new Color(0.42f, 0.16f, 0.01f, 1f))
+                new Color(0.42f, 0.16f, 0.01f, 1f)),
+
+            new MenuButtonData("CREDITS",
+                btnX, topY - (btnH + gap) * 4, btnW, btnH,
+                new Color(0.34f, 0.25f, 0.60f, 1f),
+                new Color(0.50f, 0.39f, 0.78f, 1f),
+                new Color(0.19f, 0.13f, 0.36f, 1f),
+                new Color(0.24f, 0.18f, 0.44f, 1f))
         };
     }
 
@@ -296,6 +304,10 @@ public class StartMenuScene extends Scene implements IOListener {
                     playButtonClick();
                     actionListener.onHighScores();
                     break;
+                case 4:
+                    playButtonClick();
+                    actionListener.onCredits();
+                    break;
                 default:
                     break;
             }
@@ -320,6 +332,11 @@ public class StartMenuScene extends Scene implements IOListener {
                 playButtonClick();
                 if (ioManager != null)
                     ioManager.sendOutput(new IOEvent(IOEvent.Type.DISPLAY_SHOW_HUD, "High Scores - coming soon!"));
+                break;
+            case 4:
+                playButtonClick();
+                if (ioManager != null)
+                    ioManager.sendOutput(new IOEvent(IOEvent.Type.DISPLAY_SHOW_HUD, "Credits - coming soon!"));
                 break;
             default:
                 break;
