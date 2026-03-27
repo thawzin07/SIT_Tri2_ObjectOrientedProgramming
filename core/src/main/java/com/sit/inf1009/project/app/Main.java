@@ -190,6 +190,11 @@ public class Main extends ApplicationAdapter {
             public void onCredits() {
                 gameState = GameState.CREDITS;
             }
+            
+            @Override
+            public void onQuit() {
+                Gdx.app.exit();
+            }
         });
         foodMenuScene.create();
         foodMenuScene.resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());

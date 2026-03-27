@@ -53,6 +53,7 @@ public class StartMenuScene extends Scene implements IOListener {
         void onHowToPlay();
         void onHighScores();
         void onCredits();
+        void onQuit();
     }
 
     private static final float VIRTUAL_W = 800f;
@@ -115,10 +116,10 @@ public class StartMenuScene extends Scene implements IOListener {
 
     private void setupButtons() {
         float btnW = VIRTUAL_W * 0.44f;
-        float btnH = VIRTUAL_H * 0.085f;
+        float btnH = VIRTUAL_H * 0.07f;
         float btnX = (VIRTUAL_W - btnW) / 2f;
-        float gap = VIRTUAL_H * 0.02f;
-        float topY = VIRTUAL_H * 0.47f;
+        float gap = VIRTUAL_H * 0.018f;
+        float topY = VIRTUAL_H * 0.48f;
 
         buttons = new MenuButtonData[] {
             new MenuButtonData("START",
@@ -154,7 +155,14 @@ public class StartMenuScene extends Scene implements IOListener {
                 new Color(0.34f, 0.25f, 0.60f, 1f),
                 new Color(0.50f, 0.39f, 0.78f, 1f),
                 new Color(0.19f, 0.13f, 0.36f, 1f),
-                new Color(0.24f, 0.18f, 0.44f, 1f))
+                new Color(0.24f, 0.18f, 0.44f, 1f)),
+
+            new MenuButtonData("QUIT",
+                btnX, topY - (btnH + gap) * 5, btnW, btnH,
+                new Color(0.70f, 0.05f, 0.05f, 1f),
+                new Color(0.90f, 0.20f, 0.20f, 1f),
+                new Color(0.40f, 0.01f, 0.01f, 1f),
+                new Color(0.50f, 0.02f, 0.02f, 1f))
         };
     }
 
@@ -308,6 +316,10 @@ public class StartMenuScene extends Scene implements IOListener {
                     playButtonClick();
                     actionListener.onCredits();
                     break;
+                case 5:
+                    playButtonClick();
+                    actionListener.onQuit();
+                    break;
                 default:
                     break;
             }
@@ -337,6 +349,10 @@ public class StartMenuScene extends Scene implements IOListener {
                 playButtonClick();
                 if (ioManager != null)
                     ioManager.sendOutput(new IOEvent(IOEvent.Type.DISPLAY_SHOW_HUD, "Credits - coming soon!"));
+                break;
+            case 5:
+                playButtonClick();
+                Gdx.app.exit();
                 break;
             default:
                 break;
