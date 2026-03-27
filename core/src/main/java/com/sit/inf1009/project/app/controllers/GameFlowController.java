@@ -11,7 +11,10 @@ public final class GameFlowController {
     private boolean rulesOpenedFromStart;
     private boolean paused;
     private boolean leaderboardNameEditing;
+<<<<<<< HEAD
     private boolean openCredits;
+=======
+>>>>>>> branch 'saketh-dev' of https://github.com/thawzin07/SIT_Tri2_ObjectOrientedProgramming
 
     public void pause() {
         paused = true;
@@ -64,6 +67,7 @@ public final class GameFlowController {
     public void setLeaderboardOpenedFromMenu(boolean leaderboardOpenedFromMenu) {
         this.leaderboardOpenedFromMenu = leaderboardOpenedFromMenu;
     }
+<<<<<<< HEAD
     
     public void openLeaderboard(boolean leaderboardOpenedFromMenu) {
         this.leaderboardOpenedFromMenu = leaderboardOpenedFromMenu;
@@ -79,6 +83,12 @@ public final class GameFlowController {
     	this.openCredits = false;
         state = GameState.FOOD_MENU;
 	}
+=======
+    public void openLeaderboard(boolean leaderboardOpenedFromMenu) {
+        this.leaderboardOpenedFromMenu = leaderboardOpenedFromMenu;
+        state = GameState.LEADERBOARD_VIEW;
+    }
+>>>>>>> branch 'saketh-dev' of https://github.com/thawzin07/SIT_Tri2_ObjectOrientedProgramming
 
     public void showStatus(String message, float seconds) {
         statusMessage = message;
@@ -103,6 +113,7 @@ public final class GameFlowController {
         rulesOpenedFromPause = false;
         state = GameState.HOW_TO_PLAY;
     }
+<<<<<<< HEAD
     
     public void openDifficultySettings()
     {
@@ -137,4 +148,41 @@ public final class GameFlowController {
         rulesOpenedFromStart = false;
         state = GameState.HOW_TO_PLAY;
     }    
+=======
+    public void openDifficultySettings()
+    {
+    	state = GameState.DIFFICULTY_SETTINGS;
+    }
+    public void openTutorial()
+    {
+    	rulesOpenedFromStart = false;
+    	rulesOpenedFromPause = false;
+		state = GameState.TUTORIAL;
+	}
+    public void goToMainMenu() {
+        state = GameState.FOOD_MENU;
+    }
+
+    public void goToAvatarSetup() {
+        state = GameState.AVATAR_SETUP;
+    }
+
+    public void goToLeaderboardEntry() {
+        state = GameState.LEADERBOARD_ENTRY;
+    }
+
+    public void startPlaying() {
+        state = GameState.PLAYING;
+    }
+
+    public void openRulesFromPause() {
+        rulesOpenedFromPause = true;
+        rulesOpenedFromStart = false;
+        state = GameState.HOW_TO_PLAY;
+    }
+  
+    
+    
+    
+>>>>>>> branch 'saketh-dev' of https://github.com/thawzin07/SIT_Tri2_ObjectOrientedProgramming
 }
