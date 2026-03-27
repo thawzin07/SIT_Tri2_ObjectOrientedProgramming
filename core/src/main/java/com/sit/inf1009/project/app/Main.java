@@ -72,13 +72,10 @@ public class Main extends ApplicationAdapter {
 
     private DifficultyPreset difficultyPreset;
     private DifficultyConfig difficultyConfig;
-<<<<<<< HEAD
     private boolean paused;
     private boolean rulesOpenedFromPause = false;
     private float musicVolume = 1.0f;
     private boolean rulesOpenedFromStart = false;
-=======
->>>>>>> branch 'saketh-dev' of https://github.com/thawzin07/SIT_Tri2_ObjectOrientedProgramming
 
     private Texture[] presetAvatars;
     private String[] presetAvatarLabels;
@@ -173,7 +170,6 @@ public class Main extends ApplicationAdapter {
             @Override
             public void onHighScores() {
                 flowController.openLeaderboard(true);
-<<<<<<< HEAD
             }
 
             @Override
@@ -184,8 +180,6 @@ public class Main extends ApplicationAdapter {
             @Override
             public void onQuit() {
                 Gdx.app.exit();
-=======
->>>>>>> branch 'saketh-dev' of https://github.com/thawzin07/SIT_Tri2_ObjectOrientedProgramming
             }
         });
         foodMenuScene.create();
