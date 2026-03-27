@@ -72,10 +72,7 @@ public class Main extends ApplicationAdapter {
 
     private DifficultyPreset difficultyPreset;
     private DifficultyConfig difficultyConfig;
-    private boolean paused;
-    private boolean rulesOpenedFromPause = false;
     private float musicVolume = 1.0f;
-    private boolean rulesOpenedFromStart = false;
 
     private Texture[] presetAvatars;
     private String[] presetAvatarLabels;
